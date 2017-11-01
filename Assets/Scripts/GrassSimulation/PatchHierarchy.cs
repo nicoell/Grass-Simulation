@@ -5,20 +5,20 @@ using UnityEngine;
 namespace GrassSim {
 	public class PatchHierarchy
 	{
-		private const int PatchSize = 16;
-		private const int PatchSizeHalf = PatchSize / 2;
+		private readonly Settings m_settings;
 		private readonly TerrainData m_terrainData;
 		private readonly Transform m_transform;
 		private Texture2D m_heightmap;
 		private Patch[,] m_leafPatches;
-		private HierarchicalPatch m_rootPatch;
+		private BoundingPatch m_rootPatch;
 		private List<Patch> m_visiblePatches;
 
-		public PatchHierarchy(TerrainData terrainData, Transform transform)
+		public PatchHierarchy(Settings settings, TerrainData terrainData, Transform transform)
 		{
 			if (terrainData == null) throw new ArgumentNullException("terrainData");
 			if (transform == null) throw new ArgumentNullException("transform");
 
+			m_settings = settings;
 			m_terrainData = terrainData;
 			m_transform = transform;
 			m_visiblePatches = new List<Patch>();
@@ -54,7 +54,7 @@ namespace GrassSim {
 			var terrainLevel = m_terrainData.size.y;
 			var heightmapSize = new Vector2Int(m_terrainData.heightmapWidth, m_terrainData.heightmapHeight);
 			//var heightmapToTerrainFactor = new Vector2(heightmapSize.x / terrainSize.x, heightmapSize.y / terrainSize.y);
-			var patchQuantity = new Vector2Int((int) (terrainSize.x / PatchSize), (int) (terrainSize.y / PatchSize));
+			var patchQuantity = new Vector2Int((int) (terrainSize.x / m_settings.patchSize), (int) (terrainSize.y / m_settings.patchSize));
 			m_leafPatches = new Patch[patchQuantity.y, patchQuantity.x];
 
 			//Initiate all Leaf Patches by creating their BoundingBox and textureCoordinates for heightmap Access
@@ -70,10 +70,10 @@ namespace GrassSim {
 					terrainBoundsWorldCenter.x - m_terrainData.bounds.extents.x,
 					m_transform.position.y,
 					terrainBoundsWorldCenter.z - m_terrainData.bounds.extents.z);
-				var patchBoundsSize = new Vector3(PatchSize, 0, PatchSize);
+				var patchBoundsSize = new Vector3(m_settings.patchSize, 0, m_settings.patchSize);
 				//We can already calculate x and y positions
-				patchBoundsCenter.x += x * PatchSize + PatchSizeHalf;
-				patchBoundsCenter.z += y * PatchSize + PatchSizeHalf;
+				patchBoundsCenter.x += x * m_settings.patchSize + m_settings.patchSize/2;
+				patchBoundsCenter.z += y * m_settings.patchSize + m_settings.patchSize/2;
 
 				//Sample heightmapTexture to find min and maxheight values of current patch
 				var minHeight = 1f;
@@ -109,16 +109,16 @@ namespace GrassSim {
 			m_rootPatch = patchHierarchy[0,0];
 		}
 
-		private HierarchicalPatch[,] Combine2X2Patches(APatch[,] patchesInput)
+		private BoundingPatch[,] Combine2X2Patches(APatch[,] patchesInput)
 		{
 			var newRows = (patchesInput.GetLength(0) + 1) / 2;
 			var newCols = (patchesInput.GetLength(1) + 1) / 2;
-			var patchesOutput = new HierarchicalPatch[newRows, newCols];
+			var patchesOutput = new BoundingPatch[newRows, newCols];
 
 			for (var y = 0; y < newRows; y++)
 			for (var x = 0; x < newCols; x++)
 			{
-				var hierarchicalPatch = new HierarchicalPatch();
+				var hierarchicalPatch = new BoundingPatch();
 				for (var k = 0; k <= 1; k++)
 				for (var j = 0; j <= 1; j++)
 				{
@@ -161,7 +161,7 @@ namespace GrassSim {
 				m_visiblePatches.Add(patch as Patch);
 			} else
 			{
-				foreach (var childPatch in (patch as HierarchicalPatch).ChildPatches)
+				foreach (var childPatch in (patch as BoundingPatch).ChildPatches)
 				{
 					if (childPatch != null) TestViewFrustum(vfPlanes, childPatch);
 				}

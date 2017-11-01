@@ -1,4 +1,5 @@
 ﻿using GrassSim;
+using GrassSim.Grass;
 using UnityEngine;
 
 [ExecuteInEditMode]
@@ -6,6 +7,7 @@ public class GrassSimulationControl : MonoBehaviour
 {
 	public Terrain targetTerrain;
 	public Camera targetCamera;
+	public Settings globalSettings;
 
 	private PatchHierarchy m_patchHierarchy;
 
@@ -14,7 +16,8 @@ public class GrassSimulationControl : MonoBehaviour
 	{
 		if (targetTerrain == null) return;
 		if (targetCamera == null) targetCamera = Camera.main;
-		m_patchHierarchy = new PatchHierarchy(targetTerrain.terrainData, transform);
+		PrecomputedGrassData.Instance.Build(globalSettings);
+		m_patchHierarchy = new PatchHierarchy(globalSettings, targetTerrain.terrainData, transform);
 	}
 
 	// Update is called once per frame

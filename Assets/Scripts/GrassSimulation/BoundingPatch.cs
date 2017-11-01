@@ -2,7 +2,7 @@
 using UnityEngine;
 
 namespace GrassSim {
-	public class HierarchicalPatch : APatch
+	public class BoundingPatch : APatch
 	{
 		private readonly APatch[] m_childPatches = new APatch[4];
 		public APatch[] ChildPatches { get { return m_childPatches; } }
@@ -34,7 +34,7 @@ namespace GrassSim {
 
 		public override void DrawGizmo()
 		{
-			Gizmos.color = new Color(0f, 1f, 0f, 0.2f);
+			Gizmos.color = new Color(1f, 0f, 0f, 0.2f);
 			Gizmos.DrawWireSphere(Bounds.center, 0.5f);
 			Gizmos.DrawWireCube(Bounds.center, Bounds.size);
 			foreach (var child in ChildPatches)
