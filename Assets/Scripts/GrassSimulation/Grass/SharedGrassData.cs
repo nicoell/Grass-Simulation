@@ -9,7 +9,6 @@ namespace GrassSimulation.Grass
 		{
 		}
 
-
 		public Vector4[] GrassData { get; private set; } //pos.xy, width, bend
 
 		public bool Init()
@@ -24,7 +23,7 @@ namespace GrassSimulation.Grass
 			for (var i = 0; i < amountBlades; i++)
 			{
 				var randPos = new Vector2((float) random.NextDouble(), (float) random.NextDouble());
-				randPos *= patchSize;
+				//randPos *= patchSize; //TODO: Maybe don't do this here.
 				var width = (float) (Context.Settings.BladeMinWidth +
 				                     random.NextDouble() * (Context.Settings.BladeMaxWidth - Context.Settings.BladeMinWidth));
 				var bend = (float) (Context.Settings.BladeMinBend +

@@ -14,20 +14,21 @@ namespace GrassSimulation
         // Use this for initialization
         private void Start()
         {
-            if (!Context)
+            if (Context == null)
             {
-                Context = ScriptableObject.CreateInstance<SimulationContext>();
-                Context.Camera = Camera.main;
-                Context.Settings = new SimulationSettings();
-                Context.Terrain = Terrain.activeTerrain;
-                Context.Transform = transform;
+                Context = new SimulationContext
+                {
+                    Camera = Camera.main,
+                    Terrain = Terrain.activeTerrain,
+                    Transform = transform
+                };
             }
              PrepareSimulation();  
         }
 
-        private void PrepareSimulation()
+        public void PrepareSimulation()
         {
-            if (!Context || !Context.Init()) return;
+            if (Context == null || !Context.Init()) return;
             
             _patchHierarchy = new PatchHierarchy(Context);
             _patchHierarchy.Init();
@@ -36,7 +37,7 @@ namespace GrassSimulation
         // Update is called once per frame
         private void Update()
         {
-            if (!Context || !Context.IsReady) return;
+            if (Context == null || !Context.IsReady) return;
             if (_patchHierarchy != null) _patchHierarchy.CullViewFrustum();
         }
 

@@ -75,7 +75,7 @@ namespace GrassSimulation.LOD
 				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
 
 				//Create new patch and give it the data we just calculated
-				_grassPatches[y, x] = new GrassPatch(Context.Settings, Context.Terrain.terrainData, patchTexCoord,
+				_grassPatches[y, x] = new GrassPatch(Context, patchTexCoord,
 					new Bounds(patchBoundsCenter, patchBoundsSize));
 			}
 		}
@@ -98,7 +98,7 @@ namespace GrassSimulation.LOD
 			for (var y = 0; y < newRows; y++)
 			for (var x = 0; x < newCols; x++)
 			{
-				var hierarchicalPatch = new BoundingPatch();
+				var hierarchicalPatch = new BoundingPatch(Context);
 				for (var k = 0; k <= 1; k++)
 				for (var j = 0; j <= 1; j++)
 				{
@@ -135,7 +135,9 @@ namespace GrassSimulation.LOD
 		{
 			if (!GeometryUtility.TestPlanesAABB(vfPlanes, patch.Bounds)) return;
 			if (patch.IsLeaf)
+			{
 				_visiblePatches.Add(patch as GrassPatch);
+			}
 			else
 			{
 				var childPatches = ((BoundingPatch) patch).ChildPatches;

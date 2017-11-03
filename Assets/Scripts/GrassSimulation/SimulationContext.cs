@@ -1,10 +1,12 @@
-﻿using GrassSimulation.Grass;
+﻿using System;
+using GrassSimulation.Grass;
 using UnityEngine;
 
 namespace GrassSimulation
 {
-	[CreateAssetMenu(menuName = "Grass Simulation/Simulation Context", fileName = "NewSimulationContext", order = 1)]
-	public class SimulationContext : ScriptableObject, IInitializable
+	//[CreateAssetMenu(menuName = "Grass Simulation/Simulation Context", fileName = "NewSimulationContext", order = 1)]
+	[Serializable]
+	public class SimulationContext : IInitializable
 	{
 		public Camera Camera;
 		public Texture2D Heightmap;
@@ -12,6 +14,7 @@ namespace GrassSimulation
 		[HideInInspector] public bool IsReady;
 
 		public SimulationSettings Settings;
+		public EditorSettings EditorSettings;
 		public SharedGrassData SharedGrassData;
 		public Terrain Terrain;
 		public Transform Transform;
@@ -23,6 +26,9 @@ namespace GrassSimulation
 				IsReady = false;
 				return false;
 			}
+
+			if (Settings == null) Settings = new SimulationSettings();
+			if (EditorSettings == null) EditorSettings = new EditorSettings();
 
 			//Build Heightmap Texture
 			Heightmap = Utils.CreateHeightmapFromTerrain(Terrain);

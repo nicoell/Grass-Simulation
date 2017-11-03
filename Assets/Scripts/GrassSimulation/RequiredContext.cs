@@ -4,7 +4,7 @@
 	{
 		protected SimulationContext Context;
 
-		public RequiredContext(SimulationContext context)
+		protected RequiredContext(SimulationContext context)
 		{
 			Context = context;
 		}
