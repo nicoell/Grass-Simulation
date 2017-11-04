@@ -5,13 +5,15 @@ namespace GrassSimulation.Grass
 {
 	public class SharedGrassData : RequiredContext, IInitializable
 	{
+		public ComputeBuffer SharedGrassComputeBuffer;
+		
 		public SharedGrassData(SimulationContext context) : base(context)
 		{
 		}
 
 		public Vector4[] GrassData { get; private set; } //pos.xy, width, bend
 
-		public bool Init()
+		public unsafe bool Init()
 		{
 			var amountBlades = Context.Settings.GetAmountPrecomputedBlades();
 			var patchSize = Context.Settings.PatchSize;
@@ -35,6 +37,8 @@ namespace GrassSimulation.Grass
 				GrassData[i].w = bend;
 			}
 			
+			SharedGrassComputeBuffer = new ComputeBuffer(GrassData.Length, 16);
+			SharedGrassComputeBuffer.SetData(GrassData);
 			return true;
 		}
 	}

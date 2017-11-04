@@ -1,6 +1,14 @@
 ﻿using UnityEngine;
 using Random = System.Random;
 
+/*TODO: Unity does not support drawIndexed...
+ Either use a workaround:
+ 	- Move culled Vertices in ComputeShader to a position outside viewfrustum for hardware culling after vertexshader
+ 	- in vertex shader use vertexID as index to buffers. If it was culled it gets moved outside viewfrustm.
+ Or:
+ 	- Use nativePlugin ... TODO... can i use DrawIndexed there? I probably can.
+ */
+
 namespace GrassSimulation.LOD
 {
 	public class GrassPatch : Patch
