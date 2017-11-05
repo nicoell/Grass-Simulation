@@ -41,9 +41,22 @@ namespace GrassSimulation
             if (_patchHierarchy != null) _patchHierarchy.CullViewFrustum();
         }
 
+        private void OnRenderObject()
+        {
+            if (Context == null || !Context.IsReady) return;
+            if (_patchHierarchy != null) _patchHierarchy.Draw();
+        }
+
         private void OnDrawGizmos()
         {
+            if (Context == null || !Context.IsReady) return;
             if (_patchHierarchy != null) _patchHierarchy.DrawGizmo();
+        }
+
+        private void OnDestroy()
+        {
+            if (Context == null || !Context.IsReady) return;
+            if (_patchHierarchy != null) _patchHierarchy.Destroy();
         }
     }
 }

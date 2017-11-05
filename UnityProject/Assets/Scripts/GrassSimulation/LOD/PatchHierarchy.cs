@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace GrassSimulation.LOD
 {
-	public class PatchHierarchy : RequiredContext, IInitializable
+	public class PatchHierarchy : RequiredContext, IInitializable, IDestroyable
 	{
 		private List<GrassPatch> _visiblePatches;
 		private GrassPatch[,] _grassPatches;
@@ -147,6 +147,18 @@ namespace GrassSimulation.LOD
 			}
 		}
 
-		
+		public void Draw()
+		{
+			foreach (var visiblePatch in _visiblePatches)
+				visiblePatch.Draw();
+		}
+
+		public void Destroy()
+		{
+			foreach (var grassPatch in _grassPatches)
+			{
+				grassPatch.Destroy();
+			}
+		}
 	}
 }

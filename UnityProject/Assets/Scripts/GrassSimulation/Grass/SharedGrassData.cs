@@ -3,9 +3,9 @@ using Random = System.Random;
 
 namespace GrassSimulation.Grass
 {
-	public class SharedGrassData : RequiredContext, IInitializable
+	public class SharedGrassData : RequiredContext, IInitializable, IDestroyable
 	{
-		public ComputeBuffer SharedGrassComputeBuffer;
+		public ComputeBuffer SharedGrassBuffer;
 		
 		public SharedGrassData(SimulationContext context) : base(context)
 		{
@@ -37,9 +37,17 @@ namespace GrassSimulation.Grass
 				GrassData[i].w = bend;
 			}
 			
-			SharedGrassComputeBuffer = new ComputeBuffer(GrassData.Length, 16);
-			SharedGrassComputeBuffer.SetData(GrassData);
+			SharedGrassBuffer = new ComputeBuffer(GrassData.Length, 16, ComputeBufferType.Default);
+			SharedGrassBuffer.SetData(GrassData);
+			
+			Context.ForcesComputeShader.SetBuffer(Context.ForcesComputeShaderKernel, "SharedGrassData", SharedGrassBuffer);
+			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "SharedGrassData", SharedGrassBuffer);
 			return true;
+		}
+
+		public void Destroy()
+		{
+			SharedGrassBuffer.Release();
 		}
 	}
 }
