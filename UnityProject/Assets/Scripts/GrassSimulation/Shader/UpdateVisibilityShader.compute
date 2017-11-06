@@ -1,17 +1,41 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
+//#include "UnityCG.cginc"
+
+#define threads_x 64
+#define threads_y 1
+#define threads_z 1
+
 int startIndex;
 float4x4 patchMatrix;
 int currentAmountBlades;
 
-StructuredBuffer<float4> SharedGrassData;
-RWStructuredBuffer<float4> grassDataA;
-RWStructuredBuffer<float4> grassDataB;
-RWStructuredBuffer<float4> grassDataC;
+StructuredBuffer<float4> SharedGrassData; //pos.xz, width, bend
+RWStructuredBuffer<float4> grassDataA; //xyz: upVector, w: pos.y
+RWStructuredBuffer<float4> grassDataB; //xyz: v1, w: height
+RWStructuredBuffer<float4> grassDataC; //xyz: v2, w: dirAlpha
 
 [numthreads(64,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 {
-	// TODO: insert actual code here!
+	/*float dirAlpha = grassDataC[i].w;
+    float3 pos = UnityObjectToClipPos(mul(patchMatrix, float4(SharedGrassData[startIndex + i].x, grassDataA[i].w, SharedGrassData[startIndex + i].z, 1.0f))).xyz;
+    float3 wV1 = UnityObjectToClipPos(mul(patchMatrix, float4(grassDataB[i].xyz,1.0f))).xyz;
+    float3 wV2 = UnityObjectToClipPos(mul(patchMatrix, float4(grassDataC[i].xyz,1.0f))).xyz;*/
+    
+    grassDataB[gi].w = 5.0;
+    //grassDataC[gi].w = 10.0;
+    
+    /*//direction of the blade
+    vec3 bladeUp = attr[id].xyz;
+    float sd = sin(dirAlpha);
+    float cd = cos(dirAlpha);
+    vec3 tmp = normalize(vec3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
+    vec3 bladeDir = normalize(cross(bladeUp, tmp));
+    vec3 bladeFront = normalize(cross(bladeUp, bladeDir));
+
+    bladeUp = normalize(invTransModelMatrix * bladeUp);
+    bladeDir = normalize(invTransModelMatrix * bladeDir);
+    bladeFront = normalize(invTransModelMatrix * bladeFront);*/
 }

@@ -12,6 +12,7 @@ namespace GrassSimulation
 		public ComputeShader ForcesComputeShader;
 		public int ForcesComputeShaderKernel;
 		public ComputeShader VisibilityComputeShader;
+		public Shader GrassSimulationShader;
 		public Material GrassSimulationMaterial;
 		public int VisibilityComputeShaderKernel;
 		public EditorSettings EditorSettings;

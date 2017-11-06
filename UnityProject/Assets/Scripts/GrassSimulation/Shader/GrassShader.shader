@@ -22,7 +22,7 @@
 			
 			#include "UnityCG.cginc"
 			
-			uniform int startIndex;
+			uniform float startIndex;
             uniform float4x4 patchMatrix;
             uniform int currentAmountBlades;
 			uniform StructuredBuffer<float4> SharedGrassData;
@@ -49,6 +49,7 @@
 			    float4 dataA : TEXCOORD1;
 			    float4 dataB : TEXCOORD2;
 			    float4 dataC : TEXCOORD3;
+			    float3 bladeDir : TEXCOORD4;
 			    
 			};
 			
@@ -67,13 +68,14 @@
 			    float4 pos : SV_POSITION;
 			};
 			
-			hullIn vert (uint vertexID : SV_VertexID)
+			hullIn vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 			{
 				hullIn OUT;
-				OUT.sharedData = SharedGrassData[startIndex + vertexID];
-				OUT.dataA = grassDataA[vertexID];
-				OUT.dataB = grassDataB[vertexID];
-				OUT.dataC = grassDataC[vertexID];
+				uint id = 64 * instanceID + vertexID;
+				OUT.sharedData = SharedGrassData[startIndex + id];
+				OUT.dataA = grassDataA[id];
+				OUT.dataB = grassDataB[id];
+				OUT.dataC = grassDataC[id];
 				/*OUT.pos = float4(0.0, grassDataA[vertexID].w, 0.0, 1.0);
 				OUT.pos.xz = SharedGrassData[startIndex + vertexID].xy;
 				OUT.pos = mul(patchMatrix, OUT.pos);*/
@@ -87,13 +89,23 @@
 			hullConstOut hullPatchConstant( InputPatch<hullIn, 1> IN)
     		{
         		hullConstOut OUT = (hullConstOut)0;
-        		OUT.TessFactor[0] = OUT.TessFactor[1] = OUT.TessFactor[2] = OUT.TessFactor[3] = 1.0;
-        		OUT.InsideTessFactor[0] = OUT.InsideTessFactor[1] = 1.0;    
+        		OUT.TessFactor[0] = IN[0].dataC.w;
+        		OUT.TessFactor[1] = IN[0].dataC.w;
+        		OUT.TessFactor[2] = IN[0].dataC.w;
+        		OUT.TessFactor[3] = IN[0].dataC.w;
+        		OUT.InsideTessFactor[0] = IN[0].dataC.w;
+        		OUT.InsideTessFactor[1] = IN[0].dataC.w;    
         		
         		OUT.sharedData = IN[0].sharedData;
         		OUT.dataA = IN[0].dataA;
         		OUT.dataB = IN[0].dataB;
         		OUT.dataC = IN[0].dataC;
+        		
+        		float dir = OUT.dataC.w;
+                float sd = sin(dir);
+                float cd = cos(dir); 
+                float3 tmp = normalize(float3(sd, sd + cd, cd));
+                OUT.bladeDir = normalize(cross(OUT.dataA.xyz, tmp));
         		return OUT;
             }
 			
@@ -116,8 +128,54 @@
     					float2 uv : SV_DomainLocation)
     		{
         		domainOut OUT = (domainOut)0;
+        		
+        		float u = uv.x;
+                float omu = 1.0f - u;
+                float v = uv.y;
+                float omv = 1.0f - v;
+            
+                float3 off = hullConstData.bladeDir * hullConstData.dataB.w;
+                float3 off2 = off * 0.5f;
+            
+                float3 p0 = IN[0].pos.xyz - off2;
+                float3 p1 = IN[0].pos.xyz + hullConstData.dataB.xyz - off2;
+                float3 p2 = IN[0].pos.xyz + hullConstData.dataC.xyz - off2;
+            
+                float3 h1 = p0 + v * (p1 - p0);
+                float3 h2 = p1 + v * (p2 - p1);
+                float3 i1 = h1 + v * (h2 - h1);
+                float3 i2 = i1 + off;
+            
+                float3 bitangent = hullConstData.bladeDir;
+                float3 tangent;
+            
+                float3 h1h2 = h2 - h1;
+                if(dot(h1h2, h1h2) < 1e-3)
+                {
+                    tangent = hullConstData.dataA.xyz;
+                }
+                else
+                {
+                    tangent = normalize(h1h2);
+                }
+                
+                float3 normal = normalize(cross(tangent, bitangent));
+                float3 translation = normal * hullConstData.sharedData.z * (0.5f - abs(u - 0.5f)) * (1.0f - v); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+	
+                //teUV = vec2(u,v);
+                //teNormal = normalize(cross(tangent, bitangent));
+            
+                //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
+                float3 pos = lerp(i1, i2, u + ((-v*u) + (v*omu))*0.5f + translation);
+            
+                /*if(dot(lightDirection, teNormal) > 0.0f)
+                    teNormal = -teNormal;
+            
+                teDebug = tcDebug;
+                gl_Position = vpMatrix * vec4(position, 1.0f);
+                tePosition = vec4(position, 1.5f * abs(sin(shapeConstant * tcV1.w)));
        
-        		float3 pos = float3(IN[0].pos.x + uv.x - 0.5, IN[0].pos.y + uv.y, IN[0].pos.z);
+        		float3 pos = float3(IN[0].pos.x + (uv.x - 0.5)*0.1, IN[0].pos.y + uv.y, IN[0].pos.z);*/
       
         		OUT.pos = UnityObjectToClipPos (float4(pos.xyz,1.0)); 
            

@@ -1,6 +1,10 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
+#define threads_x 64
+#define threads_y 1
+#define threads_z 1
+
 int startIndex;
 float4x4 patchMatrix;
 int currentAmountBlades;
@@ -10,8 +14,8 @@ RWStructuredBuffer<float4> grassDataA;
 RWStructuredBuffer<float4> grassDataB;
 RWStructuredBuffer<float4> grassDataC;
 
-[numthreads(64,1,1)]
+[numthreads(threads_x,threads_y,threads_z)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-	// TODO: insert actual code here!
+	//grassData[id.x]
 }

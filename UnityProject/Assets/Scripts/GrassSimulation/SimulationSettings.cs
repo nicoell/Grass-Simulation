@@ -21,6 +21,11 @@ namespace GrassSimulation
             return (uint) (PatchSize * PatchSize * GrassDensity);
         }
 
+        public uint GetDummyMeshSize()
+        {
+            return PatchSize * PatchSize;
+        }
+        
         public uint GetAmountPrecomputedBlades()
         {
             return GetAmountBlades() * PrecomputedFactor;
@@ -33,6 +38,5 @@ namespace GrassSimulation
         public bool DrawBoundingPatchGizmo = true;
         public bool DrawGrassPatchGizmo = true;
         public bool DrawGrassDataGizmo = true;
-        
     }
 }
