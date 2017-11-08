@@ -1,4 +1,6 @@
-﻿Shader "GrassSimulation/GrassShader"
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+Shader "GrassSimulation/GrassShader"
 {
 	Properties
 	{
@@ -23,21 +25,23 @@
 			#include "UnityCG.cginc"
 			
 			uniform float startIndex;
-            uniform float4x4 patchMatrix;
+            uniform float4x4 patchModelMatrix;
             uniform int currentAmountBlades;
-			uniform StructuredBuffer<float4> SharedGrassData;
-			uniform StructuredBuffer<float4> grassDataA;
-			uniform StructuredBuffer<float4> grassDataB;
-			uniform StructuredBuffer<float4> grassDataC;
+			uniform StructuredBuffer<float4> SharedGrassDataBuffer;
+			uniform StructuredBuffer<float4> tessDataBuffer;
+			uniform StructuredBuffer<float4> grassDataABuffer;
+			uniform StructuredBuffer<float4> grassDataBBuffer;
+			uniform StructuredBuffer<float4> grassDataCBuffer;
 			
 			
 			struct hullIn 
 			{
 			    //float4 pos : POSITION;
-			    float4 sharedData : POSITION;
-			    float4 dataA : TEXCOORD0;
-			    float4 dataB : TEXCOORD1;
-			    float4 dataC : TEXCOORD2;
+			    float4 sharedGrassData : POSITION;
+			    float4 grassDataA : TEXCOORD0;
+			    float4 grassDataB : TEXCOORD1;
+			    float4 grassDataC : TEXCOORD2;
+			    float4 tessData : TEXCOORD3;
 			};
 			
 			struct hullConstOut
@@ -45,10 +49,10 @@
 			    float TessFactor[4] : SV_TessFactor;
 			    float InsideTessFactor[2] : SV_InsideTessFactor;
 			    
-                float4 sharedData : TEXCOORD0;
-			    float4 dataA : TEXCOORD1;
-			    float4 dataB : TEXCOORD2;
-			    float4 dataC : TEXCOORD3;
+                float4 sharedGrassData : TEXCOORD0;
+			    float4 grassDataA : TEXCOORD1;
+			    float4 grassDataB : TEXCOORD2;
+			    float4 grassDataC : TEXCOORD3;
 			    float3 bladeDir : TEXCOORD4;
 			    
 			};
@@ -72,14 +76,15 @@
 			{
 				hullIn OUT;
 				uint id = 64 * instanceID + vertexID;
-				OUT.sharedData = SharedGrassData[startIndex + id];
-				OUT.dataA = grassDataA[id];
-				OUT.dataB = grassDataB[id];
-				OUT.dataC = grassDataC[id];
+				OUT.sharedGrassData = SharedGrassDataBuffer[startIndex + id];
+				OUT.grassDataA = grassDataABuffer[id];
+				OUT.grassDataB = grassDataBBuffer[id];
+				OUT.grassDataC = grassDataCBuffer[id];
+				OUT.tessData = tessDataBuffer[id];
 				/*OUT.pos = float4(0.0, grassDataA[vertexID].w, 0.0, 1.0);
 				OUT.pos.xz = SharedGrassData[startIndex + vertexID].xy;
-				OUT.pos = mul(patchMatrix, OUT.pos);*/
-				//OUT.dataA = grassDataA[vertexID];
+				OUT.pos = mul(localToObject, OUT.pos);*/
+				//OUT.grassDataA = grassDataA[vertexID];
 				//OUT.pos.xyz = UnityWorldToViewPos(OUT.pos.xyz);
 				//OUT.pos = UnityWorldToClipPos(OUT.pos.xyz);
 				//OUT.id = vertexID;
@@ -89,23 +94,23 @@
 			hullConstOut hullPatchConstant( InputPatch<hullIn, 1> IN)
     		{
         		hullConstOut OUT = (hullConstOut)0;
-        		OUT.TessFactor[0] = IN[0].dataC.w;
-        		OUT.TessFactor[1] = IN[0].dataC.w;
-        		OUT.TessFactor[2] = IN[0].dataC.w;
-        		OUT.TessFactor[3] = IN[0].dataC.w;
-        		OUT.InsideTessFactor[0] = IN[0].dataC.w;
-        		OUT.InsideTessFactor[1] = IN[0].dataC.w;    
+        		OUT.TessFactor[0] = IN[0].tessData.x;
+        		OUT.TessFactor[1] = 1.0;
+        		OUT.TessFactor[2] = IN[0].tessData.x;
+        		OUT.TessFactor[3] = 1.0;
+        		OUT.InsideTessFactor[0] = 1.0;
+        		OUT.InsideTessFactor[1] = IN[0].tessData.x;    
         		
-        		OUT.sharedData = IN[0].sharedData;
-        		OUT.dataA = IN[0].dataA;
-        		OUT.dataB = IN[0].dataB;
-        		OUT.dataC = IN[0].dataC;
+        		OUT.sharedGrassData = IN[0].sharedGrassData;
+        		OUT.grassDataA = IN[0].grassDataA;
+        		OUT.grassDataB = IN[0].grassDataB;
+        		OUT.grassDataC = IN[0].grassDataC;
         		
-        		float dir = OUT.dataC.w;
+        		float dir = OUT.grassDataC.w;
                 float sd = sin(dir);
                 float cd = cos(dir); 
                 float3 tmp = normalize(float3(sd, sd + cd, cd));
-                OUT.bladeDir = normalize(cross(OUT.dataA.xyz, tmp));
+                OUT.bladeDir = normalize(cross(OUT.grassDataA.xyz, tmp));
         		return OUT;
             }
 			
@@ -117,8 +122,8 @@
     		hullOut hull( InputPatch<hullIn, 1> IN, uint i : SV_OutputControlPointID )
     		{
         		hullOut OUT = (hullOut)0;
-        		OUT.pos = mul(patchMatrix, float4(IN[i].sharedData.x, IN[i].dataA.w, IN[i].sharedData.y, 1.0)).xyz;
-        		//OUT.pos = IN[i].pos.xyz;
+        		
+        		OUT.pos = mul(patchModelMatrix, float4(IN[i].sharedGrassData.x, IN[i].grassDataA.w, IN[i].sharedGrassData.y, 1.0)).xyz;
         		return OUT;
             }
                
@@ -134,12 +139,12 @@
                 float v = uv.y;
                 float omv = 1.0f - v;
             
-                float3 off = hullConstData.bladeDir * hullConstData.dataB.w;
+                float3 off = hullConstData.bladeDir * hullConstData.grassDataB.w;
                 float3 off2 = off * 0.5f;
             
                 float3 p0 = IN[0].pos.xyz - off2;
-                float3 p1 = IN[0].pos.xyz + hullConstData.dataB.xyz - off2;
-                float3 p2 = IN[0].pos.xyz + hullConstData.dataC.xyz - off2;
+                float3 p1 = IN[0].pos.xyz + hullConstData.grassDataB.xyz - off2;
+                float3 p2 = IN[0].pos.xyz + hullConstData.grassDataC.xyz - off2;
             
                 float3 h1 = p0 + v * (p1 - p0);
                 float3 h2 = p1 + v * (p2 - p1);
@@ -152,7 +157,7 @@
                 float3 h1h2 = h2 - h1;
                 if(dot(h1h2, h1h2) < 1e-3)
                 {
-                    tangent = hullConstData.dataA.xyz;
+                    tangent = hullConstData.grassDataA.xyz;
                 }
                 else
                 {
@@ -160,7 +165,7 @@
                 }
                 
                 float3 normal = normalize(cross(tangent, bitangent));
-                float3 translation = normal * hullConstData.sharedData.z * (0.5f - abs(u - 0.5f)) * (1.0f - v); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                float3 translation = normal * hullConstData.sharedGrassData.z * (0.5f - abs(u - 0.5f)) * (1.0f - v); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
 	
                 //teUV = vec2(u,v);
                 //teNormal = normalize(cross(tangent, bitangent));
@@ -177,7 +182,8 @@
        
         		float3 pos = float3(IN[0].pos.x + (uv.x - 0.5)*0.1, IN[0].pos.y + uv.y, IN[0].pos.z);*/
       
-        		OUT.pos = UnityObjectToClipPos (float4(pos.xyz,1.0)); 
+      
+                OUT.pos = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
            
         		return OUT;
 }

@@ -52,7 +52,7 @@ namespace GrassSimulation.LOD
 					Context.Transform.position.y,
 					terrainBoundsWorldCenter.z - Context.Terrain.terrainData.bounds.extents.z);
 				var patchBoundsSize = new Vector3(Context.Settings.PatchSize, 0, Context.Settings.PatchSize);
-				//We can already calculate x and y positions
+				//We can already calculate x and z positions
 				patchBoundsCenter.x += x * Context.Settings.PatchSize + Context.Settings.PatchSize / 2;
 				patchBoundsCenter.z += y * Context.Settings.PatchSize + Context.Settings.PatchSize / 2;
 
