@@ -1,4 +1,4 @@
-﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
 
 Shader "GrassSimulation/GrassShader"
 {
@@ -24,26 +24,28 @@ Shader "GrassSimulation/GrassShader"
 			
 			#include "UnityCG.cginc"
 			
+			float debugTestFactor;
 			uniform float startIndex;
             uniform float4x4 patchModelMatrix;
             uniform int currentAmountBlades;
 			uniform StructuredBuffer<float4> SharedGrassDataBuffer;
-			uniform StructuredBuffer<float4> tessDataBuffer;
 			uniform StructuredBuffer<float4> grassDataABuffer;
 			uniform StructuredBuffer<float4> grassDataBBuffer;
 			uniform StructuredBuffer<float4> grassDataCBuffer;
+			uniform StructuredBuffer<float4> tessDataBuffer;
 			
 			
 			struct hullIn 
 			{
 			    //float4 pos : POSITION;
-			    float4 sharedGrassData : POSITION;
-			    float4 grassDataA : TEXCOORD0;
-			    float4 grassDataB : TEXCOORD1;
-			    float4 grassDataC : TEXCOORD2;
-			    float4 tessData : TEXCOORD3;
+			    float4 sharedGrassData : TEXCOORD0;
+			    float4 grassDataA : TEXCOORD1;
+			    float4 grassDataB : TEXCOORD2;
+			    float4 grassDataC : TEXCOORD3;
+			    float4 tessData : TEXCOORD4;
 			};
 			
+			//TODO: Something is crazy here.
 			struct hullConstOut
 			{
 			    float TessFactor[4] : SV_TessFactor;
@@ -81,30 +83,30 @@ Shader "GrassSimulation/GrassShader"
 				OUT.grassDataB = grassDataBBuffer[id];
 				OUT.grassDataC = grassDataCBuffer[id];
 				OUT.tessData = tessDataBuffer[id];
-				/*OUT.pos = float4(0.0, grassDataA[vertexID].w, 0.0, 1.0);
-				OUT.pos.xz = SharedGrassData[startIndex + vertexID].xy;
-				OUT.pos = mul(localToObject, OUT.pos);*/
-				//OUT.grassDataA = grassDataA[vertexID];
-				//OUT.pos.xyz = UnityWorldToViewPos(OUT.pos.xyz);
-				//OUT.pos = UnityWorldToClipPos(OUT.pos.xyz);
-				//OUT.id = vertexID;
 				return OUT;
 			}
 			
 			hullConstOut hullPatchConstant( InputPatch<hullIn, 1> IN)
     		{
         		hullConstOut OUT = (hullConstOut)0;
+
+				float testa = debugTestFactor * 2.0;
+
+				OUT.sharedGrassData = IN[0].sharedGrassData;
+        		OUT.grassDataA = IN[0].grassDataA;
+        		OUT.grassDataB = IN[0].grassDataB;
+        		OUT.grassDataC = IN[0].grassDataC;
+
+        		
+
         		OUT.TessFactor[0] = IN[0].tessData.x;
         		OUT.TessFactor[1] = 1.0;
-        		OUT.TessFactor[2] = IN[0].tessData.x;
+        		OUT.TessFactor[2] = IN[0].tessData.x * 1;
         		OUT.TessFactor[3] = 1.0;
         		OUT.InsideTessFactor[0] = 1.0;
         		OUT.InsideTessFactor[1] = IN[0].tessData.x;    
         		
-        		OUT.sharedGrassData = IN[0].sharedGrassData;
-        		OUT.grassDataA = IN[0].grassDataA;
-        		OUT.grassDataB = IN[0].grassDataB;
-        		OUT.grassDataC = IN[0].grassDataC;
+        		
         		
         		float dir = OUT.grassDataC.w;
                 float sd = sin(dir);
@@ -115,7 +117,7 @@ Shader "GrassSimulation/GrassShader"
             }
 			
 			[domain("quad")]
-    		[partitioning("fractional_even")]
+    		[partitioning("fractional_odd")]
     		[outputtopology("triangle_cw")]
     		[patchconstantfunc("hullPatchConstant")]
     		[outputcontrolpoints(1)]

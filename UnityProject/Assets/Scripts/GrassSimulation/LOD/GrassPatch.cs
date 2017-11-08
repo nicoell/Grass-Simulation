@@ -125,10 +125,12 @@ namespace GrassSimulation.LOD
 				                      _random.NextDouble() * (Context.Settings.BladeMaxHeight - Context.Settings.BladeMinHeight));
 				_grassDataB[i].Set(up.x * height / 2, up.y * height / 2, up.z * height / 2, height);
 				//Fill _grassDataC
-				var dirAlpha = (float) (_random.NextDouble() * Mathf.PI * 2f);
+				//var dirAlpha = (float) (_random.NextDouble() * Mathf.PI * 2f);
+				//TODO: DEBUG VALUES HERE
+				var dirAlpha = 4.0f;
 				_grassDataC[i].Set(up.x * height, up.y * height, up.z * height, dirAlpha);
 				
-				_tessData[i].Set(4.0f, 1.0f, 1.0f, 1.0f);
+				_tessData[i].Set(8.0f, 1.0f, 1.0f, 1.0f);
 			}
 		}
 
@@ -169,6 +171,7 @@ namespace GrassSimulation.LOD
 		private void SetupMaterialPropertyBlock()
 		{
 			_materialPropertyBlock.SetFloat("startIndex", _startIndex);
+			_materialPropertyBlock.SetFloat("debugTestFactor", 1);
 			_materialPropertyBlock.SetBuffer("SharedGrassDataBuffer", Context.SharedGrassData.SharedGrassBuffer);
 			_materialPropertyBlock.SetBuffer("grassDataABuffer", _grassDataABuffer);
 			_materialPropertyBlock.SetBuffer("grassDataBBuffer", _grassDataBBuffer);
@@ -180,9 +183,9 @@ namespace GrassSimulation.LOD
 		private void UpdateForces()
 		{
 			Context.ForcesComputeShader.SetInt("startIndex", _startIndex);
-			Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
-			Context.VisibilityComputeShader.SetMatrix("viewProjMatrix",
-				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);
+			//Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
+			/*Context.VisibilityComputeShader.SetMatrix("viewProjMatrix",
+				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);*/
 			Context.ForcesComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "SharedGrassData",
 				Context.SharedGrassData.SharedGrassBuffer);
 			Context.ForcesComputeShader.SetBuffer(Context.ForcesComputeShaderKernel, "grassDataA", _grassDataABuffer);
@@ -195,11 +198,11 @@ namespace GrassSimulation.LOD
 		private void UpdateVisibility()
 		{
 			Context.VisibilityComputeShader.SetInt("startIndex", _startIndex);
-			Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
+			//Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
 			//Context.VisibilityComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.inverse.transpose);
 			Context.VisibilityComputeShader.SetFloats("patchModelMatrixInverse", _patchModelMatrixTransposeInverse);
-			Context.VisibilityComputeShader.SetMatrix("viewProjMatrix",
-				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);
+			/*Context.VisibilityComputeShader.SetMatrix("viewProjMatrix",
+				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);*/
 			Context.VisibilityComputeShader.SetFloats("camPos", Context.Camera.transform.position.x,
 				Context.Camera.transform.position.y, Context.Camera.transform.position.z);
 			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "SharedGrassData",
