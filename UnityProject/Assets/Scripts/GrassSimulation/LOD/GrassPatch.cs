@@ -170,6 +170,7 @@ namespace GrassSimulation.LOD
 
 		private void SetupMaterialPropertyBlock()
 		{
+			Shader.SetGlobalFloat("debugTest", 4.0f);
 			_materialPropertyBlock.SetFloat("startIndex", _startIndex);
 			_materialPropertyBlock.SetFloat("debugTestFactor", 1);
 			_materialPropertyBlock.SetBuffer("SharedGrassDataBuffer", Context.SharedGrassData.SharedGrassBuffer);

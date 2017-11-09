@@ -22,6 +22,8 @@ Shader "GrassSimulation/GrassShaderDEBUG"
 			#pragma domain domain
 			#pragma fragment frag
 			
+			uniform float debugTest;
+
 			#include "UnityCG.cginc"
 			
 			
@@ -35,11 +37,16 @@ Shader "GrassSimulation/GrassShaderDEBUG"
 			{
 			    float TessFactor[4] : SV_TessFactor;
 			    float InsideTessFactor[2] : SV_InsideTessFactor;
+			    //float2 spacing : POS;
+			    float4 grassDataA : TEXCOORD1;
+                float4 grassDataB : TEXCOORD2;
+			    //float4 grassDataC : TEXCOORD3;
+			    //float4 grassDataD : TEXCOORD4;
 			};
 			
 			struct hullOut
 			{
-			    float3 pos : POS;
+			    float4 pos : POS;
 			};
 			
 			struct domainOut
@@ -63,8 +70,18 @@ Shader "GrassSimulation/GrassShaderDEBUG"
 			hullConstOut hullPatchConstant( InputPatch<hullIn, 1> IN)
     		{
         		hullConstOut OUT = (hullConstOut)0;
-        		OUT.TessFactor[0] = OUT.TessFactor[1] = OUT.TessFactor[2] = OUT.TessFactor[3] = 1.0;
-        		OUT.InsideTessFactor[0] = OUT.InsideTessFactor[1] = 1.0;    
+        		OUT.TessFactor[0] = debugTest;
+        		OUT.TessFactor[1] = 1.0;
+        		OUT.TessFactor[2] = debugTest;
+        		OUT.TessFactor[3] = 1.0;
+        		OUT.InsideTessFactor[0] = 1.0;
+        		OUT.InsideTessFactor[1] = debugTest;
+
+        		//OUT.spacing = float2(1.0, 1.0);
+        		OUT.grassDataA = float4(1.0, 1.0, 1.0, 1.0);
+        		OUT.grassDataB = float4(1.0, 1.0, 1.0, 1.0);
+        		//OUT.grassDataC = float4(1.0, 1.0, 1.0, 1.0);
+        		//OUT.grassDataD = float4(1.0, 1.0, 1.0, 1.0);
         		return OUT;
             }
 			
@@ -76,7 +93,7 @@ Shader "GrassSimulation/GrassShaderDEBUG"
     		hullOut hull( InputPatch<hullIn, 1> IN, uint i : SV_OutputControlPointID )
     		{
         		hullOut OUT = (hullOut)0;
-        		OUT.pos = IN[i].pos.xyz;
+        		OUT.pos = IN[i].pos;
         		return OUT;
             }
                
