@@ -9,6 +9,7 @@ namespace GrassSimulation.LOD
 		private List<GrassPatch> _visiblePatches;
 		private GrassPatch[,] _grassPatches;
 		private BoundingPatch _rootPatch;
+		private Plane[] _planes;
 
 		public PatchHierarchy(SimulationContext context) : base(context)
 		{
@@ -16,6 +17,7 @@ namespace GrassSimulation.LOD
 		
 		public bool Init()
 		{
+			_planes = new Plane[6];
 			_visiblePatches = new List<GrassPatch>();
 			CreatePatchLeaves();
 			CreatePatchHierarchy();
@@ -126,14 +128,14 @@ namespace GrassSimulation.LOD
 		public void CullViewFrustum()
 		{
 			_visiblePatches.Clear();
-			var vfPlanes = GeometryUtility.CalculateFrustumPlanes(Context.Camera);
+			GeometryUtility.CalculateFrustumPlanes(Context.Camera, _planes);
 
-			TestViewFrustum(vfPlanes, _rootPatch);
+			TestViewFrustum(_rootPatch);
 		}
 
-		private void TestViewFrustum(Plane[] vfPlanes, Patch patch)
+		private void TestViewFrustum(Patch patch)
 		{
-			if (!GeometryUtility.TestPlanesAABB(vfPlanes, patch.Bounds)) return;
+			if (!GeometryUtility.TestPlanesAABB(_planes, patch.Bounds)) return;
 			if (patch.IsLeaf)
 			{
 				_visiblePatches.Add(patch as GrassPatch);
@@ -143,7 +145,7 @@ namespace GrassSimulation.LOD
 				var childPatches = ((BoundingPatch) patch).ChildPatches;
 				if (childPatches == null) return;
 				foreach (var childPatch in childPatches)
-					if (childPatch != null) TestViewFrustum(vfPlanes, childPatch);
+					if (childPatch != null) TestViewFrustum(childPatch);
 			}
 		}
 

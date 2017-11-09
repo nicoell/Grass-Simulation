@@ -1,6 +1,7 @@
 ﻿using System;
 using GrassSimulation.Grass;
 using UnityEngine;
+using Random = System.Random;
 
 namespace GrassSimulation
 {
@@ -9,21 +10,22 @@ namespace GrassSimulation
 	public class SimulationContext : IInitializable
 	{
 		public Camera Camera;
+		public EditorSettings EditorSettings;
 		public ComputeShader ForcesComputeShader;
 		public int ForcesComputeShaderKernel;
-		public ComputeShader VisibilityComputeShader;
-		public Shader GrassSimulationShader;
 		public Material GrassSimulationMaterial;
-		public int VisibilityComputeShaderKernel;
-		public EditorSettings EditorSettings;
+		public Shader GrassSimulationShader;
 		public Texture2D Heightmap;
 
 		[HideInInspector] public bool IsReady;
+		[HideInInspector] public Random Random;
 
 		public SimulationSettings Settings;
 		public SharedGrassData SharedGrassData;
 		public Terrain Terrain;
 		public Transform Transform;
+		public ComputeShader VisibilityComputeShader;
+		public int VisibilityComputeShaderKernel;
 
 		public bool Init()
 		{
@@ -38,16 +40,19 @@ namespace GrassSimulation
 
 			//Build Heightmap Texture
 			Heightmap = Utils.CreateHeightmapFromTerrain(Terrain);
-
+			
+			//Create a single random object
+			Random = new Random(Settings.RandomSeed);
+			
 			//Find kernels for ComputeShaders
 			ForcesComputeShaderKernel = ForcesComputeShader.FindKernel("CSMain");
 			VisibilityComputeShaderKernel = VisibilityComputeShader.FindKernel("CSMain");
-			
-			
+
+
 			//Create sharedGrassData
 			SharedGrassData = new SharedGrassData(this);
 			SharedGrassData.Init();
-			
+
 			//Everything is ready.
 			IsReady = true;
 			return true;

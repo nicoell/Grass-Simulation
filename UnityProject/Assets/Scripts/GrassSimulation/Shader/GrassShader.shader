@@ -17,6 +17,7 @@ Shader "GrassSimulation/GrassShader"
 			#pragma target 5.0
 			
 			#pragma only_renderers d3d11
+			#pragma enable_d3d11_debug_symbols
 			#pragma vertex vert
 			#pragma hull hull
 			#pragma domain domain
@@ -95,8 +96,8 @@ Shader "GrassSimulation/GrassShader"
 				uint id = 64 * instanceID + vertexID;
 				float4 sharedGrassBufferData = SharedGrassDataBuffer[startIndex + id];
 				float4 grassBufferAData = grassDataABuffer[id];
-				float4 grassBufferBData = grassDataABuffer[id];
-				float4 grassBufferCData = grassDataABuffer[id];
+				float4 grassBufferBData = grassDataBBuffer[id];
+				float4 grassBufferCData = grassDataCBuffer[id];
 				float4 tessBufferData = tessDataBuffer[id];
 				OUT.grassDataA = float4(sharedGrassBufferData.x, grassBufferAData.w, sharedGrassBufferData.y, sharedGrassBufferData.z);
 				OUT.grassDataB = float4(grassBufferAData.xyz, sharedGrassBufferData.w);

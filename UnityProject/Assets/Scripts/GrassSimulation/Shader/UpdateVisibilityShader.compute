@@ -6,15 +6,15 @@
 
 int startIndex;
 float4x4 patchModelMatrix;
-float3x3 patchModelMatrixInverse;
+float4x4 patchModelMatrixInverse;
 float4x4 viewProjMatrix;
 float3 camPos;
 
-StructuredBuffer<float4> SharedGrassData; //pos.xz, width, bend
-RWStructuredBuffer<float4> grassDataA; //xyz: upVector, w: pos.y
-RWStructuredBuffer<float4> grassDataB; //xyz: v1, w: height
-RWStructuredBuffer<float4> grassDataC; //xyz: v2, w: dirAlpha
-RWStructuredBuffer<float4> tessData; //x: tessLevel
+StructuredBuffer<float4> SharedGrassDataBuffer; //pos.xz, width, bend
+RWStructuredBuffer<float4> grassDataABuffer; //xyz: upVector, w: pos.y
+RWStructuredBuffer<float4> grassDataBBuffer; //xyz: v1, w: height
+RWStructuredBuffer<float4> grassDataCBuffer; //xyz: v2, w: dirAlpha
+RWStructuredBuffer<float4> tessDataBuffer; //x: tessLevel
 
 float4 LocalToWorldPos(float4 pos){
 	return mul(patchModelMatrix, pos);
@@ -32,50 +32,55 @@ float4 WorldToClipPos(float3 pos){
 	return WorldToClipPos(float4(pos, 1.0));
 }
 
-[numthreads(64,1,1)]
+[numthreads(threads_x,threads_y,threads_z)]
 void CSMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 {
-	//grassDataB[gi].w = 0.1 * gi;
-	//grassDataC[gi].w = 10.0;
+	uint i = id.x;
+	/*if (i > 0) {
+		tessDataBuffer[i].x = 0;
+		return;
+	}*/
+	grassDataBBuffer[i].w = 0.1;
+	grassDataCBuffer[i].w = 0.1;
 
-	float dirAlpha = grassDataC[gi].w;
-	float3 localPos = float3(SharedGrassData[startIndex + gi].x, grassDataA[gi].w, SharedGrassData[startIndex + gi].z);
+	float dirAlpha = grassDataCBuffer[i].w;
+	float3 localPos = float3(SharedGrassDataBuffer[startIndex + i].x, grassDataABuffer[i].w, SharedGrassDataBuffer[startIndex + i].y);
 	float3 pos = LocalToWorldPos(localPos).xyz;
-	float3 wV1 = LocalToWorldPos(localPos + float3(grassDataB[gi].xyz)).xyz;
-	float3 wV2 = LocalToWorldPos(localPos + float3(grassDataC[gi].xyz)).xyz;
+	float3 wV1 = LocalToWorldPos(localPos + float3(grassDataBBuffer[i].xyz)).xyz;
+	float3 wV2 = LocalToWorldPos(localPos + float3(grassDataCBuffer[i].xyz)).xyz;
 	
 	//direction of the blade
-	float3 bladeUp = grassDataA[gi].xyz;
+	float3 bladeUp = normalize(grassDataABuffer[i].xyz);
 	float sd = sin(dirAlpha);
 	float cd = cos(dirAlpha);
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
 	float3 bladeDir = normalize(cross(bladeUp, tmp));
 	float3 bladeFront = normalize(cross(bladeUp, bladeDir));
 
-	bladeUp = normalize(mul(patchModelMatrixInverse, bladeUp));
-	bladeDir = normalize(mul(patchModelMatrixInverse, bladeDir));
-	bladeFront = normalize(mul(patchModelMatrixInverse, bladeFront));
+	bladeUp = normalize(mul(patchModelMatrixInverse, float4(bladeUp, 1))).xyz;
+	bladeDir = normalize(mul(patchModelMatrixInverse, float4(bladeDir, 1))).xyz;
+	bladeFront = normalize(mul(patchModelMatrixInverse, float4(bladeFront, 1))).xyz;
 
 	float3 midPoint = 0.25 * pos + 0.5 * wV1 + 0.25 * wV2;
 
 	//Visibility Check
-	float3 camDir = pos - wV1;
+	float3 camDir = pos - camPos;
 	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
 	float distance = length(camDir);
-	float3 camDirNorm = camDir / distance;
+	float3 camDirNorm = normalize(camDir);
 
-	/*if (distance >= 200.0)
+	if (distance > 400.0) //distance >= 200.0
 	{
-		tessData[gi].x = 0;
+		tessDataBuffer[i].x = 0.0;
         return;
-	}*/
+	}
 
 	//Orientation
-    /*if(abs(dot(camDirNorm, bladeDir)) >= 0.9)
+    if(abs(dot(camDirNorm, bladeDir)) >= 0.8)
     {
-        tessData[gi].x = 0;
+        tessDataBuffer[i].x = 0;
         return;
-    }*/
+    }
 
-    tessData[gi].x = 4.0;
+    tessDataBuffer[i].x = 4.0;
 }

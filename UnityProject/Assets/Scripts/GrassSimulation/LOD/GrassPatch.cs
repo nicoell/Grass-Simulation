@@ -41,7 +41,6 @@ namespace GrassSimulation.LOD
 		private readonly float[] _patchModelMatrixTransposeInverse;
 
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
-		private readonly Random _random;
 		private readonly int _startIndex;
 		private ComputeBuffer _argsBuffer;
 		private Mesh _dummyMesh;
@@ -59,9 +58,8 @@ namespace GrassSimulation.LOD
 		{
 			Bounds = bounds;
 			_patchTexCoord = patchTexCoord;
-			_startIndex = (int) UnityEngine.Random.Range(0,
-				Context.Settings.GetAmountPrecomputedBlades() - Context.Settings.GetAmountBlades() - 1);
-			_random = new Random(Context.Settings.RandomSeed);
+			_startIndex = Context.Random.Next(0,
+				(int) (Context.Settings.GetAmountPrecomputedBlades() - Context.Settings.GetAmountBlades() - 1));
 			_materialPropertyBlock = new MaterialPropertyBlock();
 
 			_patchModelMatrix = Matrix4x4.TRS(
@@ -72,18 +70,18 @@ namespace GrassSimulation.LOD
 			var transInv = _patchModelMatrix.transpose.inverse;
 			_patchModelMatrixTransposeInverse = new[]
 			{
-				transInv.m00, transInv.m01, transInv.m02, 
-				transInv.m10, transInv.m11, transInv.m12, 
+				transInv.m00, transInv.m01, transInv.m02,
+				transInv.m10, transInv.m11, transInv.m12,
 				transInv.m20, transInv.m21, transInv.m22
 			};
-			_patchModelMatrixTransposeInverse = new[]
+			/*_patchModelMatrixTransposeInverse = new[]
 			{
 				transInv.m00, transInv.m10, transInv.m20, 
 				transInv.m01, transInv.m11, transInv.m21, 
 				transInv.m02, transInv.m12, transInv.m22
-			};
-			
-			
+			};*/
+
+
 			CreatePerBladeData();
 			CreateDummyMesh();
 			SetupComputeBuffers();
@@ -122,14 +120,12 @@ namespace GrassSimulation.LOD
 				_grassDataA[i].Set(up.x, up.y, up.z, posY);
 				//Fill _grassDataB
 				var height = (float) (Context.Settings.BladeMinHeight +
-				                      _random.NextDouble() * (Context.Settings.BladeMaxHeight - Context.Settings.BladeMinHeight));
+				                      Context.Random.NextDouble() * (Context.Settings.BladeMaxHeight - Context.Settings.BladeMinHeight));
 				_grassDataB[i].Set(up.x * height / 2, up.y * height / 2, up.z * height / 2, height);
 				//Fill _grassDataC
-				//var dirAlpha = (float) (_random.NextDouble() * Mathf.PI * 2f);
-				//TODO: DEBUG VALUES HERE
-				var dirAlpha = 4.0f;
+				var dirAlpha = (float) (Context.Random.NextDouble() * Mathf.PI * 2f);
 				_grassDataC[i].Set(up.x * height, up.y * height, up.z * height, dirAlpha);
-				
+
 				_tessData[i].Set(8.0f, 1.0f, 1.0f, 1.0f);
 			}
 		}
@@ -170,9 +166,7 @@ namespace GrassSimulation.LOD
 
 		private void SetupMaterialPropertyBlock()
 		{
-			Shader.SetGlobalFloat("debugTest", 4.0f);
 			_materialPropertyBlock.SetFloat("startIndex", _startIndex);
-			_materialPropertyBlock.SetFloat("debugTestFactor", 1);
 			_materialPropertyBlock.SetBuffer("SharedGrassDataBuffer", Context.SharedGrassData.SharedGrassBuffer);
 			_materialPropertyBlock.SetBuffer("grassDataABuffer", _grassDataABuffer);
 			_materialPropertyBlock.SetBuffer("grassDataBBuffer", _grassDataBBuffer);
@@ -199,19 +193,22 @@ namespace GrassSimulation.LOD
 		private void UpdateVisibility()
 		{
 			Context.VisibilityComputeShader.SetInt("startIndex", _startIndex);
-			//Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
-			//Context.VisibilityComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.inverse.transpose);
-			Context.VisibilityComputeShader.SetFloats("patchModelMatrixInverse", _patchModelMatrixTransposeInverse);
+			Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
+			Context.VisibilityComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.transpose.inverse);
+			//Context.VisibilityComputeShader.SetFloats("patchModelMatrixInverse", _patchModelMatrixTransposeInverse);
 			/*Context.VisibilityComputeShader.SetMatrix("viewProjMatrix",
 				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);*/
 			Context.VisibilityComputeShader.SetFloats("camPos", Context.Camera.transform.position.x,
 				Context.Camera.transform.position.y, Context.Camera.transform.position.z);
-			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "SharedGrassData",
+			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "SharedGrassDataBuffer",
 				Context.SharedGrassData.SharedGrassBuffer);
-			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "grassDataA", _grassDataABuffer);
-			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "grassDataB", _grassDataBBuffer);
-			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "grassDataC", _grassDataCBuffer);
-			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "tessData", _tessBuffer);
+			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "grassDataABuffer",
+				_grassDataABuffer);
+			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "grassDataBBuffer",
+				_grassDataBBuffer);
+			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "grassDataCBuffer",
+				_grassDataCBuffer);
+			Context.VisibilityComputeShader.SetBuffer(Context.VisibilityComputeShaderKernel, "tessDataBuffer", _tessBuffer);
 
 			Context.VisibilityComputeShader.Dispatch(Context.VisibilityComputeShaderKernel, (int) Context.Settings.GrassDensity,
 				1, 1);
@@ -220,7 +217,7 @@ namespace GrassSimulation.LOD
 		public void Draw()
 		{
 			//UpdateForces();
-			//UpdateVisibility();
+			UpdateVisibility();
 			//SetupMaterialPropertyBlock();
 
 			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Context.GrassSimulationMaterial, Bounds, _argsBuffer, 0,
@@ -242,8 +239,45 @@ namespace GrassSimulation.LOD
 				{
 					var pos = new Vector3(Context.SharedGrassData.GrassData[_startIndex + i].x,
 						_grassDataA[i].w, Context.SharedGrassData.GrassData[_startIndex + i].y);
+
+					var bladeUp = new Vector3(_grassDataB[i].x, _grassDataB[i].y, _grassDataB[i].z).normalized;
+
+					//bladeUp = _patchModelMatrix.transpose.inverse.MultiplyPoint3x4(bladeUp).normalized;
+
+					/*bladeUp = normalize(mul(patchModelMatrixInverse, float4(bladeUp, 1))).xyz;
+					bladeDir = normalize(mul(patchModelMatrixInverse, float4(bladeDir, 1))).xyz;
+					bladeFront = normalize(mul(patchModelMatrixInverse, float4(bladeFront, 1))).xyz;*/
+
 					pos = _patchModelMatrix.MultiplyPoint3x4(pos);
-					Gizmos.DrawLine(pos, pos + new Vector3(_grassDataB[i].x, _grassDataB[i].y, _grassDataB[i].z));
+					
+
+					if (i == 0)
+					{
+						var sd = Mathf.Sin(_grassDataC[i].w);
+						var cd = Mathf.Cos(_grassDataC[i].w);
+						var tmp = new Vector3(sd, sd + cd, cd).normalized;
+						var bladeDir = Vector3.Cross(bladeUp, tmp).normalized;
+						var bladeFront = Vector3.Cross(bladeUp, bladeDir).normalized;
+						
+						/*bladeUp = _patchModelMatrix.transpose.inverse.MultiplyPoint3x4(bladeUp).normalized;
+						bladeDir = _patchModelMatrix.transpose.inverse.MultiplyPoint3x4(bladeDir).normalized;
+						bladeFront = _patchModelMatrix.transpose.inverse.MultiplyPoint3x4(bladeFront).normalized;*/
+						var camdir = (pos - Context.Camera.transform.position).normalized;
+						
+						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
+						Gizmos.DrawLine(pos, pos + bladeUp);
+						Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
+						Gizmos.DrawLine(pos, pos + bladeDir);
+						Gizmos.color = new Color(0f, 0f, 1f, 0.8f);
+						Gizmos.DrawLine(pos, pos + bladeFront);
+						Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
+						Gizmos.DrawLine(pos, pos + camdir);
+					}
+					else
+					{	
+						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
+						//Gizmos.DrawLine(pos, pos + bladeUp);
+					}
 				}
 			}
 		}
