@@ -10,9 +10,11 @@ namespace GrassSimulation.Grass
 		public SharedGrassData(SimulationContext context) : base(context)
 		{
 		}
-
+		
+		//TODO: We probably don't need to store this after initiliazion
 		public Vector4[] GrassData { get; private set; } //pos.xy, width, bend
 
+		//TODO: Clean things up
 		public unsafe bool Init()
 		{
 			var amountBlades = Context.Settings.GetAmountPrecomputedBlades();

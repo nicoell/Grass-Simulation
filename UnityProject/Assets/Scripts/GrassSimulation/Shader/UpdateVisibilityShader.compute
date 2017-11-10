@@ -40,8 +40,8 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 		tessDataBuffer[i].x = 0;
 		return;
 	}*/
-	grassDataBBuffer[i].w = 0.1;
-	grassDataCBuffer[i].w = 0.1;
+	grassDataBBuffer[i].w = 0.3;
+	//grassDataCBuffer[i].w = 0.1;
 
 	float dirAlpha = grassDataCBuffer[i].w;
 	float3 localPos = float3(SharedGrassDataBuffer[startIndex + i].x, grassDataABuffer[i].w, SharedGrassDataBuffer[startIndex + i].y);
@@ -57,9 +57,9 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 	float3 bladeDir = normalize(cross(bladeUp, tmp));
 	float3 bladeFront = normalize(cross(bladeUp, bladeDir));
 
-	bladeUp = normalize(mul(patchModelMatrixInverse, float4(bladeUp, 1))).xyz;
+	/*bladeUp = normalize(mul(patchModelMatrixInverse, float4(bladeUp, 1))).xyz;
 	bladeDir = normalize(mul(patchModelMatrixInverse, float4(bladeDir, 1))).xyz;
-	bladeFront = normalize(mul(patchModelMatrixInverse, float4(bladeFront, 1))).xyz;
+	bladeFront = normalize(mul(patchModelMatrixInverse, float4(bladeFront, 1))).xyz;*/
 
 	float3 midPoint = 0.25 * pos + 0.5 * wV1 + 0.25 * wV2;
 
@@ -68,17 +68,27 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
 	float distance = length(camDir);
 	float3 camDirNorm = normalize(camDir);
-
+	
 	if (distance > 400.0) //distance >= 200.0
 	{
 		tessDataBuffer[i].x = 0.0;
         return;
 	}
 
-	//Orientation
-    if(abs(dot(camDirNorm, bladeDir)) >= 0.8)
+	//Orientation Culling
+    if(abs(dot(camDirNorm, bladeFront)) < 0.1)
     {
         tessDataBuffer[i].x = 0;
+        return;
+    }
+
+    //Depth Culling
+    float projDistance = length(camDirProj);
+    uint value = ceil(max((1.0 - projDistance / 200.0),0.0) * 32.0);
+
+    if(fmod(i,32) >= value)
+    {
+    	tessDataBuffer[i].x = 0;
         return;
     }
 

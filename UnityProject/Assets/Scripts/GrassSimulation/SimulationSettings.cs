@@ -5,6 +5,7 @@ namespace GrassSimulation
     [Serializable]
     public class SimulationSettings
     {
+        //TODO: Split up and categorize Settings
         public float BladeMaxBend = 10f;
         public float BladeMaxHeight = 10f;
         public float BladeMaxWidth = 3f;
@@ -15,7 +16,8 @@ namespace GrassSimulation
         public uint PatchSize = 8;
         public uint PrecomputedFactor = 64;
         public int RandomSeed = 42;
-
+        
+        //TODO: Manage this stuff better
         public uint GetAmountBlades()
         {
             return (uint) (PatchSize * PatchSize * GrassDensity);

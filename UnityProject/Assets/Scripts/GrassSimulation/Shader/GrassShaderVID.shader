@@ -1,3 +1,5 @@
+//TODO: Combine DSOut and FSIn?
+
 Shader "GrassSimulation/GrassShaderVID"
 {
 	Properties
@@ -48,6 +50,7 @@ Shader "GrassSimulation/GrassShaderVID"
 				float3 pos : POS;
 			    uint bufferID : VertexID;
 			};
+			
 			
 			struct DSOut
 			{

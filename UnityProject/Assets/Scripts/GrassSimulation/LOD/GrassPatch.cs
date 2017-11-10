@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using Random = System.Random;
 
 namespace GrassSimulation.LOD
 {
@@ -19,7 +18,7 @@ namespace GrassSimulation.LOD
 	 */
 	public class GrassPatch : Patch, IDestroyable
 	{
-		private readonly uint[] _args = new uint[5] {0, 0, 0, 0, 0};
+		private readonly uint[] _args = {0, 0, 0, 0, 0};
 
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 
@@ -38,12 +37,14 @@ namespace GrassSimulation.LOD
 		 */
 		private readonly Matrix4x4 _patchModelMatrix;
 
+		//TODO: Remove this?
 		private readonly float[] _patchModelMatrixTransposeInverse;
 
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
 		private readonly int _startIndex;
 		private ComputeBuffer _argsBuffer;
 		private Mesh _dummyMesh;
+		//TODO: Maybe we don't need to seperatly store grassData as soon it's in computebuffer
 		private Vector4[] _grassDataA; //xyz: upVector, w: pos.y
 		private ComputeBuffer _grassDataABuffer;
 		private Vector4[] _grassDataB; //xyz: v1, w: height
@@ -52,6 +53,7 @@ namespace GrassSimulation.LOD
 		private ComputeBuffer _grassDataCBuffer;
 		private ComputeBuffer _tessBuffer;
 		private Vector4[] _tessData; //x: tessLevel
+		//TODO: Remove
 		private ComputeShader _visibilityShader;
 
 		public GrassPatch(SimulationContext context, Vector4 patchTexCoord, Bounds bounds) : base(context)
@@ -67,6 +69,8 @@ namespace GrassSimulation.LOD
 				Quaternion.identity,
 				new Vector3(Context.Settings.PatchSize, Context.Terrain.terrainData.size.y, Context.Settings.PatchSize));
 
+			
+			//TODO: Do we need this?
 			var transInv = _patchModelMatrix.transpose.inverse;
 			_patchModelMatrixTransposeInverse = new[]
 			{
@@ -120,7 +124,8 @@ namespace GrassSimulation.LOD
 				_grassDataA[i].Set(up.x, up.y, up.z, posY);
 				//Fill _grassDataB
 				var height = (float) (Context.Settings.BladeMinHeight +
-				                      Context.Random.NextDouble() * (Context.Settings.BladeMaxHeight - Context.Settings.BladeMinHeight));
+				                      Context.Random.NextDouble() *
+				                      (Context.Settings.BladeMaxHeight - Context.Settings.BladeMinHeight));
 				_grassDataB[i].Set(up.x * height / 2, up.y * height / 2, up.z * height / 2, height);
 				//Fill _grassDataC
 				var dirAlpha = (float) (Context.Random.NextDouble() * Mathf.PI * 2f);
@@ -166,7 +171,9 @@ namespace GrassSimulation.LOD
 
 		private void SetupMaterialPropertyBlock()
 		{
+			//TODO: Add option to update things like matrix not only on startup but also on update
 			_materialPropertyBlock.SetFloat("startIndex", _startIndex);
+			//TODO: Bind SharedGrassDataBuffer only once per material since its shared and readonly
 			_materialPropertyBlock.SetBuffer("SharedGrassDataBuffer", Context.SharedGrassData.SharedGrassBuffer);
 			_materialPropertyBlock.SetBuffer("grassDataABuffer", _grassDataABuffer);
 			_materialPropertyBlock.SetBuffer("grassDataBBuffer", _grassDataBBuffer);
@@ -177,6 +184,7 @@ namespace GrassSimulation.LOD
 
 		private void UpdateForces()
 		{
+			//TODO: Clean this up and match things with visibility shader
 			Context.ForcesComputeShader.SetInt("startIndex", _startIndex);
 			//Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
 			/*Context.VisibilityComputeShader.SetMatrix("viewProjMatrix",
@@ -192,6 +200,8 @@ namespace GrassSimulation.LOD
 
 		private void UpdateVisibility()
 		{
+			//TODO: Split PerPatch and PerFrame Stuff, maybe use different kernels instead of different Shaders to only bind constants once
+			//TODO: Bind SharedGrassDataBuffer only once since its readonly
 			Context.VisibilityComputeShader.SetInt("startIndex", _startIndex);
 			Context.VisibilityComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
 			Context.VisibilityComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.transpose.inverse);
@@ -216,6 +226,10 @@ namespace GrassSimulation.LOD
 
 		public void Draw()
 		{
+			//TODO: Add CPU LOD algorithm
+			//TODO: CleanUp ComputeShader Update methods
+			//TODO: Actually use _argsBuffer in computeShader or if CPU only, don't use Indirect Draw Methd
+			//TODO: Add settings for options in computeShader
 			//UpdateForces();
 			UpdateVisibility();
 			//SetupMaterialPropertyBlock();
@@ -249,8 +263,8 @@ namespace GrassSimulation.LOD
 					bladeFront = normalize(mul(patchModelMatrixInverse, float4(bladeFront, 1))).xyz;*/
 
 					pos = _patchModelMatrix.MultiplyPoint3x4(pos);
-					
 
+					//TODO: Add setting to toggle the used drawmode
 					if (i == 0)
 					{
 						var sd = Mathf.Sin(_grassDataC[i].w);
@@ -258,12 +272,12 @@ namespace GrassSimulation.LOD
 						var tmp = new Vector3(sd, sd + cd, cd).normalized;
 						var bladeDir = Vector3.Cross(bladeUp, tmp).normalized;
 						var bladeFront = Vector3.Cross(bladeUp, bladeDir).normalized;
-						
+
 						/*bladeUp = _patchModelMatrix.transpose.inverse.MultiplyPoint3x4(bladeUp).normalized;
 						bladeDir = _patchModelMatrix.transpose.inverse.MultiplyPoint3x4(bladeDir).normalized;
 						bladeFront = _patchModelMatrix.transpose.inverse.MultiplyPoint3x4(bladeFront).normalized;*/
 						var camdir = (pos - Context.Camera.transform.position).normalized;
-						
+
 						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
 						Gizmos.DrawLine(pos, pos + bladeUp);
 						Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
@@ -274,7 +288,7 @@ namespace GrassSimulation.LOD
 						Gizmos.DrawLine(pos, pos + camdir);
 					}
 					else
-					{	
+					{
 						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
 						//Gizmos.DrawLine(pos, pos + bladeUp);
 					}

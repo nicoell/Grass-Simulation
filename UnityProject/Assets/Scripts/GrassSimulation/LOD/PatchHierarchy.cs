@@ -17,15 +17,16 @@ namespace GrassSimulation.LOD
 		
 		public bool Init()
 		{
+			//TODO: A progressBar would be nice
 			_planes = new Plane[6];
 			_visiblePatches = new List<GrassPatch>();
-			CreatePatchLeaves();
+			CreateGrassPatchGrid();
 			CreatePatchHierarchy();
 
 			return true;
 		}
 
-		private void CreatePatchLeaves()
+		private void CreateGrassPatchGrid()
 		{
 			//Transform terrain bounds center from local to world coordinates
 			var localToWorldMatrix = Matrix4x4.TRS(Context.Transform.position, Quaternion.identity, Vector3.one);
@@ -75,7 +76,9 @@ namespace GrassSimulation.LOD
 				//We can now calculate the center.y and height of BoundingBox
 				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
 				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
-
+				
+				//TODO: Tessellated grass may exceed this bounds, need to add some tolerance
+				
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Context, patchTexCoord,
 					new Bounds(patchBoundsCenter, patchBoundsSize));

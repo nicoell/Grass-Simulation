@@ -9,6 +9,7 @@ namespace GrassSimulation
 	[Serializable]
 	public class SimulationContext : IInitializable
 	{
+		//TODO: Cleanup things
 		public Camera Camera;
 		public EditorSettings EditorSettings;
 		public ComputeShader ForcesComputeShader;

@@ -2,11 +2,13 @@
 using GrassSimulation.LOD;
 using UnityEngine;
 
+//TODO: Revisit namespaces
 namespace GrassSimulation
 {
     [ExecuteInEditMode]
     public class GrassSimulationController : MonoBehaviour
     {
+        //TODO: Revisit the null reference tests used all over the place
         public SimulationContext Context;
 
         private PatchHierarchy _patchHierarchy;
@@ -44,7 +46,8 @@ namespace GrassSimulation
                 _patchHierarchy.Draw();
             }
         }
-
+        
+        //TODO: Remove this
         private void OnRenderObject()
         {
             if (Context == null || !Context.IsReady) return;
@@ -57,6 +60,7 @@ namespace GrassSimulation
             if (_patchHierarchy != null) _patchHierarchy.DrawGizmo();
         }
 
+        //TODO: Need to revisit the correct way to destroy/dispose/release ComputeBuffers so the warnings go away
         private void OnDestroy()
         {
             if (Context == null || !Context.IsReady) return;
