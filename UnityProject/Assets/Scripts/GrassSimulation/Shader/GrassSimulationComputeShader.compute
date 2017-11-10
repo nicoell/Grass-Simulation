@@ -1,20 +1,21 @@
-﻿#pragma kernel CSMain
+﻿#pragma kernel CullingMain
+#pragma kernel PhysicsMain
 
 #define threads_x 64
 #define threads_y 1
 #define threads_z 1
-
-int startIndex;
-float4x4 patchModelMatrix;
-float4x4 patchModelMatrixInverse;
-float4x4 viewProjMatrix;
-float3 camPos;
 
 StructuredBuffer<float4> SharedGrassDataBuffer; //pos.xz, width, bend
 RWStructuredBuffer<float4> grassDataABuffer; //xyz: upVector, w: pos.y
 RWStructuredBuffer<float4> grassDataBBuffer; //xyz: v1, w: height
 RWStructuredBuffer<float4> grassDataCBuffer; //xyz: v2, w: dirAlpha
 RWStructuredBuffer<float4> tessDataBuffer; //x: tessLevel
+
+int startIndex;
+float4x4 patchModelMatrix;
+float4x4 patchModelMatrixInverse;
+float4x4 viewProjMatrix;
+float3 camPos;
 
 float4 LocalToWorldPos(float4 pos){
 	return mul(patchModelMatrix, pos);
@@ -33,7 +34,7 @@ float4 WorldToClipPos(float3 pos){
 }
 
 [numthreads(threads_x,threads_y,threads_z)]
-void CSMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
+void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 {
 	uint i = id.x;
 	/*if (i > 0) {
@@ -93,4 +94,10 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
     }
 
     tessDataBuffer[i].x = 4.0;
+}
+
+[numthreads(threads_x,threads_y,threads_z)]
+void PhysicsMain (uint3 id : SV_DispatchThreadID)
+{
+	//grassData[id.x]
 }

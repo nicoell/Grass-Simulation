@@ -1,20 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace GrassSimulation.LOD
 {
-	public class PatchHierarchy : RequiredContext, IInitializable, IDestroyable
+	public class PatchHierarchy : RequiredContext, IInitializable, IDestroyable, IDrawable
 	{
-		private List<GrassPatch> _visiblePatches;
 		private GrassPatch[,] _grassPatches;
-		private BoundingPatch _rootPatch;
 		private Plane[] _planes;
+		private BoundingPatch _rootPatch;
+		private List<GrassPatch> _visiblePatches;
 
 		public PatchHierarchy(SimulationContext context) : base(context)
 		{
 		}
-		
+
+		public void Destroy()
+		{
+			foreach (var grassPatch in _grassPatches)
+				grassPatch.Destroy();
+		}
+
+		public void Draw()
+		{
+			CullViewFrustum();
+			UpdatePerFrameData();
+			foreach (var visiblePatch in _visiblePatches)
+				visiblePatch.Draw();
+		}
+
 		public bool Init()
 		{
 			//TODO: A progressBar would be nice
@@ -34,7 +47,8 @@ namespace GrassSimulation.LOD
 			//Prepare some measurements
 			var terrainSize = new Vector2(Context.Terrain.terrainData.size.x, Context.Terrain.terrainData.size.z);
 			var terrainLevel = Context.Terrain.terrainData.size.y;
-			var heightmapSize = new Vector2Int(Context.Terrain.terrainData.heightmapWidth, Context.Terrain.terrainData.heightmapHeight);
+			var heightmapSize = new Vector2Int(Context.Terrain.terrainData.heightmapWidth,
+				Context.Terrain.terrainData.heightmapHeight);
 			//var heightmapToTerrainFactor = new Vector2(heightmapSize.x / terrainSize.x, heightmapSize.y / terrainSize.y);
 			var patchQuantity = new Vector2Int((int) (terrainSize.x / Context.Settings.PatchSize),
 				(int) (terrainSize.y / Context.Settings.PatchSize));
@@ -76,9 +90,9 @@ namespace GrassSimulation.LOD
 				//We can now calculate the center.y and height of BoundingBox
 				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
 				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
-				
+
 				//TODO: Tessellated grass may exceed this bounds, need to add some tolerance
-				
+
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Context, patchTexCoord,
 					new Bounds(patchBoundsCenter, patchBoundsSize));
@@ -128,7 +142,7 @@ namespace GrassSimulation.LOD
 				visiblePatch.DrawGizmo();
 		}
 
-		public void CullViewFrustum()
+		private void CullViewFrustum()
 		{
 			_visiblePatches.Clear();
 			GeometryUtility.CalculateFrustumPlanes(Context.Camera, _planes);
@@ -152,18 +166,12 @@ namespace GrassSimulation.LOD
 			}
 		}
 
-		public void Draw()
+		private void UpdatePerFrameData()
 		{
-			foreach (var visiblePatch in _visiblePatches)
-				visiblePatch.Draw();
-		}
-
-		public void Destroy()
-		{
-			foreach (var grassPatch in _grassPatches)
-			{
-				grassPatch.Destroy();
-			}
+			Context.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
+				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);
+			Context.GrassSimulationComputeShader.SetFloats("camPos", Context.Camera.transform.position.x,
+				Context.Camera.transform.position.y, Context.Camera.transform.position.z);
 		}
 	}
 }

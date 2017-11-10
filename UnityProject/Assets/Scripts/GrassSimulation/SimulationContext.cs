@@ -5,33 +5,32 @@ using Random = System.Random;
 
 namespace GrassSimulation
 {
-	//[CreateAssetMenu(menuName = "Grass Simulation/Simulation Context", fileName = "NewSimulationContext", order = 1)]
 	[Serializable]
 	public class SimulationContext : IInitializable
 	{
-		//TODO: Cleanup things
 		public Camera Camera;
 		public EditorSettings EditorSettings;
-		public ComputeShader ForcesComputeShader;
-		public int ForcesComputeShaderKernel;
-		public Material GrassSimulationMaterial;
-		public Shader GrassSimulationShader;
+		public ComputeShader GrassSimulationComputeShader;
+		public Material GrassMaterial;
 		public Texture2D Heightmap;
-
 		[HideInInspector] public bool IsReady;
+		[HideInInspector] public int KernelCulling;
+		[HideInInspector] public int KernelPhysics;
 		[HideInInspector] public Random Random;
-
 		public SimulationSettings Settings;
 		public SharedGrassData SharedGrassData;
 		public Terrain Terrain;
 		public Transform Transform;
-		public ComputeShader VisibilityComputeShader;
-		public int VisibilityComputeShaderKernel;
 
 		public bool Init()
 		{
-			if (!Camera || !Terrain || !Transform || !ForcesComputeShader || !VisibilityComputeShader)
+			if (!Camera || !Terrain || !Transform || !GrassSimulationComputeShader)
 			{
+				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
+				if (!Camera) Debug.Log("GrassSimulation: Camera not set.");
+				if (!Terrain) Debug.Log("GrassSimulation: Terrain not set.");
+				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
+				if (!GrassSimulationComputeShader) Debug.Log("GrassSimulation: GrassSimulationComputeShader not set.");
 				IsReady = false;
 				return false;
 			}
@@ -41,14 +40,13 @@ namespace GrassSimulation
 
 			//Build Heightmap Texture
 			Heightmap = Utils.CreateHeightmapFromTerrain(Terrain);
-			
+
 			//Create a single random object
 			Random = new Random(Settings.RandomSeed);
-			
-			//Find kernels for ComputeShaders
-			ForcesComputeShaderKernel = ForcesComputeShader.FindKernel("CSMain");
-			VisibilityComputeShaderKernel = VisibilityComputeShader.FindKernel("CSMain");
 
+			//Find kernels for ComputeShaders
+			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
+			KernelCulling = GrassSimulationComputeShader.FindKernel("CullingMain");
 
 			//Create sharedGrassData
 			SharedGrassData = new SharedGrassData(this);

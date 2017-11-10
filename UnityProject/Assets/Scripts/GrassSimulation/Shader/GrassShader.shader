@@ -1,6 +1,6 @@
 //TODO: Combine DSOut and FSIn?
 
-Shader "GrassSimulation/GrassShaderVID"
+Shader "GrassSimulation/GrassShader"
 {
 	Properties
 	{

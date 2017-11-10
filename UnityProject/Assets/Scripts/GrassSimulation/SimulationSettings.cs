@@ -40,5 +40,6 @@ namespace GrassSimulation
         public bool DrawBoundingPatchGizmo = true;
         public bool DrawGrassPatchGizmo = true;
         public bool DrawGrassDataGizmo = true;
+        public bool DrawGrassDataDetailGizmo;
     }
 }
