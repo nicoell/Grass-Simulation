@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace GrassSimulation
 {
@@ -13,6 +14,7 @@ namespace GrassSimulation
         public float BladeMinHeight = 2f;
         public float BladeMinWidth = 0.1f;
         public float GrassDensity = 1f;
+        public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
         public uint PatchSize = 8;
         public uint PrecomputedFactor = 64;
         public int RandomSeed = 42;

@@ -9,9 +9,12 @@ StructuredBuffer<float4> SharedGrassDataBuffer; //pos.xz, width, bend
 RWStructuredBuffer<float4> grassDataABuffer; //xyz: upVector, w: pos.y
 RWStructuredBuffer<float4> grassDataBBuffer; //xyz: v1, w: height
 RWStructuredBuffer<float4> grassDataCBuffer; //xyz: v2, w: dirAlpha
+RWStructuredBuffer<float4> pressureDataBuffer; //
 RWStructuredBuffer<float4> tessDataBuffer; //x: tessLevel
 
+float deltaTime;
 int startIndex;
+float4 gravityVec;
 float4x4 patchModelMatrix;
 float4x4 patchModelMatrixInverse;
 float4x4 viewProjMatrix;
@@ -41,7 +44,7 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 		tessDataBuffer[i].x = 0;
 		return;
 	}*/
-	grassDataBBuffer[i].w = 0.3;
+	//grassDataBBuffer[i].w = 0.3;
 	//grassDataCBuffer[i].w = 0.1;
 
 	float dirAlpha = grassDataCBuffer[i].w;
@@ -77,11 +80,11 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 	}
 
 	//Orientation Culling
-    if(abs(dot(camDirNorm, bladeFront)) < 0.1)
+    /*if(abs(dot(camDirNorm, bladeFront)) < 0.1)
     {
         tessDataBuffer[i].x = 0;
         return;
-    }
+    }*/
 
     //Depth Culling
     float projDistance = length(camDirProj);
@@ -93,11 +96,90 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
         return;
     }
 
-    tessDataBuffer[i].x = 4.0;
+    tessDataBuffer[i].x = 12.0;
 }
 
 [numthreads(threads_x,threads_y,threads_z)]
 void PhysicsMain (uint3 id : SV_DispatchThreadID)
 {
-	//grassData[id.x]
+	uint i = id.x;
+
+	float dirAlpha = grassDataCBuffer[i].w;
+	float height = grassDataBBuffer[i].w;
+	float invHeight = 1.0f / height;
+	float width = SharedGrassDataBuffer[startIndex + i ].z;
+	float bendingFactor = SharedGrassDataBuffer[startIndex + i ].w;
+	float3 localGroundPos = float3(SharedGrassDataBuffer[startIndex + i].x, grassDataABuffer[i].w, SharedGrassDataBuffer[startIndex + i].y);
+	float3 groundPos = LocalToWorldPos(localGroundPos).xyz;
+	
+	//direction of the blade
+	float3 bladeUp = (grassDataABuffer[i].xyz);
+	float sd = sin(dirAlpha);
+	float cd = cos(dirAlpha);
+	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
+	float3 bladeDir = normalize(cross(bladeUp, tmp));
+	float3 bladeFront = normalize(cross(bladeUp, bladeDir));
+
+	float mdt = min(deltaTime, 1.0f);
+
+	float4 oldPressure = pressureDataBuffer[i];
+	float collisionForce = max(oldPressure.w - (1.0f - bendingFactor) * 0.5f * mdt, 0.0f);
+
+	float3 idleV2 = bladeUp * height;
+
+	//apply old pressure
+	//float3 v2 = idleV2 - oldPressure.xyz;
+	float3 v2 = grassDataCBuffer[i].xyz;
+	//float3 relativeV2 = v2 - groundPos;
+
+	//gravity
+	float3 gravity = normalize(gravityVec.xyz) * gravityVec.w;
+	float sign = step(-0.01f, dot(normalize(gravity), bladeFront)) * 2.0f - 1.0f;
+	gravity += sign * bladeFront * height * gravityVec.w * 0.25f;
+	gravity = gravity * height * bendingFactor * mdt;
+
+	//wind
+	//TODO
+
+	//stiffness
+	float3 stiffness = (idleV2 - v2) * (1.0f - bendingFactor * 0.25f) * max(1.0f - collisionForce, 0.1f) * mdt;
+
+	//apply new forces
+	v2 += gravity + stiffness;
+	//relativeV2 = v2 - groundPos;
+
+	//Ensure valid v2 position (not under ground plane)
+	v2 += bladeUp * -min(dot(bladeUp, v2),0.0f);
+
+	//Calculate V1
+	float3 g = v2 - dot(v2, bladeUp) * bladeUp;
+    float v2ratio = abs(length(g) * invHeight);
+    float fac = max(1.0f - v2ratio, 0.05f * max(v2ratio, 1.0f));
+    float3 v1 =  bladeUp * height * 0.5f;
+
+	//Make persistent length
+	
+    float3 v01 = v1;
+    float3 v12 = v2 - v1;
+    float lv01 = length(v1);
+    float lv12 = length(v12);
+
+    float L1 = lv01 + lv12;
+    float L0 = length(v2);
+    float L = (2.0f * L0 + L1) / 3.0f; //http://steve.hollasch.net/cgindex/curves/cbezarclen.html
+
+    float ldiff = height / L;
+    v01 = v01 * ldiff;
+    v12 = v12 * ldiff;
+    v1 *= ldiff;
+    v2 = v1 + v12;
+	
+	//TODO: Collisions
+
+	float3 pressure = v2 - idleV2;
+	grassDataBBuffer[i].xyz = v1;
+	grassDataCBuffer[i].xyz = v2;
+	pressureDataBuffer[i].xyz = pressure;
+	pressureDataBuffer[i].w = collisionForce;
+
 }

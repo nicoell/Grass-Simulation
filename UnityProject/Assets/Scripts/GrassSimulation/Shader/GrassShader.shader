@@ -77,17 +77,17 @@ Shader "GrassSimulation/GrassShader"
         		HSConstOut OUT = (HSConstOut)0;
         		uint bufferID = IN[0].bufferID;
         		float level = tessDataBuffer[bufferID].x;
-        		OUT.TessFactor[0] = level;
-        		OUT.TessFactor[1] = 1.0;
-        		OUT.TessFactor[2] = level;
-        		OUT.TessFactor[3] = 1.0;
-        		OUT.InsideTessFactor[0] = 1.0;
+        		OUT.TessFactor[0] = level;	//left
+        		OUT.TessFactor[1] = 1.0;	//top
+        		OUT.TessFactor[2] = level;	//right
+        		OUT.TessFactor[3] = 2.0;	//bottom
+        		OUT.InsideTessFactor[0] = 2.0;
         		OUT.InsideTessFactor[1] = level;
         		return OUT;
             }
 
 			[domain("quad")]
-    		[partitioning("fractional_odd")]
+    		[partitioning("integer")]
     		[outputtopology("triangle_cw")]
     		[patchconstantfunc("hullPatchConstant")]
     		[outputcontrolpoints(1)]
@@ -114,13 +114,11 @@ Shader "GrassSimulation/GrassShader"
 				float4 grassBufferAData = grassDataABuffer[IN[0].bufferID];
 				float4 grassBufferBData = grassDataBBuffer[IN[0].bufferID];
 				float4 grassBufferCData = grassDataCBuffer[IN[0].bufferID];
-				//float4 tessBufferData = ;
-				//OUT.grassDataA = float4(sharedGrassBufferData.x, grassBufferAData.w, sharedGrassBufferData.y, sharedGrassBufferData.z);
+				
 				float3 pos = IN[0].pos;
-        		//float3 pos = mul(patchModelMatrix, float4(sharedGrassBufferData.x, grassBufferAData.w, sharedGrassBufferData.y, 1.0)).xyz;
         		float3 v1 = pos + grassBufferBData.xyz;
         		float3 v2 = pos + grassBufferCData.xyz;
-        		float3 up = grassBufferAData.xyz;
+        		float3 up = normalize(grassBufferAData.xyz);
         		float width = sharedGrassBufferData.z;
         		float bend = sharedGrassBufferData.w;
         		float height = grassBufferBData.w;
@@ -136,7 +134,7 @@ Shader "GrassSimulation/GrassShader"
                 float v = uv.y;
                 float omv = 1.0f - v;
             
-                float3 off = bladeDir * height;
+                float3 off = bladeDir * width;
                 float3 off2 = off * 0.5f;
             
                 float3 p0 = pos - off2;
@@ -162,13 +160,14 @@ Shader "GrassSimulation/GrassShader"
                 }
                 
                 float3 normal = normalize(cross(tangent, bitangent));
-                float3 translation = normal * bend * (0.5f - abs(u - 0.5f)) * (1.0f - v); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                float3 translation = normal * width * (0.5f - abs(u - 0.5f)) * (1.0f - v); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
 	
                 //teUV = vec2(u,v);
                 //teNormal = normalize(cross(tangent, bitangent));
             
                 //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
-                float3 outpos = lerp(i1, i2, u + ((-v*u) + (v*omu))*0.5f + translation);
+                float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
+                //float3 outpos = lerp(i1, i2, u);
             
                 /*if(dot(lightDirection, teNormal) > 0.0f)
                     teNormal = -teNormal;
@@ -181,7 +180,7 @@ Shader "GrassSimulation/GrassShader"
       
       
                 OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
-                OUT.color = float4(lerp(float3(0.5, 1, 0.3), float3(1, 1, 1), u + ((-v*u) + (v*omu))*0.5f + translation), 1);
+                OUT.color = float4(lerp(float3(0.5, 1, 0.3), float3(1, 1, 1), u - pow(v, 2)*u), 1);
            
         		return OUT;
 }

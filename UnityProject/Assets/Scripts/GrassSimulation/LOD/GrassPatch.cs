@@ -18,7 +18,7 @@ namespace GrassSimulation.LOD
 	 */
 	public class GrassPatch : Patch, IDestroyable, IDrawable
 	{
-		private uint[] _args = {0, 0, 0, 0, 0};
+		private readonly uint[] _args = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsBuffer;
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
@@ -27,6 +27,7 @@ namespace GrassSimulation.LOD
 		private ComputeBuffer _grassDataABuffer;
 		private ComputeBuffer _grassDataBBuffer;
 		private ComputeBuffer _grassDataCBuffer;
+		private ComputeBuffer _pressureDataBuffer;
 
 		/*
 		 * _patchModelMatrix Notes:
@@ -83,6 +84,21 @@ namespace GrassSimulation.LOD
 			_tessBuffer.Release();
 		}
 
+		public void Draw()
+		{
+			//TODO: Add CPU LOD algorithm
+			//TODO: Actually use _argsBuffer in computeShader or if CPU only, don't use Indirect Draw Methd
+			//TODO: Add settings for options in computeShader
+			RunSimulationComputeShader();
+#if UNITY_EDITOR
+			_materialPropertyBlock.SetMatrix("patchModelMatrix", _patchModelMatrix);
+#endif
+			//SetupMaterialPropertyBlock();
+
+			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Context.GrassMaterial, Bounds, _argsBuffer, 0,
+				_materialPropertyBlock);
+		}
+
 		private void CreateGrassData()
 		{
 			//Precompute grassData for the all blades (the maximum possible number)
@@ -90,11 +106,13 @@ namespace GrassSimulation.LOD
 			Vector4[] _grassDataA;
 			Vector4[] _grassDataB;
 			Vector4[] _grassDataC;
+			Vector4[] _pressureData;
 			Vector4[] _tessData;
 #endif
 			_grassDataA = new Vector4[Context.Settings.GetAmountBlades()];
 			_grassDataB = new Vector4[Context.Settings.GetAmountBlades()];
 			_grassDataC = new Vector4[Context.Settings.GetAmountBlades()];
+			_pressureData = new Vector4[Context.Settings.GetAmountBlades()];
 			_tessData = new Vector4[Context.Settings.GetAmountBlades()];
 			for (var i = 0; i < Context.Settings.GetAmountBlades(); i++)
 			{
@@ -110,11 +128,12 @@ namespace GrassSimulation.LOD
 				var height = (float) (Context.Settings.BladeMinHeight +
 				                      Context.Random.NextDouble() *
 				                      (Context.Settings.BladeMaxHeight - Context.Settings.BladeMinHeight));
-				_grassDataB[i].Set(up.x * height / 2, up.y * height / 2, up.z * height / 2, height);
+				_grassDataB[i].Set(up.x * height, up.y * height, up.z * height, height);
 				//Fill _grassDataC
 				var dirAlpha = (float) (Context.Random.NextDouble() * Mathf.PI * 2f);
 				_grassDataC[i].Set(up.x * height, up.y * height, up.z * height, dirAlpha);
-
+				
+				_pressureData[i].Set(0,0,0,0);
 				_tessData[i].Set(8.0f, 1.0f, 1.0f, 1.0f);
 			}
 
@@ -122,9 +141,11 @@ namespace GrassSimulation.LOD
 			_grassDataABuffer = new ComputeBuffer(_grassDataA.Length, 16, ComputeBufferType.Default);
 			_grassDataBBuffer = new ComputeBuffer(_grassDataB.Length, 16, ComputeBufferType.Default);
 			_grassDataCBuffer = new ComputeBuffer(_grassDataC.Length, 16, ComputeBufferType.Default);
+			_pressureDataBuffer = new ComputeBuffer(_pressureData.Length, 16, ComputeBufferType.Default);
 			_grassDataABuffer.SetData(_grassDataA);
 			_grassDataBBuffer.SetData(_grassDataB);
 			_grassDataCBuffer.SetData(_grassDataC);
+			_pressureDataBuffer.SetData(_pressureData);
 			_tessBuffer = new ComputeBuffer(_tessData.Length, 16, ComputeBufferType.Default);
 			_tessBuffer.SetData(_tessData);
 		}
@@ -159,11 +180,11 @@ namespace GrassSimulation.LOD
 
 		private void RunSimulationComputeShader()
 		{
-			//Set data for whole compute shader
+			//Set per patch data for whole compute shader
 			Context.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
 			Context.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
 			Context.GrassSimulationComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.transpose.inverse);
-			
+
 			//Set buffers for Physics Kernel
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelPhysics, "grassDataABuffer",
 				_grassDataABuffer);
@@ -171,11 +192,13 @@ namespace GrassSimulation.LOD
 				_grassDataBBuffer);
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelPhysics, "grassDataCBuffer",
 				_grassDataCBuffer);
+			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelPhysics, "pressureDataBuffer",
+				_pressureDataBuffer);
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelPhysics, "tessDataBuffer", _tessBuffer);
-			
+
 			//Run Physics Simulation
 			Context.GrassSimulationComputeShader.Dispatch(Context.KernelPhysics, (int) Context.Settings.GrassDensity, 1, 1);
-			
+
 			//Set buffers for Culling Kernel
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelCulling, "grassDataABuffer",
 				_grassDataABuffer);
@@ -184,21 +207,9 @@ namespace GrassSimulation.LOD
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelCulling, "grassDataCBuffer",
 				_grassDataCBuffer);
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelCulling, "tessDataBuffer", _tessBuffer);
-			
+
 			//Perform Culling
 			Context.GrassSimulationComputeShader.Dispatch(Context.KernelCulling, (int) Context.Settings.GrassDensity, 1, 1);
-		}
-
-		public void Draw()
-		{
-			//TODO: Add CPU LOD algorithm
-			//TODO: Actually use _argsBuffer in computeShader or if CPU only, don't use Indirect Draw Methd
-			//TODO: Add settings for options in computeShader
-			RunSimulationComputeShader();
-			//SetupMaterialPropertyBlock();
-
-			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Context.GrassMaterial, Bounds, _argsBuffer, 0,
-				_materialPropertyBlock);
 		}
 
 #if UNITY_EDITOR
@@ -249,8 +260,10 @@ namespace GrassSimulation.LOD
 
 		//We only need this for drawing debug Gizmos in Editor
 		private Vector4[] _grassDataA; //xyz: upVector, w: pos.y
+
 		private Vector4[] _grassDataB; //xyz: v1, w: height
 		private Vector4[] _grassDataC; //xyz: v2, w: dirAlpha
+		private Vector4[] _pressureData;
 		private Vector4[] _tessData; //x: tessLevel
 #endif
 	}

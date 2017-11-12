@@ -168,6 +168,8 @@ namespace GrassSimulation.LOD
 
 		private void UpdatePerFrameData()
 		{
+			Context.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
+			Context.GrassSimulationComputeShader.SetVector("gravityVec", Context.Settings.Gravity);
 			Context.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
 				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);
 			Context.GrassSimulationComputeShader.SetFloats("camPos", Context.Camera.transform.position.x,
