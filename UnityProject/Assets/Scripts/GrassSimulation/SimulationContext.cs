@@ -35,7 +35,11 @@ namespace GrassSimulation
 				return false;
 			}
 
-			if (Settings == null) Settings = new SimulationSettings();
+			if (Settings == null)
+			{
+				Settings = new SimulationSettings();
+				//Settings.GrassBlade = Texture2D.whiteTexture;
+			}
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
 
 			//Build Heightmap Texture
@@ -51,6 +55,8 @@ namespace GrassSimulation
 			//Create sharedGrassData
 			SharedGrassData = new SharedGrassData(this);
 			SharedGrassData.Init();
+			
+			GrassMaterial.SetTexture("_GrassBlade", Settings.GrassBlade);
 
 			//Everything is ready.
 			IsReady = true;

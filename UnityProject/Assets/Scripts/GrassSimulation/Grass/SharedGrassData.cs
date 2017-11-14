@@ -21,7 +21,7 @@ namespace GrassSimulation.Grass
 
 		public bool Init()
 		{
-			var amountBlades = Context.Settings.GetAmountPrecomputedBlades();
+			var amountBlades = Context.Settings.GetAmountInstancedBlades();
 
 #if !UNITY_EDITOR
 			Vector4[] GrassData;

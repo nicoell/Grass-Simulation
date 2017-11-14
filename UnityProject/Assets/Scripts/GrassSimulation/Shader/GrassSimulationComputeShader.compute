@@ -96,7 +96,7 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
         return;
     }
 
-    tessDataBuffer[i].x = 12.0;
+    tessDataBuffer[i].x = min(abs(64 - distance), 64);
 }
 
 [numthreads(threads_x,threads_y,threads_z)]

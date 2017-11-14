@@ -4,6 +4,7 @@ Shader "GrassSimulation/GrassShader"
 {
 	Properties
 	{
+	    _GrassBlade ("Texture", 2D) = "white" {}
 	}
 	SubShader
 	{
@@ -64,6 +65,9 @@ Shader "GrassSimulation/GrassShader"
 			    float4 color : COLOR0;
 			};
 			
+			Texture2D _GrassBlade;
+            SamplerState sampler_GrassBlade;
+			
 			VSOut vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 			{
 				VSOut OUT;
@@ -78,10 +82,10 @@ Shader "GrassSimulation/GrassShader"
         		uint bufferID = IN[0].bufferID;
         		float level = tessDataBuffer[bufferID].x;
         		OUT.TessFactor[0] = level;	//left
-        		OUT.TessFactor[1] = 1.0;	//top
+        		OUT.TessFactor[1] = 2;	//bottom
         		OUT.TessFactor[2] = level;	//right
-        		OUT.TessFactor[3] = 2.0;	//bottom
-        		OUT.InsideTessFactor[0] = 2.0;
+        		OUT.TessFactor[3] = 1;	//top
+        		OUT.InsideTessFactor[0] = 1.0;
         		OUT.InsideTessFactor[1] = level;
         		return OUT;
             }
@@ -160,14 +164,16 @@ Shader "GrassSimulation/GrassShader"
                 }
                 
                 float3 normal = normalize(cross(tangent, bitangent));
-                float3 translation = normal * width * (0.5f - abs(u - 0.5f)) * (1.0f - v); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
 	
                 //teUV = vec2(u,v);
                 //teNormal = normalize(cross(tangent, bitangent));
             
                 //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
-                float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
-                //float3 outpos = lerp(i1, i2, u);
+                //float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
+                float3 texSample = _GrassBlade.SampleLevel(sampler_GrassBlade, uv.xy, 0);
+                float3 translation = normal * width * (0.5f - abs(u - 0.5f)) * ((1 - floor(v)) * texSample.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                float t = u + ((texSample.g*u) + ((1-texSample.g)*omu));
+                float3 outpos = lerp(i1, i2, t) + translation;
             
                 /*if(dot(lightDirection, teNormal) > 0.0f)
                     teNormal = -teNormal;
@@ -180,7 +186,7 @@ Shader "GrassSimulation/GrassShader"
       
       
                 OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
-                OUT.color = float4(lerp(float3(0.5, 1, 0.3), float3(1, 1, 1), u - pow(v, 2)*u), 1);
+                OUT.color = float4(lerp(float3(0.5, 1, 0.3), float3(0.1, 0.5, 0.05), 1-v), 1);
            
         		return OUT;
 }

@@ -51,7 +51,7 @@ namespace GrassSimulation.LOD
 			Bounds = bounds;
 			_patchTexCoord = patchTexCoord;
 			_startIndex = Context.Random.Next(0,
-				(int) (Context.Settings.GetAmountPrecomputedBlades() - Context.Settings.GetAmountBlades() - 1));
+				(int) (Context.Settings.GetAmountInstancedBlades() - Context.Settings.GetMaxAmountBladesPerPatch()));
 			_materialPropertyBlock = new MaterialPropertyBlock();
 
 			_patchModelMatrix = Matrix4x4.TRS(
@@ -61,8 +61,8 @@ namespace GrassSimulation.LOD
 
 			// Create the IndirectArguments Buffer
 			_argsBuffer = new ComputeBuffer(1, _args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-			_args[0] = Context.Settings.GetDummyMeshSize(); //Vertex Count
-			_args[1] = (uint) Context.Settings.GrassDensity; //Instance Count
+			_args[0] = Context.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
+			_args[1] = Context.Settings.GrassDensity; //Instance Count
 			_argsBuffer.SetData(_args);
 
 			CreateGrassData();
@@ -109,12 +109,12 @@ namespace GrassSimulation.LOD
 			Vector4[] _pressureData;
 			Vector4[] _tessData;
 #endif
-			_grassDataA = new Vector4[Context.Settings.GetAmountBlades()];
-			_grassDataB = new Vector4[Context.Settings.GetAmountBlades()];
-			_grassDataC = new Vector4[Context.Settings.GetAmountBlades()];
-			_pressureData = new Vector4[Context.Settings.GetAmountBlades()];
-			_tessData = new Vector4[Context.Settings.GetAmountBlades()];
-			for (var i = 0; i < Context.Settings.GetAmountBlades(); i++)
+			_grassDataA = new Vector4[Context.Settings.GetMaxAmountBladesPerPatch()];
+			_grassDataB = new Vector4[Context.Settings.GetMaxAmountBladesPerPatch()];
+			_grassDataC = new Vector4[Context.Settings.GetMaxAmountBladesPerPatch()];
+			_pressureData = new Vector4[Context.Settings.GetMaxAmountBladesPerPatch()];
+			_tessData = new Vector4[Context.Settings.GetMaxAmountBladesPerPatch()];
+			for (var i = 0; i < Context.Settings.GetMaxAmountBladesPerPatch(); i++)
 			{
 				//Fill _grassDataA
 				var bladePosition =
@@ -152,7 +152,7 @@ namespace GrassSimulation.LOD
 
 		private void CreateDummyMesh()
 		{
-			var dummyMeshSize = Context.Settings.GetDummyMeshSize();
+			var dummyMeshSize = Context.Settings.GetMinAmountBladesPerPatch();
 			var dummyVertices = new Vector3[dummyMeshSize];
 			var indices = new int[dummyMeshSize];
 
@@ -224,7 +224,7 @@ namespace GrassSimulation.LOD
 			if (Context.EditorSettings.DrawGrassDataGizmo || Context.EditorSettings.DrawGrassDataDetailGizmo)
 			{
 				Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
-				for (var i = 0; i < Context.Settings.GetAmountBlades(); i++)
+				for (var i = 0; i < Context.Settings.GetMaxAmountBladesPerPatch(); i++)
 				{
 					var pos = new Vector3(Context.SharedGrassData.GrassData[_startIndex + i].x,
 						_grassDataA[i].w, Context.SharedGrassData.GrassData[_startIndex + i].y);
