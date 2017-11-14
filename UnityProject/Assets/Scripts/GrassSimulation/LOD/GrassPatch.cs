@@ -18,8 +18,12 @@ namespace GrassSimulation.LOD
 	 */
 	public class GrassPatch : Patch, IDestroyable, IDrawable
 	{
-		private readonly uint[] _args = {0, 0, 0, 0, 0};
-		private readonly ComputeBuffer _argsBuffer;
+		private readonly uint[] _argsGeometryGrass = {0, 0, 0, 0, 0};
+		private readonly ComputeBuffer _argsGeometryGrassBuffer;
+		private readonly uint[] _argsBillboardGrass = {0, 0, 0, 0, 0};
+		private readonly ComputeBuffer _argsBillboardGrassBuffer;
+		private bool _applyTransition;
+		private uint _transitionGroupId;
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
 		private readonly int _startIndex;
@@ -27,7 +31,6 @@ namespace GrassSimulation.LOD
 		private ComputeBuffer _grassDataABuffer;
 		private ComputeBuffer _grassDataBBuffer;
 		private ComputeBuffer _grassDataCBuffer;
-		private ComputeBuffer _pressureDataBuffer;
 
 		/*
 		 * _patchModelMatrix Notes:
@@ -43,6 +46,8 @@ namespace GrassSimulation.LOD
 		 * 			Z: PatchSize
 		 */
 		private Matrix4x4 _patchModelMatrix;
+
+		private ComputeBuffer _pressureDataBuffer;
 
 		private ComputeBuffer _tessBuffer;
 
@@ -60,11 +65,15 @@ namespace GrassSimulation.LOD
 				new Vector3(Context.Settings.PatchSize, Context.Terrain.terrainData.size.y, Context.Settings.PatchSize));
 
 			// Create the IndirectArguments Buffer
-			_argsBuffer = new ComputeBuffer(1, _args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-			_args[0] = Context.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
-			_args[1] = Context.Settings.GrassDensity; //Instance Count
-			_argsBuffer.SetData(_args);
-
+			_argsGeometryGrassBuffer = new ComputeBuffer(1, _argsGeometryGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+			_argsGeometryGrass[0] = Context.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
+			_argsGeometryGrass[1] = Context.Settings.GrassDensity; //Instance Count
+			_argsGeometryGrassBuffer.SetData(_argsGeometryGrass);
+			
+			_argsBillboardGrassBuffer = new ComputeBuffer(1, _argsBillboardGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+			_argsBillboardGrass[0] = Context.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
+			_argsBillboardGrass[1] = 1; //Instance Count
+			_argsBillboardGrassBuffer.SetData(_argsBillboardGrass);
 			CreateGrassData();
 			CreateDummyMesh();
 			SetupMaterialPropertyBlock();
@@ -77,7 +86,7 @@ namespace GrassSimulation.LOD
 
 		public void Destroy()
 		{
-			_argsBuffer.Release();
+			_argsGeometryGrassBuffer.Release();
 			_grassDataABuffer.Release();
 			_grassDataBBuffer.Release();
 			_grassDataCBuffer.Release();
@@ -87,16 +96,59 @@ namespace GrassSimulation.LOD
 		public void Draw()
 		{
 			//TODO: Add CPU LOD algorithm
-			//TODO: Actually use _argsBuffer in computeShader or if CPU only, don't use Indirect Draw Methd
+			//TODO: Actually use _argsGeometryGrassBuffer in computeShader or if CPU only, don't use Indirect Draw Methd
 			//TODO: Add settings for options in computeShader
+			ComputeLod();
 			RunSimulationComputeShader();
-#if UNITY_EDITOR
-			_materialPropertyBlock.SetMatrix("patchModelMatrix", _patchModelMatrix);
-#endif
+
 			//SetupMaterialPropertyBlock();
 
-			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Context.GrassMaterial, Bounds, _argsBuffer, 0,
+			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Context.GrassMaterial, Bounds, _argsGeometryGrassBuffer, 0,
 				_materialPropertyBlock);
+		}
+
+		private void ComputeLod()
+		{
+			//Get distance from Patchs center to camera
+			var distance = Vector3.Distance(Context.Camera.transform.position, Bounds.center);
+
+			if (distance > Context.Settings.LodMaxDistance)
+			{
+				_argsBillboardGrass[1] = 0;
+				_argsGeometryGrass[1] = 0;
+				_applyTransition = false;
+			}
+			else if (distance > Context.Settings.LodBillboardDistance)
+			{
+				_argsBillboardGrass[1] = 1;
+				_argsGeometryGrass[1] = 0;
+				_applyTransition = false;
+			}
+			else
+			{
+				if (distance <= Context.Settings.LodFullDetailDistance)
+				{
+					_argsBillboardGrass[1] = 0;
+					_argsGeometryGrass[1] = Context.Settings.GrassDensity;
+					_applyTransition = false;
+				}
+				else
+				{
+					//Create "distance rings" for compute shader to transition depending on the distance to camera
+					var t = Mathf.Max(0.0f,
+						1.0f - (distance - Context.Settings.LodFullDetailDistance) /
+						(Context.Settings.LodBillboardDistance - Context.Settings.LodFullDetailDistance));
+					var instanceCount =  1 + (uint) Mathf.CeilToInt(t * (Context.Settings.GrassDensity - 1));
+
+					_argsBillboardGrass[1] = (uint) (instanceCount <= 2 ? 1 : 0);
+					_argsGeometryGrass[1] = instanceCount;
+					_applyTransition = true;
+					_transitionGroupId = instanceCount - 1;
+				}
+			}
+
+			_argsGeometryGrassBuffer.SetData(_argsGeometryGrass);
+			_argsBillboardGrassBuffer.SetData(_argsBillboardGrass);
 		}
 
 		private void CreateGrassData()
@@ -132,8 +184,8 @@ namespace GrassSimulation.LOD
 				//Fill _grassDataC
 				var dirAlpha = (float) (Context.Random.NextDouble() * Mathf.PI * 2f);
 				_grassDataC[i].Set(up.x * height, up.y * height, up.z * height, dirAlpha);
-				
-				_pressureData[i].Set(0,0,0,0);
+
+				_pressureData[i].Set(0, 0, 0, 0);
 				_tessData[i].Set(8.0f, 1.0f, 1.0f, 1.0f);
 			}
 
@@ -181,6 +233,8 @@ namespace GrassSimulation.LOD
 		private void RunSimulationComputeShader()
 		{
 			//Set per patch data for whole compute shader
+			Context.GrassSimulationComputeShader.SetBool("applyTransition", _applyTransition);
+			Context.GrassSimulationComputeShader.SetInt("transitionGroupId", (int)_transitionGroupId);
 			Context.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
 			Context.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
 			Context.GrassSimulationComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.transpose.inverse);

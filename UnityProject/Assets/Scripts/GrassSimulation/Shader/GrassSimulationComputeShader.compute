@@ -12,6 +12,8 @@ RWStructuredBuffer<float4> grassDataCBuffer; //xyz: v2, w: dirAlpha
 RWStructuredBuffer<float4> pressureDataBuffer; //
 RWStructuredBuffer<float4> tessDataBuffer; //x: tessLevel
 
+bool applyTransition;
+int transitionGroupId;
 float deltaTime;
 int startIndex;
 float4 gravityVec;
@@ -69,15 +71,16 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 
 	//Visibility Check
 	float3 camDir = pos - camPos;
+	//Project camdir on the local plane defined by the up-vector
 	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
 	float distance = length(camDir);
 	float3 camDirNorm = normalize(camDir);
 	
-	if (distance > 400.0) //distance >= 200.0
+	/*if (distance > 400.0) //distance >= 200.0
 	{
 		tessDataBuffer[i].x = 0.0;
         return;
-	}
+	}*/
 
 	//Orientation Culling
     /*if(abs(dot(camDirNorm, bladeFront)) < 0.1)
@@ -87,20 +90,20 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
     }*/
 
     //Depth Culling
-    float projDistance = length(camDirProj);
+    /*float projDistance = length(camDirProj);
     uint value = ceil(max((1.0 - projDistance / 200.0),0.0) * 32.0);
 
     if(fmod(i,32) >= value)
     {
     	tessDataBuffer[i].x = 0;
         return;
-    }
+    }*/
 
-    tessDataBuffer[i].x = min(abs(64 - distance), 64);
+    tessDataBuffer[i].x = 12;
 }
 
 [numthreads(threads_x,threads_y,threads_z)]
-void PhysicsMain (uint3 id : SV_DispatchThreadID)
+void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 {
 	uint i = id.x;
 
@@ -125,8 +128,15 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID)
 	float4 oldPressure = pressureDataBuffer[i];
 	float collisionForce = max(oldPressure.w - (1.0f - bendingFactor) * 0.5f * mdt, 0.0f);
 
+    float3 camDir = groundPos - camPos;
+    //TODO: Here :)
+    //transition
+    if (applyTransition && transitionGroupId == gid.x){
+        height = 20.0f;
+        invHeight = 1.0f / height;
+    }
+    
 	float3 idleV2 = bladeUp * height;
-
 	//apply old pressure
 	//float3 v2 = idleV2 - oldPressure.xyz;
 	float3 v2 = grassDataCBuffer[i].xyz;
@@ -146,8 +156,8 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID)
 
 	//apply new forces
 	v2 += gravity + stiffness;
-	//relativeV2 = v2 - groundPos;
-
+	//relativeV2 = v2 - groundPos;   
+	
 	//Ensure valid v2 position (not under ground plane)
 	v2 += bladeUp * -min(dot(bladeUp, v2),0.0f);
 

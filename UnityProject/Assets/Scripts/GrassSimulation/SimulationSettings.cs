@@ -30,9 +30,11 @@ namespace GrassSimulation
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
 		private uint _instancedGrassFactor = 2;
 		[Tooltip("The max range grass will be rendered.")]
-		public float MaxGrassViewDistance = 1000f;
+		public float LodMaxDistance = 1000f;
 		[Tooltip("The distance billboard grass will be used over single blades. Up to this distance the density will be scaled down to 1.")]
-		public float BillboardGrassDistance = 500f;
+		public float LodBillboardDistance = 500f;
+		[Tooltip("The distance up to which grass will be rendered in full detail.")]
+		public float LodFullDetailDistance = 50f;
 
 		public uint GetMaxAmountBladesPerPatch()
 		{
