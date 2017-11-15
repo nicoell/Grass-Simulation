@@ -12,15 +12,21 @@ RWStructuredBuffer<float4> grassDataCBuffer; //xyz: v2, w: dirAlpha
 RWStructuredBuffer<float4> pressureDataBuffer; //
 RWStructuredBuffer<float4> tessDataBuffer; //x: tessLevel
 
-bool applyTransition;
-int transitionGroupId;
+//Per Frame
 float deltaTime;
-int startIndex;
-float4 gravityVec;
-float4x4 patchModelMatrix;
-float4x4 patchModelMatrixInverse;
 float4x4 viewProjMatrix;
 float3 camPos;
+float4 gravityVec;
+float LodFullDetailDistance;
+float LodBillboardDistance;
+uint GrassDensity;
+
+//Per Patch
+bool applyTransition;
+int transitionGroupId;
+int startIndex;
+float4x4 patchModelMatrix;
+float4x4 patchModelMatrixInverse;
 
 float4 LocalToWorldPos(float4 pos){
 	return mul(patchModelMatrix, pos);
@@ -129,17 +135,27 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float collisionForce = max(oldPressure.w - (1.0f - bendingFactor) * 0.5f * mdt, 0.0f);
 
     float3 camDir = groundPos - camPos;
-    //TODO: Here :)
+    
+    //TODO: Apply pressure on transition to fade in/out grassblades as transition
+    // Need to restore original state...
+    // I think this fucks up physic simulation in here and should be applied seperately in tessellation shader instead. 
     //transition
     if (applyTransition && transitionGroupId == gid.x){
-        height = 20.0f;
+        float t = frac(max(0.0f,
+						1.0f - (length(camDir) - LodFullDetailDistance) /
+						(LodBillboardDistance - LodFullDetailDistance)) * (GrassDensity));
+        height *= t;
         invHeight = 1.0f / height;
     }
+    /*if (applyTransition && gid.x < transitionGroupId - 1){
+        height = 0;
+        invHeight = 0;
+    }*/
     
 	float3 idleV2 = bladeUp * height;
 	//apply old pressure
-	//float3 v2 = idleV2 - oldPressure.xyz;
-	float3 v2 = grassDataCBuffer[i].xyz;
+	float3 v2 = idleV2 - oldPressure.xyz;
+	//float3 v2 = grassDataCBuffer[i].xyz;
 	//float3 relativeV2 = v2 - groundPos;
 
 	//gravity

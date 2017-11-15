@@ -120,8 +120,9 @@ namespace GrassSimulation.LOD
 			}
 			else if (distance > Context.Settings.LodBillboardDistance)
 			{
-				_argsBillboardGrass[1] = 1;
-				_argsGeometryGrass[1] = 0;
+				//TODO: Change this when implementing billboard grass
+				_argsBillboardGrass[1] = 0;
+				_argsGeometryGrass[1] = 1;
 				_applyTransition = false;
 			}
 			else
@@ -142,7 +143,7 @@ namespace GrassSimulation.LOD
 
 					_argsBillboardGrass[1] = (uint) (instanceCount <= 2 ? 1 : 0);
 					_argsGeometryGrass[1] = instanceCount;
-					_applyTransition = true;
+					_applyTransition = Context.Settings.EnableHeightTransition;
 					_transitionGroupId = instanceCount - 1;
 				}
 			}

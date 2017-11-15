@@ -36,6 +36,8 @@ namespace GrassSimulation
 		[Tooltip("The distance up to which grass will be rendered in full detail.")]
 		public float LodFullDetailDistance = 50f;
 
+		public bool EnableHeightTransition = true;
+
 		public uint GetMaxAmountBladesPerPatch()
 		{
 			return PatchSize * PatchSize * GrassDensity;

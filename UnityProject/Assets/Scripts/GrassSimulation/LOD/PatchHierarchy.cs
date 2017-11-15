@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace GrassSimulation.LOD
 {
+	//TODO: Decouple from terrain
 	public class PatchHierarchy : RequiredContext, IInitializable, IDestroyable, IDrawable
 	{
 		private GrassPatch[,] _grassPatches;
@@ -168,6 +169,10 @@ namespace GrassSimulation.LOD
 
 		private void UpdatePerFrameData()
 		{
+			//TODO: Maybe outsource all the computeshader data settings to its own class
+			Context.GrassSimulationComputeShader.SetFloat("LodBillboardDistance", Context.Settings.LodBillboardDistance);
+			Context.GrassSimulationComputeShader.SetFloat("LodFullDetailDistance", Context.Settings.LodFullDetailDistance);
+			Context.GrassSimulationComputeShader.SetInt("GrassDensity", (int) Context.Settings.GrassDensity);
 			Context.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
 			Context.GrassSimulationComputeShader.SetVector("gravityVec", Context.Settings.Gravity);
 			Context.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
