@@ -27,7 +27,10 @@ Shader "GrassSimulation/GrassShader"
 			#include "UnityCG.cginc"
 			
 			uniform float startIndex;
-            uniform float4x4 patchModelMatrix;			
+            uniform float4x4 patchModelMatrix;
+            
+            uniform float4 camPos;
+
             												// X 			Y 			Z 			W
 			StructuredBuffer<float4> SharedGrassDataBuffer;	// pos.x 		pos.z 		width, 		bend
 			StructuredBuffer<float4> grassDataABuffer;		// up.x 		up.y 		up.z 		pos.y
@@ -38,6 +41,7 @@ Shader "GrassSimulation/GrassShader"
 			struct VSOut 
 			{
 			    uint bufferID : VertexID;
+			    uint instanceID : InstanceID;
 			};
 			
 			struct HSConstOut
@@ -50,6 +54,7 @@ Shader "GrassSimulation/GrassShader"
 			{
 				float3 pos : POS;
 			    uint bufferID : VertexID;
+			    float transitionFactor : TransitionFactor;
 			};
 			
 			
@@ -72,6 +77,7 @@ Shader "GrassSimulation/GrassShader"
 			{
 				VSOut OUT;
 				OUT.bufferID = 64 * instanceID + vertexID;
+				OUT.instanceID = instanceID;
 
 				return OUT;
 			}
@@ -79,8 +85,7 @@ Shader "GrassSimulation/GrassShader"
 			HSConstOut hullPatchConstant( InputPatch<VSOut, 1> IN)
     		{
         		HSConstOut OUT = (HSConstOut)0;
-        		uint bufferID = IN[0].bufferID;
-        		float level = tessDataBuffer[bufferID].x;
+        		float level = tessDataBuffer[IN[0].bufferID].x;
         		OUT.TessFactor[0] = level;	//left
         		OUT.TessFactor[1] = 2;	//bottom
         		OUT.TessFactor[2] = level;	//right
@@ -100,6 +105,15 @@ Shader "GrassSimulation/GrassShader"
         		HSOut OUT = (HSOut)0;
         		OUT.pos = mul(patchModelMatrix, float4(SharedGrassDataBuffer[startIndex + IN[0].bufferID].x, grassDataABuffer[IN[0].bufferID].w, SharedGrassDataBuffer[startIndex + IN[0].bufferID].y, 1.0)).xyz;
         		OUT.bufferID = IN[0].bufferID;
+        		//Distance from GrassBlade to Camera
+        		//float distance = length(OUT.pos - camPos);
+        		//interpolant
+        		//float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0, 1);
+        		//The relative float of how many instances should be rendered at this position.
+        		//float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t);
+        		OUT.transitionFactor = tessDataBuffer[IN[0].bufferID].y;
+        		//OUT.transitionFactor = 0;
+
         		return OUT;
             }
                
@@ -120,8 +134,8 @@ Shader "GrassSimulation/GrassShader"
 				float4 grassBufferCData = grassDataCBuffer[IN[0].bufferID];
 				
 				float3 pos = IN[0].pos;
-        		float3 v1 = pos + grassBufferBData.xyz;
-        		float3 v2 = pos + grassBufferCData.xyz;
+        		float3 v1 = pos + grassBufferBData.xyz * IN[0].transitionFactor;
+        		float3 v2 = pos + grassBufferCData.xyz * IN[0].transitionFactor;
         		float3 up = normalize(grassBufferAData.xyz);
         		float width = sharedGrassBufferData.z;
         		float bend = sharedGrassBufferData.w;
@@ -184,9 +198,22 @@ Shader "GrassSimulation/GrassShader"
        
         		float3 pos = float3(IN[0].pos.x + (uv.x - 0.5)*0.1, IN[0].pos.y + uv.y, IN[0].pos.z);*/
       
+                //DEBUG COLORING
+                /*float distance = length(pos - camPos);
+        		float debugT = (distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail);
+        		float debugInterpolant = frac(lerp(LodDensityBillboardDistance, LodDensityFullDetailDistance, debugT));
+
+        		if (debugT < 0){
+        		    OUT.color = float4(1,1,1,1);
+        		} else if (debugT > 1){
+        		    OUT.color = float4(0,1,0,1);
+        		} else {
+        		    OUT.color = float4(lerp(float3(1,0,0), float3(0,0,1), debugInterpolant), 1);
+        		}*/
       
                 OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
-                OUT.color = float4(lerp(float3(0.5, 1, 0.3), float3(0.1, 0.5, 0.05), 1-v), 1);
+                OUT.color = float4(lerp(float3(0.44, 0.61, 0.2), float3(0.12, 0.18, 0.055), 1-v), 1);
+               
            
         		return OUT;
 }

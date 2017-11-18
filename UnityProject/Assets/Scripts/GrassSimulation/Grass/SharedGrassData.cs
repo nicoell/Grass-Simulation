@@ -10,9 +10,7 @@ namespace GrassSimulation.Grass
 		{
 		}
 
-#if UNITY_EDITOR
 		public Vector4[] GrassData { get; private set; } //pos.xy, width, bend
-#endif
 
 		public void Destroy()
 		{
@@ -23,9 +21,6 @@ namespace GrassSimulation.Grass
 		{
 			var amountBlades = Context.Settings.GetAmountInstancedBlades();
 
-#if !UNITY_EDITOR
-			Vector4[] GrassData;
-#endif
 			GrassData = new Vector4[amountBlades];
 
 			for (var i = 0; i < amountBlades; i++)

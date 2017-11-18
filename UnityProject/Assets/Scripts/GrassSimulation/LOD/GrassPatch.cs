@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Bounds = GrassSimulation.Utils.Bounds;
 
 namespace GrassSimulation.LOD
 {
@@ -18,15 +19,15 @@ namespace GrassSimulation.LOD
 	 */
 	public class GrassPatch : Patch, IDestroyable, IDrawable
 	{
-		private readonly uint[] _argsGeometryGrass = {0, 0, 0, 0, 0};
-		private readonly ComputeBuffer _argsGeometryGrassBuffer;
 		private readonly uint[] _argsBillboardGrass = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsBillboardGrassBuffer;
-		private bool _applyTransition;
-		private uint _transitionGroupId;
+		private readonly uint[] _argsGeometryGrass = {0, 0, 0, 0, 0};
+		private readonly ComputeBuffer _argsGeometryGrassBuffer;
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
 		private readonly int _startIndex;
+		private bool _applyTransition;
+		private readonly Bounds.BoundsVertices _boundsVertices;
 		private Mesh _dummyMesh;
 		private ComputeBuffer _grassDataABuffer;
 		private ComputeBuffer _grassDataBBuffer;
@@ -50,10 +51,12 @@ namespace GrassSimulation.LOD
 		private ComputeBuffer _pressureDataBuffer;
 
 		private ComputeBuffer _tessBuffer;
+		private uint _transitionGroupId;
 
-		public GrassPatch(SimulationContext context, Vector4 patchTexCoord, Bounds bounds) : base(context)
+		public GrassPatch(SimulationContext context, Vector4 patchTexCoord, UnityEngine.Bounds bounds) : base(context)
 		{
 			Bounds = bounds;
+			_boundsVertices = new Bounds.BoundsVertices(bounds);
 			_patchTexCoord = patchTexCoord;
 			_startIndex = Context.Random.Next(0,
 				(int) (Context.Settings.GetAmountInstancedBlades() - Context.Settings.GetMaxAmountBladesPerPatch()));
@@ -65,12 +68,14 @@ namespace GrassSimulation.LOD
 				new Vector3(Context.Settings.PatchSize, Context.Terrain.terrainData.size.y, Context.Settings.PatchSize));
 
 			// Create the IndirectArguments Buffer
-			_argsGeometryGrassBuffer = new ComputeBuffer(1, _argsGeometryGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+			_argsGeometryGrassBuffer =
+				new ComputeBuffer(1, _argsGeometryGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
 			_argsGeometryGrass[0] = Context.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
-			_argsGeometryGrass[1] = Context.Settings.GrassDensity; //Instance Count
+			_argsGeometryGrass[1] = Context.Settings.LodDensityFullDetailDistance; //Instance Count
 			_argsGeometryGrassBuffer.SetData(_argsGeometryGrass);
-			
-			_argsBillboardGrassBuffer = new ComputeBuffer(1, _argsBillboardGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+
+			_argsBillboardGrassBuffer =
+				new ComputeBuffer(1, _argsBillboardGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
 			_argsBillboardGrass[0] = Context.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
 			_argsBillboardGrass[1] = 1; //Instance Count
 			_argsBillboardGrassBuffer.SetData(_argsBillboardGrass);
@@ -79,10 +84,7 @@ namespace GrassSimulation.LOD
 			SetupMaterialPropertyBlock();
 		}
 
-		public override bool IsLeaf
-		{
-			get { return true; }
-		}
+		public override bool IsLeaf { get { return true; } }
 
 		public void Destroy()
 		{
@@ -109,42 +111,45 @@ namespace GrassSimulation.LOD
 
 		private void ComputeLod()
 		{
+			//1. Test if any point of bounding box is in lod-distance-radius around camera 
+			//
 			//Get distance from Patchs center to camera
-			var distance = Vector3.Distance(Context.Camera.transform.position, Bounds.center);
-
-			if (distance > Context.Settings.LodMaxDistance)
+			if (!Utils.Bounds.BoundsVertices.IntersectsSphere(_boundsVertices, Context.Camera.transform.position,
+				Context.Settings.LodDistanceMax))
 			{
 				_argsBillboardGrass[1] = 0;
 				_argsGeometryGrass[1] = 0;
 				_applyTransition = false;
-			}
-			else if (distance > Context.Settings.LodBillboardDistance)
+			} else if (!Utils.Bounds.BoundsVertices.IntersectsSphere(_boundsVertices, Context.Camera.transform.position,
+				Context.Settings.LodDistanceBillboard))
 			{
 				//TODO: Change this when implementing billboard grass
 				_argsBillboardGrass[1] = 0;
 				_argsGeometryGrass[1] = 1;
 				_applyTransition = false;
-			}
-			else
+			} else
 			{
-				if (distance <= Context.Settings.LodFullDetailDistance)
+				if (Utils.Bounds.BoundsVertices.IntersectsSphere(_boundsVertices, Context.Camera.transform.position,
+					Context.Settings.LodDistanceFullDetail))
 				{
 					_argsBillboardGrass[1] = 0;
-					_argsGeometryGrass[1] = Context.Settings.GrassDensity;
+					_argsGeometryGrass[1] = Context.Settings.LodDensityFullDetailDistance;
 					_applyTransition = false;
-				}
-				else
+				} else
 				{
-					//Create "distance rings" for compute shader to transition depending on the distance to camera
-					var t = Mathf.Max(0.0f,
-						1.0f - (distance - Context.Settings.LodFullDetailDistance) /
-						(Context.Settings.LodBillboardDistance - Context.Settings.LodFullDetailDistance));
-					var instanceCount =  1 + (uint) Mathf.CeilToInt(t * (Context.Settings.GrassDensity - 1));
+					//TODO: Which point to use on bbox?
+					var oppositeCamPos = Bounds.center - (Context.Camera.transform.position - Bounds.center);
+					var distance = Vector3.Distance(Context.Camera.transform.position, Bounds.ClosestPoint(oppositeCamPos));
+					var t = (distance - Context.Settings.LodDistanceFullDetail) /
+					        (Context.Settings.LodDistanceBillboard - Context.Settings.LodDistanceFullDetail);
+					var instanceCount = (uint) Mathf.Ceil(Mathf.Lerp(Context.Settings.LodDensityFullDetailDistance,
+						Context.Settings.LodDensityBillboardDistance, t));
 
+					//TODO: Fade in Billboards
 					_argsBillboardGrass[1] = (uint) (instanceCount <= 2 ? 1 : 0);
 					_argsGeometryGrass[1] = instanceCount;
 					_applyTransition = Context.Settings.EnableHeightTransition;
-					_transitionGroupId = instanceCount - 1;
+					//_materialPropertyBlock.SetFloat("transitionGroupId", _transitionGroupId);
 				}
 			}
 
@@ -235,7 +240,6 @@ namespace GrassSimulation.LOD
 		{
 			//Set per patch data for whole compute shader
 			Context.GrassSimulationComputeShader.SetBool("applyTransition", _applyTransition);
-			Context.GrassSimulationComputeShader.SetInt("transitionGroupId", (int)_transitionGroupId);
 			Context.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
 			Context.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
 			Context.GrassSimulationComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.transpose.inverse);
@@ -252,7 +256,8 @@ namespace GrassSimulation.LOD
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelPhysics, "tessDataBuffer", _tessBuffer);
 
 			//Run Physics Simulation
-			Context.GrassSimulationComputeShader.Dispatch(Context.KernelPhysics, (int) Context.Settings.GrassDensity, 1, 1);
+			Context.GrassSimulationComputeShader.Dispatch(Context.KernelPhysics,
+				(int) Context.Settings.LodDensityFullDetailDistance, 1, 1);
 
 			//Set buffers for Culling Kernel
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelCulling, "grassDataABuffer",
@@ -264,7 +269,8 @@ namespace GrassSimulation.LOD
 			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelCulling, "tessDataBuffer", _tessBuffer);
 
 			//Perform Culling
-			Context.GrassSimulationComputeShader.Dispatch(Context.KernelCulling, (int) Context.Settings.GrassDensity, 1, 1);
+			//TODO: threadgroupsX correct?
+			Context.GrassSimulationComputeShader.Dispatch(Context.KernelCulling, (int) _argsGeometryGrass[1], 1, 1);
 		}
 
 #if UNITY_EDITOR

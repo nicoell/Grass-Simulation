@@ -43,7 +43,7 @@ namespace GrassSimulation
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
 
 			//Build Heightmap Texture
-			Heightmap = Utils.CreateHeightmapFromTerrain(Terrain);
+			Heightmap = Utils.Terrain.CreateHeightmapFromTerrain(Terrain);
 
 			//Create a single random object
 			Random = new Random(Settings.RandomSeed);

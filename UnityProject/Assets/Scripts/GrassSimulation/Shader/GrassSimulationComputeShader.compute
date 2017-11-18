@@ -4,22 +4,25 @@
 #define threads_x 64
 #define threads_y 1
 #define threads_z 1
-
-StructuredBuffer<float4> SharedGrassDataBuffer; //pos.xz, width, bend
-RWStructuredBuffer<float4> grassDataABuffer; //xyz: upVector, w: pos.y
-RWStructuredBuffer<float4> grassDataBBuffer; //xyz: v1, w: height
-RWStructuredBuffer<float4> grassDataCBuffer; //xyz: v2, w: dirAlpha
-RWStructuredBuffer<float4> pressureDataBuffer; //
-RWStructuredBuffer<float4> tessDataBuffer; //x: tessLevel
+                                                // X 			Y 			Z 			W
+StructuredBuffer<float4> SharedGrassDataBuffer;	// pos.x 		pos.z 		width, 		bend
+RWStructuredBuffer<float4> grassDataABuffer;	// up.x 		up.y 		up.z 		pos.y
+RWStructuredBuffer<float4> grassDataBBuffer;	// v1.x 		v1.y 		v1.z 		height
+RWStructuredBuffer<float4> grassDataCBuffer;	// v2.x 		v2.y 		v2.z 		dirAlpha
+RWStructuredBuffer<float4> pressureDataBuffer;  //
+RWStructuredBuffer<float4> tessDataBuffer;		// tessLevel 	NONE 		NONE 		NONE
 
 //Per Frame
 float deltaTime;
 float4x4 viewProjMatrix;
 float3 camPos;
 float4 gravityVec;
-float LodFullDetailDistance;
-float LodBillboardDistance;
-uint GrassDensity;
+float LodDistanceFullDetail;
+float LodDistanceBillboard;
+float LodDistanceMax;
+float LodDensityFullDetailDistance;
+float LodDensityBillboardDistance;
+float LodDensityMaxDistance;
 
 //Per Patch
 bool applyTransition;
@@ -45,7 +48,7 @@ float4 WorldToClipPos(float3 pos){
 }
 
 [numthreads(threads_x,threads_y,threads_z)]
-void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
+void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 {
 	uint i = id.x;
 	/*if (i > 0) {
@@ -81,7 +84,25 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
 	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
 	float distance = length(camDir);
 	float3 camDirNorm = normalize(camDir);
-	
+	//tessDataBuffer[i].y = 1;
+	//Height transition
+	if (applyTransition)
+	{
+        float t = (distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail);
+        //The relative float of how many instances should be rendered at this position.
+        float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t);
+        float instanceID = floor(relativeInstanceCount);
+        float instanceT = frac(relativeInstanceCount);
+        if (gid.x > instanceID){
+            //TODO: Remove this when everything works.
+            tessDataBuffer[i].y = 10;
+        } else if (gid.x == instanceID){
+            tessDataBuffer[i].y = instanceT;   
+        } else {
+            tessDataBuffer[i].y = 1;
+        }
+    }
+        		
 	/*if (distance > 400.0) //distance >= 200.0
 	{
 		tessDataBuffer[i].x = 0.0;
@@ -140,13 +161,13 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
     // Need to restore original state...
     // I think this fucks up physic simulation in here and should be applied seperately in tessellation shader instead. 
     //transition
-    if (applyTransition && transitionGroupId == gid.x){
+    /*if (applyTransition && transitionGroupId == gid.x){
         float t = frac(max(0.0f,
 						1.0f - (length(camDir) - LodFullDetailDistance) /
 						(LodBillboardDistance - LodFullDetailDistance)) * (GrassDensity));
         height *= t;
         invHeight = 1.0f / height;
-    }
+    }*/
     /*if (applyTransition && gid.x < transitionGroupId - 1){
         height = 0;
         invHeight = 0;
@@ -154,8 +175,8 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
     
 	float3 idleV2 = bladeUp * height;
 	//apply old pressure
-	float3 v2 = idleV2 - oldPressure.xyz;
-	//float3 v2 = grassDataCBuffer[i].xyz;
+	//float3 v2 = idleV2 - oldPressure.xyz;
+	float3 v2 = grassDataCBuffer[i].xyz;
 	//float3 relativeV2 = v2 - groundPos;
 
 	//gravity

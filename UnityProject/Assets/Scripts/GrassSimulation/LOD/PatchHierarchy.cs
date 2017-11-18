@@ -170,9 +170,14 @@ namespace GrassSimulation.LOD
 		private void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
-			Context.GrassSimulationComputeShader.SetFloat("LodBillboardDistance", Context.Settings.LodBillboardDistance);
-			Context.GrassSimulationComputeShader.SetFloat("LodFullDetailDistance", Context.Settings.LodFullDetailDistance);
-			Context.GrassSimulationComputeShader.SetInt("GrassDensity", (int) Context.Settings.GrassDensity);
+			Context.GrassSimulationComputeShader.SetBool("applyTransition", Context.Settings.EnableHeightTransition);
+			Context.GrassSimulationComputeShader.SetFloat("LodDistanceFullDetail", Context.Settings.LodDistanceFullDetail);
+			Context.GrassSimulationComputeShader.SetFloat("LodDistanceBillboard", Context.Settings.LodDistanceBillboard);
+			Context.GrassSimulationComputeShader.SetFloat("LodDistanceMax", Context.Settings.LodDistanceMax);
+			Context.GrassSimulationComputeShader.SetFloat("LodDensityFullDetailDistance", Context.Settings.LodDensityFullDetailDistance);
+			Context.GrassSimulationComputeShader.SetFloat("LodDensityBillboardDistance", Context.Settings.LodDensityBillboardDistance);
+			Context.GrassSimulationComputeShader.SetFloat("LodDensityMaxDistance", Context.Settings.LodDensityMaxDistance);
+			Context.GrassMaterial.SetVector("camPos", Context.Camera.transform.position);
 			Context.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
 			Context.GrassSimulationComputeShader.SetVector("gravityVec", Context.Settings.Gravity);
 			Context.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
