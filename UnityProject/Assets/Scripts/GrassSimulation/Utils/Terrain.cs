@@ -9,7 +9,11 @@ namespace GrassSimulation.Utils {
 				terrain.terrainData.heightmapHeight);
 			var heightmapTexture = new Texture2D(terrain.terrainData.heightmapWidth,
 				terrain.terrainData.heightmapHeight,
-				TextureFormat.RGBA32, false);
+				TextureFormat.RGBA32, false)
+			{
+				
+				filterMode = FilterMode.Trilinear
+			};
 			for (var y = 0; y < heightmapTexture.height; y++)
 			for (var x = 0; x < heightmapTexture.width; x++)
 			{

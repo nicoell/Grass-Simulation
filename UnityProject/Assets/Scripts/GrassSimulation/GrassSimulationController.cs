@@ -14,7 +14,7 @@ namespace GrassSimulation
         private PatchHierarchy _patchHierarchy;
         
         // Use this for initialization
-        private void Start()
+        private void OnEnable()
         {
             if (Context == null)
             {
@@ -31,7 +31,6 @@ namespace GrassSimulation
         public void PrepareSimulation()
         {
             if (Context == null || !Context.Init()) return;
-            
             _patchHierarchy = new PatchHierarchy(Context);
             _patchHierarchy.Init();
         }
@@ -52,11 +51,16 @@ namespace GrassSimulation
             if (_patchHierarchy != null) _patchHierarchy.DrawGizmo();
         }
 
+        
+        
         //TODO: Need to revisit the correct way to destroy/dispose/release ComputeBuffers so the warnings go away
-        private void OnDestroy()
+        private void OnDisable()
         {
             if (Context == null || !Context.IsReady) return;
-            if (_patchHierarchy != null) _patchHierarchy.Destroy();
+            if (_patchHierarchy != null)
+            {
+                _patchHierarchy.Destroy();
+            }
         }
     }
 }

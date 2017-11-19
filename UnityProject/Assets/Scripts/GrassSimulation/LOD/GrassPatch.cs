@@ -162,8 +162,9 @@ namespace GrassSimulation.LOD
 				var bladePosition =
 					new Vector2(_patchTexCoord.x + _patchTexCoord.z * Ctx.SharedGrassData.GrassData[_startIndex + i].x,
 						_patchTexCoord.y + _patchTexCoord.w * Ctx.SharedGrassData.GrassData[_startIndex + i].y);
-				var posY = Ctx.Heightmap.GetPixel((int) (bladePosition.x * Ctx.Heightmap.width),
-					(int) (bladePosition.y * Ctx.Heightmap.height)).r;
+				var posY = Ctx.Terrain.terrainData.GetInterpolatedHeight(bladePosition.x, bladePosition.y) / Ctx.Terrain.terrainData.size.y;
+				/*var posY = Ctx.Heightmap.GetPixel((int) (bladePosition.x * Ctx.Heightmap.width),
+					(int) (bladePosition.y * Ctx.Heightmap.height)).r;*/
 				var up = Ctx.Terrain.terrainData.GetInterpolatedNormal(bladePosition.x, bladePosition.y);
 				_grassDataA[i].Set(up.x, up.y, up.z, posY);
 				//Fill _grassDataB

@@ -85,9 +85,9 @@ Shader "GrassSimulation/GrassShader"
         		HSConstOut OUT = (HSConstOut)0;
         		float level = tessDataBuffer[IN[0].bufferID].x;
         		OUT.TessFactor[0] = level;	//left
-        		OUT.TessFactor[1] = 2;	//bottom
+        		OUT.TessFactor[1] = 2.0;	//bottom
         		OUT.TessFactor[2] = level;	//right
-        		OUT.TessFactor[3] = 1;	//top
+        		OUT.TessFactor[3] = 1.0;	//top
         		OUT.InsideTessFactor[0] = 1.0;
         		OUT.InsideTessFactor[1] = level;
         		return OUT;
@@ -146,12 +146,12 @@ Shader "GrassSimulation/GrassShader"
                	float3 bladeDir = normalize(cross(up, tmp));
 
         		float u = uv.x;
-                float omu = 1.0f - u;
+                float omu = 1.0 - u;
                 float v = uv.y;
-                float omv = 1.0f - v;
+                float omv = 1.0 - v;
             
                 float3 off = bladeDir * width;
-                float3 off2 = off * 0.5f;
+                float3 off2 = off * 0.5;
             
                 float3 p0 = pos - off2;
                 float3 p1 = v1 - off2;
@@ -182,17 +182,17 @@ Shader "GrassSimulation/GrassShader"
             
                 //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
                 //float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
-                float3 texSample = _GrassBlade.SampleLevel(sampler_GrassBlade, uv.xy, 0);
-                float3 translation = normal * width * (0.5f - abs(u - 0.5f)) * ((1 - floor(v)) * texSample.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                float t = u + ((texSample.g*u) + ((1-texSample.g)*omu));
+                float3 texSample = _GrassBlade.SampleLevel(sampler_GrassBlade, uv.xy, 0.0);
+                float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                float t = u + ((texSample.g*u) + ((1.0-texSample.g)*omu));
                 float3 outpos = lerp(i1, i2, t) + translation;
             
-                /*if(dot(lightDirection, teNormal) > 0.0f)
+                /*if(dot(lightDirection, teNormal) > 0.0)
                     teNormal = -teNormal;
             
                 teDebug = tcDebug;
-                gl_Position = vpMatrix * vec4(position, 1.0f);
-                tePosition = vec4(position, 1.5f * abs(sin(shapeConstant * tcV1.w)));
+                gl_Position = vpMatrix * vec4(position, 1.0);
+                tePosition = vec4(position, 1.5 * abs(sin(shapeConstant * tcV1.w)));
        
         		float3 pos = float3(IN[0].pos.x + (uv.x - 0.5)*0.1, IN[0].pos.y + uv.y, IN[0].pos.z);*/
       

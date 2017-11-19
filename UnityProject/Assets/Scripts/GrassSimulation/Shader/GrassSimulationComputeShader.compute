@@ -89,17 +89,17 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	//Height transition
 	if (applyTransition)
 	{
-        float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0, 1);
+        float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0.0, 1.0);
         //The relative float of how many instances should be rendered at this position.
         float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
-        float instanceID = floor(relativeInstanceCount);
+        uint instanceID = floor(relativeInstanceCount);
         float instanceT = frac(relativeInstanceCount);
         if (gid.x > instanceID){
             //Unwanted grassblade which should not be visible.
             tessDataBuffer[i].x = 0;
             return;
         } else if (gid.x == instanceID){
-            tessDataBuffer[i].y = instanceT;   
+            tessDataBuffer[i].y = instanceT;
         } else {
             tessDataBuffer[i].y = 1;
         }
@@ -152,10 +152,10 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float3 bladeDir = normalize(cross(bladeUp, tmp));
 	float3 bladeFront = normalize(cross(bladeUp, bladeDir));
 
-	float mdt = min(deltaTime, 1.0f);
+	float mdt = min(deltaTime, 1.0);
 
 	float4 oldPressure = pressureDataBuffer[i];
-	float collisionForce = max(oldPressure.w - (1.0f - bendingFactor) * 0.5f * mdt, 0.0f);
+	float collisionForce = max(oldPressure.w - (1.0 - bendingFactor) * 0.5 * mdt, 0.0);
 
 	float3 idleV2 = bladeUp * height;
 	//apply old pressure
@@ -165,7 +165,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 
 	//gravity
 	float3 gravity = normalize(gravityVec.xyz) * gravityVec.w;
-	float sign = step(-0.01f, dot(normalize(gravity), bladeFront)) * 2.0f - 1.0f;
+	float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
 	gravity += sign * bladeFront * height * gravityVec.w * 0.25f;
 	gravity = gravity * height * bendingFactor * mdt;
 
@@ -173,20 +173,20 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	//TODO
 
 	//stiffness
-	float3 stiffness = (idleV2 - v2) * (1.0f - bendingFactor * 0.25f) * max(1.0f - collisionForce, 0.1f) * mdt;
+	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0 - collisionForce, 0.1) * mdt;
 
 	//apply new forces
 	v2 += gravity + stiffness;
 	//relativeV2 = v2 - groundPos;   
 	
 	//Ensure valid v2 position (not under ground plane)
-	v2 += bladeUp * -min(dot(bladeUp, v2),0.0f);
+	v2 += bladeUp * -min(dot(bladeUp, v2),0.0);
 
 	//Calculate V1
 	float3 g = v2 - dot(v2, bladeUp) * bladeUp;
     float v2ratio = abs(length(g) * invHeight);
-    float fac = max(1.0f - v2ratio, 0.05f * max(v2ratio, 1.0f));
-    float3 v1 =  bladeUp * height * 0.5f;
+    float fac = max(1.0 - v2ratio, 0.05 * max(v2ratio, 1.0));
+    float3 v1 =  bladeUp * height * 0.5;
 
 	//Make persistent length
 	
@@ -197,7 +197,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 
     float L1 = lv01 + lv12;
     float L0 = length(v2);
-    float L = (2.0f * L0 + L1) / 3.0f; //http://steve.hollasch.net/cgindex/curves/cbezarclen.html
+    float L = (2.0 * L0 + L1) / 3.0; //http://steve.hollasch.net/cgindex/curves/cbezarclen.html
 
     float ldiff = height / L;
     v01 = v01 * ldiff;
