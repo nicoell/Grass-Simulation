@@ -8,7 +8,7 @@ namespace GrassSimulation.LOD
 		private readonly Patch[] _childPatches = new Patch[4];
 		private int _index;
 
-		public BoundingPatch(SimulationContext context) : base(context)
+		public BoundingPatch(SimulationContext ctx) : base(ctx)
 		{
 		}
 
@@ -43,7 +43,7 @@ namespace GrassSimulation.LOD
 
 		public override void DrawGizmo()
 		{
-			if (!Context.EditorSettings.DrawBoundingPatchGizmo) return;
+			if (!Ctx.EditorSettings.DrawBoundingPatchGizmo) return;
 			
 			Gizmos.color = new Color(1f, 0f, 0f, 0.2f);
 			Gizmos.DrawWireSphere(Bounds.center, 0.5f);

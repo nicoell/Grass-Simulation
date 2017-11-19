@@ -6,7 +6,7 @@ namespace GrassSimulation.Grass
 	{
 		private ComputeBuffer SharedGrassBuffer;
 
-		public SharedGrassData(SimulationContext context) : base(context)
+		public SharedGrassData(SimulationContext ctx) : base(ctx)
 		{
 		}
 
@@ -19,18 +19,18 @@ namespace GrassSimulation.Grass
 
 		public bool Init()
 		{
-			var amountBlades = Context.Settings.GetAmountInstancedBlades();
+			var amountBlades = Ctx.Settings.GetAmountInstancedBlades();
 
 			GrassData = new Vector4[amountBlades];
 
 			for (var i = 0; i < amountBlades; i++)
 			{
-				var randPos = new Vector2((float) Context.Random.NextDouble(), (float) Context.Random.NextDouble());
-				var width = (float) (Context.Settings.BladeMinWidth +
-				                     Context.Random.NextDouble() *
-				                     (Context.Settings.BladeMaxWidth - Context.Settings.BladeMinWidth));
-				var bend = (float) (Context.Settings.BladeMinBend +
-				                    Context.Random.NextDouble() * (Context.Settings.BladeMaxBend - Context.Settings.BladeMinBend));
+				var randPos = new Vector2((float) Ctx.Random.NextDouble(), (float) Ctx.Random.NextDouble());
+				var width = (float) (Ctx.Settings.BladeMinWidth +
+				                     Ctx.Random.NextDouble() *
+				                     (Ctx.Settings.BladeMaxWidth - Ctx.Settings.BladeMinWidth));
+				var bend = (float) (Ctx.Settings.BladeMinBend +
+				                    Ctx.Random.NextDouble() * (Ctx.Settings.BladeMaxBend - Ctx.Settings.BladeMinBend));
 
 				GrassData[i].x = randPos.x;
 				GrassData[i].y = randPos.y;
@@ -41,9 +41,9 @@ namespace GrassSimulation.Grass
 			SharedGrassBuffer = new ComputeBuffer(GrassData.Length, 16, ComputeBufferType.Default);
 			SharedGrassBuffer.SetData(GrassData);
 
-			Context.GrassMaterial.SetBuffer("SharedGrassDataBuffer", SharedGrassBuffer);
-			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelPhysics, "SharedGrassDataBuffer", SharedGrassBuffer);
-			Context.GrassSimulationComputeShader.SetBuffer(Context.KernelCulling, "SharedGrassDataBuffer", SharedGrassBuffer);
+			Ctx.GrassMaterial.SetBuffer("SharedGrassDataBuffer", SharedGrassBuffer);
+			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "SharedGrassDataBuffer", SharedGrassBuffer);
+			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "SharedGrassDataBuffer", SharedGrassBuffer);
 			
 			return true;
 		}

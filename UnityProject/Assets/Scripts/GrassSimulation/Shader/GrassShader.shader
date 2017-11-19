@@ -41,7 +41,6 @@ Shader "GrassSimulation/GrassShader"
 			struct VSOut 
 			{
 			    uint bufferID : VertexID;
-			    uint instanceID : InstanceID;
 			};
 			
 			struct HSConstOut
@@ -77,7 +76,6 @@ Shader "GrassSimulation/GrassShader"
 			{
 				VSOut OUT;
 				OUT.bufferID = 64 * instanceID + vertexID;
-				OUT.instanceID = instanceID;
 
 				return OUT;
 			}

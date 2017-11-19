@@ -4,7 +4,7 @@ namespace GrassSimulation.LOD
 {
 	public abstract class Patch : RequiredContext
 	{
-		protected Patch(SimulationContext context) : base(context)
+		protected Patch(SimulationContext ctx) : base(ctx)
 		{
 		}
 

@@ -2,11 +2,11 @@
 {
 	public abstract class RequiredContext
 	{
-		protected SimulationContext Context;
+		protected SimulationContext Ctx;
 
-		protected RequiredContext(SimulationContext context)
+		protected RequiredContext(SimulationContext ctx)
 		{
-			Context = context;
+			Ctx = ctx;
 		}
 	}
 }

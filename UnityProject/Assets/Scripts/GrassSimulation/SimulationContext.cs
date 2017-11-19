@@ -57,6 +57,12 @@ namespace GrassSimulation
 			SharedGrassData.Init();
 			
 			GrassMaterial.SetTexture("_GrassBlade", Settings.GrassBlade);
+			GrassSimulationComputeShader.SetFloat("LodDistanceFullDetail", Settings.LodDistanceFullDetail);
+			GrassSimulationComputeShader.SetFloat("LodDistanceBillboard", Settings.LodDistanceBillboard);
+			GrassSimulationComputeShader.SetFloat("LodDistanceMax", Settings.LodDistanceMax);
+			GrassSimulationComputeShader.SetFloat("LodDensityFullDetailDistance", Settings.LodDensityFullDetailDistance);
+			GrassSimulationComputeShader.SetFloat("LodDensityBillboardDistance", Settings.LodDensityBillboardDistance);
+			GrassSimulationComputeShader.SetFloat("LodDensityMaxDistance", Settings.LodDensityMaxDistance);
 
 			//Everything is ready.
 			IsReady = true;

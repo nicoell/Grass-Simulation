@@ -83,19 +83,21 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	//Project camdir on the local plane defined by the up-vector
 	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
 	float distance = length(camDir);
+	float projDistance = length(camDirProj);
 	float3 camDirNorm = normalize(camDir);
-	//tessDataBuffer[i].y = 1;
+
 	//Height transition
 	if (applyTransition)
 	{
-        float t = (distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail);
+        float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0, 1);
         //The relative float of how many instances should be rendered at this position.
-        float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t);
+        float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
         float instanceID = floor(relativeInstanceCount);
         float instanceT = frac(relativeInstanceCount);
         if (gid.x > instanceID){
-            //TODO: Remove this when everything works.
-            tessDataBuffer[i].y = 10;
+            //Unwanted grassblade which should not be visible.
+            tessDataBuffer[i].x = 0;
+            return;
         } else if (gid.x == instanceID){
             tessDataBuffer[i].y = instanceT;   
         } else {
@@ -155,24 +157,6 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float4 oldPressure = pressureDataBuffer[i];
 	float collisionForce = max(oldPressure.w - (1.0f - bendingFactor) * 0.5f * mdt, 0.0f);
 
-    float3 camDir = groundPos - camPos;
-    
-    //TODO: Apply pressure on transition to fade in/out grassblades as transition
-    // Need to restore original state...
-    // I think this fucks up physic simulation in here and should be applied seperately in tessellation shader instead. 
-    //transition
-    /*if (applyTransition && transitionGroupId == gid.x){
-        float t = frac(max(0.0f,
-						1.0f - (length(camDir) - LodFullDetailDistance) /
-						(LodBillboardDistance - LodFullDetailDistance)) * (GrassDensity));
-        height *= t;
-        invHeight = 1.0f / height;
-    }*/
-    /*if (applyTransition && gid.x < transitionGroupId - 1){
-        height = 0;
-        invHeight = 0;
-    }*/
-    
 	float3 idleV2 = bladeUp * height;
 	//apply old pressure
 	//float3 v2 = idleV2 - oldPressure.xyz;

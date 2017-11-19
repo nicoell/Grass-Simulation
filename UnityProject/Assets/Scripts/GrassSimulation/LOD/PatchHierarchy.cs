@@ -11,7 +11,7 @@ namespace GrassSimulation.LOD
 		private BoundingPatch _rootPatch;
 		private List<GrassPatch> _visiblePatches;
 
-		public PatchHierarchy(SimulationContext context) : base(context)
+		public PatchHierarchy(SimulationContext ctx) : base(ctx)
 		{
 		}
 
@@ -43,16 +43,16 @@ namespace GrassSimulation.LOD
 		private void CreateGrassPatchGrid()
 		{
 			//Transform terrain bounds center from local to world coordinates
-			var localToWorldMatrix = Matrix4x4.TRS(Context.Transform.position, Quaternion.identity, Vector3.one);
-			var terrainBoundsWorldCenter = localToWorldMatrix.MultiplyPoint3x4(Context.Terrain.terrainData.bounds.center);
+			var localToWorldMatrix = Matrix4x4.TRS(Ctx.Transform.position, Quaternion.identity, Vector3.one);
+			var terrainBoundsWorldCenter = localToWorldMatrix.MultiplyPoint3x4(Ctx.Terrain.terrainData.bounds.center);
 			//Prepare some measurements
-			var terrainSize = new Vector2(Context.Terrain.terrainData.size.x, Context.Terrain.terrainData.size.z);
-			var terrainLevel = Context.Terrain.terrainData.size.y;
-			var heightmapSize = new Vector2Int(Context.Terrain.terrainData.heightmapWidth,
-				Context.Terrain.terrainData.heightmapHeight);
+			var terrainSize = new Vector2(Ctx.Terrain.terrainData.size.x, Ctx.Terrain.terrainData.size.z);
+			var terrainLevel = Ctx.Terrain.terrainData.size.y;
+			var heightmapSize = new Vector2Int(Ctx.Terrain.terrainData.heightmapWidth,
+				Ctx.Terrain.terrainData.heightmapHeight);
 			//var heightmapToTerrainFactor = new Vector2(heightmapSize.x / terrainSize.x, heightmapSize.y / terrainSize.y);
-			var patchQuantity = new Vector2Int((int) (terrainSize.x / Context.Settings.PatchSize),
-				(int) (terrainSize.y / Context.Settings.PatchSize));
+			var patchQuantity = new Vector2Int((int) (terrainSize.x / Ctx.Settings.PatchSize),
+				(int) (terrainSize.y / Ctx.Settings.PatchSize));
 			_grassPatches = new GrassPatch[patchQuantity.y, patchQuantity.x];
 
 			//Initiate all Leaf Patches by creating their BoundingBox and textureCoordinates for heightmap Access
@@ -66,13 +66,13 @@ namespace GrassSimulation.LOD
 
 				//Calculate bounding box center and size in world coordinates
 				var patchBoundsCenter = new Vector3(
-					terrainBoundsWorldCenter.x - Context.Terrain.terrainData.bounds.extents.x,
-					Context.Transform.position.y,
-					terrainBoundsWorldCenter.z - Context.Terrain.terrainData.bounds.extents.z);
-				var patchBoundsSize = new Vector3(Context.Settings.PatchSize, 0, Context.Settings.PatchSize);
+					terrainBoundsWorldCenter.x - Ctx.Terrain.terrainData.bounds.extents.x,
+					Ctx.Transform.position.y,
+					terrainBoundsWorldCenter.z - Ctx.Terrain.terrainData.bounds.extents.z);
+				var patchBoundsSize = new Vector3(Ctx.Settings.PatchSize, 0, Ctx.Settings.PatchSize);
 				//We can already calculate x and z positions
-				patchBoundsCenter.x += x * Context.Settings.PatchSize + Context.Settings.PatchSize / 2;
-				patchBoundsCenter.z += y * Context.Settings.PatchSize + Context.Settings.PatchSize / 2;
+				patchBoundsCenter.x += x * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
+				patchBoundsCenter.z += y * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 
 				//Sample heightmapTexture to find min and maxheight values of current patch
 				var minHeight = 1f;
@@ -84,7 +84,7 @@ namespace GrassSimulation.LOD
 					k < (patchTexCoord.y + patchTexCoord.w) * heightmapSize.y;
 					k++)
 				{
-					var height = Context.Heightmap.GetPixel(j, k);
+					var height = Ctx.Heightmap.GetPixel(j, k);
 					if (height.r < minHeight) minHeight = height.r;
 					if (height.r > maxHeight) maxHeight = height.r;
 				}
@@ -95,7 +95,7 @@ namespace GrassSimulation.LOD
 				//TODO: Tessellated grass may exceed this bounds, need to add some tolerance
 
 				//Create new patch and give it the data we just calculated
-				_grassPatches[y, x] = new GrassPatch(Context, patchTexCoord,
+				_grassPatches[y, x] = new GrassPatch(Ctx, patchTexCoord,
 					new Bounds(patchBoundsCenter, patchBoundsSize));
 			}
 		}
@@ -118,7 +118,7 @@ namespace GrassSimulation.LOD
 			for (var y = 0; y < newRows; y++)
 			for (var x = 0; x < newCols; x++)
 			{
-				var hierarchicalPatch = new BoundingPatch(Context);
+				var hierarchicalPatch = new BoundingPatch(Ctx);
 				for (var k = 0; k <= 1; k++)
 				for (var j = 0; j <= 1; j++)
 				{
@@ -146,7 +146,7 @@ namespace GrassSimulation.LOD
 		private void CullViewFrustum()
 		{
 			_visiblePatches.Clear();
-			GeometryUtility.CalculateFrustumPlanes(Context.Camera, _planes);
+			GeometryUtility.CalculateFrustumPlanes(Ctx.Camera, _planes);
 
 			TestViewFrustum(_rootPatch);
 		}
@@ -170,20 +170,14 @@ namespace GrassSimulation.LOD
 		private void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
-			Context.GrassSimulationComputeShader.SetBool("applyTransition", Context.Settings.EnableHeightTransition);
-			Context.GrassSimulationComputeShader.SetFloat("LodDistanceFullDetail", Context.Settings.LodDistanceFullDetail);
-			Context.GrassSimulationComputeShader.SetFloat("LodDistanceBillboard", Context.Settings.LodDistanceBillboard);
-			Context.GrassSimulationComputeShader.SetFloat("LodDistanceMax", Context.Settings.LodDistanceMax);
-			Context.GrassSimulationComputeShader.SetFloat("LodDensityFullDetailDistance", Context.Settings.LodDensityFullDetailDistance);
-			Context.GrassSimulationComputeShader.SetFloat("LodDensityBillboardDistance", Context.Settings.LodDensityBillboardDistance);
-			Context.GrassSimulationComputeShader.SetFloat("LodDensityMaxDistance", Context.Settings.LodDensityMaxDistance);
-			Context.GrassMaterial.SetVector("camPos", Context.Camera.transform.position);
-			Context.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
-			Context.GrassSimulationComputeShader.SetVector("gravityVec", Context.Settings.Gravity);
-			Context.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
-				Context.Camera.projectionMatrix * Context.Camera.worldToCameraMatrix);
-			Context.GrassSimulationComputeShader.SetFloats("camPos", Context.Camera.transform.position.x,
-				Context.Camera.transform.position.y, Context.Camera.transform.position.z);
+			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", Ctx.Settings.EnableHeightTransition);
+			Ctx.GrassMaterial.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
+			Ctx.GrassSimulationComputeShader.SetVector("gravityVec", Ctx.Settings.Gravity);
+			Ctx.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
+				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassSimulationComputeShader.SetFloats("camPos", Ctx.Camera.transform.position.x,
+				Ctx.Camera.transform.position.y, Ctx.Camera.transform.position.z);
 		}
 	}
 }
