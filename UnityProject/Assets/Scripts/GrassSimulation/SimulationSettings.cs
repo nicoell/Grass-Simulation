@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEditor;
 using UnityEngine;
 
 namespace GrassSimulation
@@ -10,27 +11,30 @@ namespace GrassSimulation
 		public int RandomSeed = 42;
 		
 		[Header("Grass Settings")]
-		public float BladeMaxBend = 10f;
-		public float BladeMaxHeight = 10f;
-		public float BladeMaxWidth = 3f;
-		public float BladeMinBend = 3f;
-		public float BladeMinHeight = 2f;
+		public float BladeMaxBend = 2f;
+		public float BladeMaxHeight = 1f;
+		public float BladeMaxWidth = 0.5f;
+		public float BladeMinBend = 0.5f;
+		public float BladeMinHeight = 0.5f;
 		public float BladeMinWidth = 0.1f;
 		public Texture2D GrassBlade;
 		
 		[Header("Physics Settings")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
-		
+
 		[Header("LOD Settings")]
+		public int GrassDataResolution = 16;
+		public bool GrassDataTrilinearFiltering = true;
+		//public int GrassDataMultisamplingLevel = 0;
 		[Tooltip("The width and depth of a patch.")]
 		public uint PatchSize = 8;
-		[SerializeField]
+
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
-		private uint _instancedGrassFactor = 2;
+		public uint InstancedGrassFactor = 4;
 		
 		[Tooltip("There are max (PatchSize * PatchSize * GrassDensity) Blades per Patch.")]
-		public uint LodDensityFullDetailDistance = 16;
-		public uint LodDensityBillboardDistance = 4;
+		public uint LodDensityFullDetailDistance = 8;
+		public uint LodDensityBillboardDistance = 2;
 		public uint LodDensityMaxDistance = 1;
 		
 		[Tooltip("The max range grass will be rendered.")]
@@ -54,8 +58,18 @@ namespace GrassSimulation
 		
 		public uint GetAmountInstancedBlades()
 		{
-			return GetMaxAmountBladesPerPatch() * _instancedGrassFactor;
+			return GetMaxAmountBladesPerPatch() * InstancedGrassFactor;
 		}
+
+		public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
+
+		public uint GetSharedTextureLength() { return (uint) (GrassDataResolution * GrassDataResolution * InstancedGrassFactor * InstancedGrassFactor); }
+		
+		public int GetSharedTextureWidthHeight() { return (int) (GrassDataResolution * InstancedGrassFactor); }
+
+		public uint GetPerPatchTextureLength() { return (uint) (GrassDataResolution * GrassDataResolution); }
+		
+		public int GetPerPatchTextureWidthHeight() { return GrassDataResolution; }
 	}
 	
 	[Serializable]

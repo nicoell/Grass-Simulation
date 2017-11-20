@@ -16,6 +16,7 @@ namespace GrassSimulation
 		[HideInInspector] public bool IsReady;
 		[HideInInspector] public int KernelCulling;
 		[HideInInspector] public int KernelPhysics;
+		[HideInInspector] public int KernelSimulationSetup;
 		[HideInInspector] public Random Random;
 		public SimulationSettings Settings;
 		public SharedGrassData SharedGrassData;
@@ -51,12 +52,13 @@ namespace GrassSimulation
 			//Find kernels for ComputeShaders
 			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
 			KernelCulling = GrassSimulationComputeShader.FindKernel("CullingMain");
+			KernelSimulationSetup =  GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
 
 			//Create sharedGrassData
 			SharedGrassData = new SharedGrassData(this);
 			SharedGrassData.Init();
 			
-			GrassMaterial.SetTexture("_GrassBlade", Settings.GrassBlade);
+			GrassMaterial.SetTexture("GrassBlade", Settings.GrassBlade);
 			GrassSimulationComputeShader.SetFloat("LodDistanceFullDetail", Settings.LodDistanceFullDetail);
 			GrassSimulationComputeShader.SetFloat("LodDistanceBillboard", Settings.LodDistanceBillboard);
 			GrassSimulationComputeShader.SetFloat("LodDistanceMax", Settings.LodDistanceMax);

@@ -2,49 +2,66 @@
 
 namespace GrassSimulation.Grass
 {
+	public struct UvData
+	{
+		public Vector2 Position;
+	}
+
 	public class SharedGrassData : RequiredContext, IInitializable, IDestroyable
 	{
-		private ComputeBuffer SharedGrassBuffer;
+		public ComputeBuffer UvBuffer;
+		public Texture2D ParameterTexture;
 
-		public SharedGrassData(SimulationContext ctx) : base(ctx)
-		{
-		}
+		public SharedGrassData(SimulationContext ctx) : base(ctx) { }
 
-		public Vector4[] GrassData { get; private set; } //pos.xy, width, bend
+		public UvData[] UvData { get; private set; }
 
-		public void Destroy()
-		{
-			SharedGrassBuffer.Release();
-		}
+		public void Destroy() { UvBuffer.Release(); }
 
 		public bool Init()
 		{
-			var amountBlades = Ctx.Settings.GetAmountInstancedBlades();
+			//Create and fill UvData
+			UvData = new UvData[Ctx.Settings.GetSharedBufferLength()];
 
-			GrassData = new Vector4[amountBlades];
-
-			for (var i = 0; i < amountBlades; i++)
+			for (var i = 0; i < Ctx.Settings.GetSharedBufferLength(); i++)
 			{
-				var randPos = new Vector2((float) Ctx.Random.NextDouble(), (float) Ctx.Random.NextDouble());
-				var width = (float) (Ctx.Settings.BladeMinWidth +
-				                     Ctx.Random.NextDouble() *
-				                     (Ctx.Settings.BladeMaxWidth - Ctx.Settings.BladeMinWidth));
-				var bend = (float) (Ctx.Settings.BladeMinBend +
-				                    Ctx.Random.NextDouble() * (Ctx.Settings.BladeMaxBend - Ctx.Settings.BladeMinBend));
-
-				GrassData[i].x = randPos.x;
-				GrassData[i].y = randPos.y;
-				GrassData[i].z = width;
-				GrassData[i].w = bend;
+				UvData[i].Position = new Vector2((float) Ctx.Random.NextDouble(), (float) Ctx.Random.NextDouble());
 			}
-
-			SharedGrassBuffer = new ComputeBuffer(GrassData.Length, 16, ComputeBufferType.Default);
-			SharedGrassBuffer.SetData(GrassData);
-
-			Ctx.GrassMaterial.SetBuffer("SharedGrassDataBuffer", SharedGrassBuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "SharedGrassDataBuffer", SharedGrassBuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "SharedGrassDataBuffer", SharedGrassBuffer);
+			UvBuffer = new ComputeBuffer((int) Ctx.Settings.GetSharedBufferLength(), 2 * sizeof(float), ComputeBufferType.Default);
+			UvBuffer.SetData(UvData);
 			
+			//Create and fill ParameterTexture
+			ParameterTexture = new Texture2D(Ctx.Settings.GetSharedTextureWidthHeight(),
+				Ctx.Settings.GetSharedTextureWidthHeight(),
+				TextureFormat.RGBAFloat, false, true)
+			{
+				filterMode = FilterMode.Bilinear,
+				wrapMode = TextureWrapMode.Clamp
+			};
+
+			var parameterData = new Color[Ctx.Settings.GetSharedTextureLength()];
+			for (var i = 0; i < Ctx.Settings.GetSharedTextureLength(); i++)
+				parameterData[i] = new Color(
+					(float) (Ctx.Settings.BladeMinWidth +
+					         Ctx.Random.NextDouble() * (Ctx.Settings.BladeMaxWidth - Ctx.Settings.BladeMinWidth)),
+					(float) (Ctx.Settings.BladeMinBend +
+					         Ctx.Random.NextDouble() * (Ctx.Settings.BladeMaxBend - Ctx.Settings.BladeMinBend)),
+					(float) (Ctx.Settings.BladeMinHeight +
+					         Ctx.Random.NextDouble() * (Ctx.Settings.BladeMaxHeight - Ctx.Settings.BladeMinHeight)),
+					(float) (Ctx.Random.NextDouble() * Mathf.PI * 2f));
+			
+			ParameterTexture.SetPixels(parameterData);
+			ParameterTexture.Apply();
+
+			Ctx.GrassMaterial.SetBuffer("UvBuffer", UvBuffer);
+			Ctx.GrassMaterial.SetTexture("ParameterTexture", ParameterTexture);
+			//Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "UvBuffer", UvBuffer);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
+			//Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "UvBuffer", UvBuffer);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "ParameterTexture", ParameterTexture);
+			//Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelSimulationSetup, "UvBuffer", UvBuffer);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);
+
 			return true;
 		}
 	}

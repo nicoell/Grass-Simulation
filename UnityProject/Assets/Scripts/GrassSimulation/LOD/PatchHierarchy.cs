@@ -29,6 +29,14 @@ namespace GrassSimulation.LOD
 				visiblePatch.Draw();
 		}
 
+		public void DebugDraw()
+		{
+			if (_visiblePatches.Count > 1)
+			{
+				GUI.DrawTexture(new Rect(512, 0, 256, 256), _visiblePatches[1]._normalHeightTexture);
+			} 
+		}
+
 		public bool Init()
 		{
 			//TODO: A progressBar would be nice

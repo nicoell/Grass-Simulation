@@ -62,5 +62,11 @@ namespace GrassSimulation
                 _patchHierarchy.Destroy();
             }
         }
+
+        private void OnGUI()
+        {
+            //GUI.DrawTexture(new Rect(0, 0, 512, 512), Context.SharedGrassData.ParameterTexture);
+            //if (_patchHierarchy != null) _patchHierarchy.DebugDraw();
+        }
     }
 }
