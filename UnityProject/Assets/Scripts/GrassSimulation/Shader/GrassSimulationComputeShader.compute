@@ -7,19 +7,7 @@
 #define physicsNumThreadsZ 1
 #define physicsThreadCount physicsNumThreadsX * physicsNumThreadsY * physicsNumThreadsZ
 
-struct UvData
-{
-    float2 Position;
-};
 
-/*                                                // X 			Y 			Z 			W
-RWStructuredBuffer<float4> grassDataABuffer;	// up.x 		up.y 		up.z 		pos.y
-RWStructuredBuffer<float4> grassDataBBuffer;	// v1.x 		v1.y 		v1.z 		height
-RWStructuredBuffer<float4> grassDataCBuffer;	// v2.x 		v2.y 		v2.z 		dirAlpha
-RWStructuredBuffer<float4> pressureDataBuffer;  //
-*/
-//Shared
-//StructuredBuffer<UvData> UvBuffer;	// pos.x 		pos.z
 Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
 SamplerState samplerParameterTexture;
 

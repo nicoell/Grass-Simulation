@@ -51,8 +51,6 @@ namespace GrassSimulation.LOD
 		 * 			Z: PatchSize
 		 */
 		private Matrix4x4 _patchModelMatrix;
-		private ComputeBuffer _pressureDataBuffer;
-		private uint _transitionGroupId;
 
 		public GrassPatch(SimulationContext ctx, Vector4 patchTexCoord, UnityEngine.Bounds bounds) : base(ctx)
 		{
@@ -103,8 +101,6 @@ namespace GrassSimulation.LOD
 			ComputeLod();
 			RunSimulationComputeShader();
 
-			//SetupMaterialPropertyBlock();
-			//Ctx.GrassMaterial.SetInt("startIndex", _startIndex);
 			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassMaterial, Bounds, _argsGeometryGrassBuffer, 0,
 				_materialPropertyBlock);
 		}
@@ -189,59 +185,6 @@ namespace GrassSimulation.LOD
 
 			SetupSimulation();
 		}
-		
-		/*
-		private void CreateGrassData()
-		{
-			//Precompute grassData for the all blades (the maximum possible number)
-#if !UNITY_EDITOR
-			Vector4[] _grassDataA;
-			Vector4[] _grassDataB;
-			Vector4[] _grassDataC;
-			Vector4[] _pressureData;
-			Vector4[] _tessData;
-#endif
-			_grassDataA = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_grassDataB = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_grassDataC = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_pressureData = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_tessData = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			for (var i = 0; i < Ctx.Settings.GetMaxAmountBladesPerPatch(); i++)
-			{
-				//Fill _grassDataA
-				var bladePosition =
-					new Vector2(_patchTexCoord.x + _patchTexCoord.z * Ctx.SharedGrassData.GrassData[_startIndex + i].x,
-						_patchTexCoord.y + _patchTexCoord.w * Ctx.SharedGrassData.GrassData[_startIndex + i].y);
-				var posY = Ctx.Terrain.terrainData.GetInterpolatedHeight(bladePosition.x, bladePosition.y) / Ctx.Terrain.terrainData.size.y;
-				
-				var up = Ctx.Terrain.terrainData.GetInterpolatedNormal(bladePosition.x, bladePosition.y);
-				_grassDataA[i].Set(up.x, up.y, up.z, posY);
-				//Fill _grassDataB
-				var height = (float) (Ctx.Settings.BladeMinHeight +
-				                      Ctx.Random.NextDouble() *
-				                      (Ctx.Settings.BladeMaxHeight - Ctx.Settings.BladeMinHeight));
-				_grassDataB[i].Set(up.x * height, up.y * height, up.z * height, height);
-				//Fill _grassDataC
-				var dirAlpha = (float) (Ctx.Random.NextDouble() * Mathf.PI * 2f);
-				_grassDataC[i].Set(up.x * height, up.y * height, up.z * height, dirAlpha);
-
-				_pressureData[i].Set(0, 0, 0, 0);
-				_tessData[i].Set(8.0f, 1.0f, 1.0f, 1.0f);
-			}
-
-			//Create the computeBuffers and fill them with the just created data
-			_grassDataABuffer = new ComputeBuffer(_grassDataA.Length, 16, ComputeBufferType.Default);
-			_grassDataBBuffer = new ComputeBuffer(_grassDataB.Length, 16, ComputeBufferType.Default);
-			_grassDataCBuffer = new ComputeBuffer(_grassDataC.Length, 16, ComputeBufferType.Default);
-			_pressureDataBuffer = new ComputeBuffer(_pressureData.Length, 16, ComputeBufferType.Default);
-			_grassDataABuffer.SetData(_grassDataA);
-			_grassDataBBuffer.SetData(_grassDataB);
-			_grassDataCBuffer.SetData(_grassDataC);
-			_pressureDataBuffer.SetData(_pressureData);
-			_tessBuffer = new ComputeBuffer(_tessData.Length, 16, ComputeBufferType.Default);
-			_tessBuffer.SetData(_tessData);
-		}
-*/
 
 		private void CreateDummyMesh()
 		{
@@ -375,14 +318,6 @@ namespace GrassSimulation.LOD
 				}
 			}
 		}
-
-		//We only need this for drawing debug Gizmos in Editor
-		private Vector4[] _grassDataA; //xyz: upVector, w: pos.y
-
-		private Vector4[] _grassDataB; //xyz: v1, w: height
-		private Vector4[] _grassDataC; //xyz: v2, w: dirAlpha
-		private Vector4[] _pressureData;
-		private Vector2[] _tessData; //x: tessLevel, y: transitionFactor
 #endif
 	}
 }

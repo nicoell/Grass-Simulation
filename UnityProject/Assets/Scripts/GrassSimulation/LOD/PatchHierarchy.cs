@@ -161,6 +161,7 @@ namespace GrassSimulation.LOD
 
 		private void TestViewFrustum(Patch patch)
 		{
+			//TODO: Test performance of this. If a bound is completely in frustum one could add all childs to visiblePatch List instead of testing them all 
 			if (!GeometryUtility.TestPlanesAABB(_planes, patch.Bounds)) return;
 			if (patch.IsLeaf)
 			{

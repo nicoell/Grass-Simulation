@@ -1,5 +1,3 @@
-//TODO: Combine DSOut and FSIn?
-
 Shader "GrassSimulation/GrassShader"
 {
 	Properties
@@ -26,20 +24,15 @@ Shader "GrassSimulation/GrassShader"
 			
 			#include "UnityCG.cginc"
 			
+			//PerPatch
 			uniform float startIndex;
 			uniform float parameterOffsetX;
 			uniform float parameterOffsetY;
             uniform float4x4 patchModelMatrix;
             uniform float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
+            
+            //PerFrame
             uniform float4 camPos;
-
-			/*                                              // X 			Y 			Z 			W
-			StructuredBuffer<float4> grassDataABuffer;		// up.x 		up.y 		up.z 		pos.y
-			StructuredBuffer<float4> grassDataBBuffer;		// v1.x 		v1.y 		v1.z 		height
-			StructuredBuffer<float4> grassDataCBuffer;		// v2.x 		v2.y 		v2.z 		dirAlpha
-			*/
-			//StructuredBuffer<float2> tessDataBuffer;		// tessLevel 	transition
-
 
             struct UvData
             {
@@ -63,9 +56,9 @@ Shader "GrassSimulation/GrassShader"
 			
 			struct VSOut 
 			{
-			    //uint bufferID : VertexID;
+			    uint vertexID : VertexID;
+			    uint instanceID : InstanceID;
 			    float2 uvLocal : TEXCOORD0;
-			    float2 uvGlobal : TEXCOORD1;
 			};
 			
 			struct HSConstOut
@@ -78,15 +71,11 @@ Shader "GrassSimulation/GrassShader"
 			{
 				float3 pos : POS;
 				float transitionFactor : TEXCOORD0;
-			    //uint bufferID : VertexID;
-			    float2 uvLocal : TEXCOORD1;
-			    float2 uvGlobal : TEXCOORD2;
-			    float4 parameters : TEXCOORD3;
-			    float3 bladeUp : TEXCOORD4;
-			    float3 v1 : TEXCOORD5;
-			    float3 v2 : TEXCOORD6;
+			    float4 parameters : TEXCOORD1;
+			    float3 bladeUp : TEXCOORD2;
+			    float3 v1 : TEXCOORD3;
+			    float3 v2 : TEXCOORD4;
 			};
-			
 			
 			struct DSOut
 			{
@@ -100,14 +89,12 @@ Shader "GrassSimulation/GrassShader"
 			    float4 color : COLOR0;
 			};
 			
-			
 			VSOut vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 			{
 				VSOut OUT;
-				//OUT.bufferID = 64 * instanceID + vertexID;
+				OUT.vertexID = vertexID;
+				OUT.instanceID = instanceID;
 				OUT.uvLocal = UvBuffer[startIndex + 64 * instanceID + vertexID].Position;
-				//OUT.uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, OUT.uvLocal);
-				OUT.uvGlobal = float2(parameterOffsetX, parameterOffsetY) + OUT.uvLocal;
 
 				return OUT;
 			}
@@ -115,9 +102,16 @@ Shader "GrassSimulation/GrassShader"
 			HSConstOut hullPatchConstant( InputPatch<VSOut, 1> IN)
     		{
         		HSConstOut OUT = (HSConstOut)0;
-        		//float level = tessDataBuffer[IN[0].bufferID].x;
+        		float transition = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0).w;
         		float level = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0).w;
-        		//float level = 12.0;
+        		
+        		//TODO: Compare performance of condition
+        		//TODO: Check if height transition is disabled
+        		uint instanceID = floor(transition);
+        		if (IN[0].instanceID > instanceID){
+        		    level = 0;
+        		}
+        		
         		OUT.TessFactor[0] = level;	//left
         		OUT.TessFactor[1] = 2.0;	//bottom
         		OUT.TessFactor[2] = level;	//right
@@ -134,28 +128,29 @@ Shader "GrassSimulation/GrassShader"
     		[outputcontrolpoints(1)]
     		HSOut hull( InputPatch<VSOut, 1> IN, uint i : SV_OutputControlPointID )
     		{
+    		    //TODO: Its probably faster to only do the stuff here if GrassBlade does not get culled (tesslevel > 0)
+    		
         		HSOut OUT = (HSOut)0;
+
+        		float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + IN[0].uvLocal;
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, IN[0].uvLocal, 0);
         		float4 SimulationData0 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0);
 				float4 SimulationData1 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0);
-				
+        		
+        		//TODO: Compare performance of condition
+        		//TODO: Check if height transition is disabled
+        		uint instanceID = floor(SimulationData1.w);
+        		if (instanceID == IN[0].instanceID){
+        		    OUT.transitionFactor = frac(SimulationData1.w);
+        		} else {
+        		    OUT.transitionFactor = 1;
+        		}
+
         		OUT.pos = mul(patchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
-        		OUT.transitionFactor = SimulationData1.w;
-        		OUT.uvLocal = IN[0].uvLocal;
-        		OUT.uvGlobal = IN[0].uvGlobal;
-        		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, IN[0].uvGlobal, 0);
+        		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
         		OUT.bladeUp = normalize(normalHeight.xyz);
         		OUT.v1 = SimulationData0.xyz;
         		OUT.v2 = SimulationData1.xyz;
-        		//OUT.bufferID = IN[0].bufferID;
-        		//Distance from GrassBlade to Camera
-        		//float distance = length(OUT.pos - camPos);
-        		//interpolant
-        		//float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0, 1);
-        		//The relative float of how many instances should be rendered at this position.
-        		//float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t);
-        		
-        		//OUT.transitionFactor = 0;
 
         		return OUT;
             }
@@ -166,28 +161,18 @@ Shader "GrassSimulation/GrassShader"
     					float2 uv : SV_DomainLocation)
     		{
         		DSOut OUT = (DSOut)0;
-        		
-				//pos.xz, width, bend
-				//xyz: upVector, w: pos.y
-				//xyz: v1, w: height
-				//xyz: v2, w: dirAlpha
-        		/*float4 sharedGrassBufferData = SharedGrassDataBuffer[startIndex + IN[0].bufferID];
-				float4 grassBufferAData = grassDataABuffer[IN[0].bufferID];
-				float4 grassBufferBData = grassDataBBuffer[IN[0].bufferID];
-				float4 grassBufferCData = grassDataCBuffer[IN[0].bufferID];*/
-				
-				//float4 SimulationData0 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0);
-				//float4 SimulationData1 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0);
-				
+                
+                //TODO: Is this an overhead to create local variables here?
 				float3 pos = IN[0].pos;
-        		float3 v1 = pos + IN[0].v1;// * IN[0].transitionFactor;
-        		float3 v2 = pos + IN[0].v2;// * IN[0].transitionFactor;
+        		float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
+        		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
         		float3 up = IN[0].bladeUp;
         		float width = IN[0].parameters.x;
         		float bend = IN[0].parameters.y;
         		float height = IN[0].parameters.z;
         		float dirAlpha = IN[0].parameters.w;
-
+                
+                //TODO: It could be faster to do this in HullShader bc it stays the same
                 float sd = sin(dirAlpha);
                 float cd = cos(dirAlpha); 
                 float3 tmp = normalize(float3(sd, sd + cd, cd));
