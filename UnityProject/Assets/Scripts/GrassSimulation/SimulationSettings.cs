@@ -55,11 +55,6 @@ namespace GrassSimulation
 		{
 			return PatchSize * PatchSize;
 		}
-		
-		public uint GetAmountInstancedBlades()
-		{
-			return GetMaxAmountBladesPerPatch() * InstancedGrassFactor;
-		}
 
 		public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
 

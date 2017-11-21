@@ -36,7 +36,7 @@ namespace GrassSimulation.Grass
 				TextureFormat.RGBAFloat, false, true)
 			{
 				filterMode = FilterMode.Bilinear,
-				wrapMode = TextureWrapMode.Clamp
+				wrapMode = TextureWrapMode.Repeat
 			};
 
 			var parameterData = new Color[Ctx.Settings.GetSharedTextureLength()];
@@ -55,11 +55,8 @@ namespace GrassSimulation.Grass
 
 			Ctx.GrassMaterial.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassMaterial.SetTexture("ParameterTexture", ParameterTexture);
-			//Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "UvBuffer", UvBuffer);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
-			//Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "UvBuffer", UvBuffer);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "ParameterTexture", ParameterTexture);
-			//Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelSimulationSetup, "UvBuffer", UvBuffer);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);
 
 			return true;

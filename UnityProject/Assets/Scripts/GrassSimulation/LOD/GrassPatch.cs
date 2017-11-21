@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Timeline;
 using Bounds = GrassSimulation.Utils.Bounds;
 
 namespace GrassSimulation.LOD
@@ -61,8 +62,8 @@ namespace GrassSimulation.LOD
 			_startIndex = Ctx.Random.Next(0,
 				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.GetMaxAmountBladesPerPatch()));
 			_materialPropertyBlock = new MaterialPropertyBlock();
-			_parameterOffsetX = (float) (Ctx.Random.NextDouble());// * Ctx.Settings.InstancedGrassFactor);
-			_parameterOffsetY = (float) (Ctx.Random.NextDouble());// * Ctx.Settings.InstancedGrassFactor);
+			_parameterOffsetX = (float) Ctx.Random.NextDouble();// * Ctx.Settings.InstancedGrassFactor);
+			_parameterOffsetY = (float) Ctx.Random.NextDouble();// * Ctx.Settings.InstancedGrassFactor);
 
 			_patchModelMatrix = Matrix4x4.TRS(
 				new Vector3(bounds.center.x - bounds.extents.x, Ctx.Transform.position.y, bounds.center.z - bounds.extents.z),
@@ -103,7 +104,7 @@ namespace GrassSimulation.LOD
 			RunSimulationComputeShader();
 
 			//SetupMaterialPropertyBlock();
-
+			//Ctx.GrassMaterial.SetInt("startIndex", _startIndex);
 			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassMaterial, Bounds, _argsGeometryGrassBuffer, 0,
 				_materialPropertyBlock);
 		}
@@ -153,6 +154,7 @@ namespace GrassSimulation.LOD
 			};
 			var textureData = new Color[Ctx.Settings.GetPerPatchTextureLength()];
 			int i = 0;
+
 			for (int x = 0; x < Ctx.Settings.GetPerPatchTextureWidthHeight(); x++)
 			for (int y = 0; y < Ctx.Settings.GetPerPatchTextureWidthHeight(); y++)
 			{
@@ -181,7 +183,6 @@ namespace GrassSimulation.LOD
 				dimension = TextureDimension.Tex2DArray,
 				volumeDepth = 2,
 				enableRandomWrite = true,
-				antiAliasing = 1,
 				wrapMode = TextureWrapMode.Clamp
 			};
 			_simulationTexture.Create();
@@ -328,7 +329,6 @@ namespace GrassSimulation.LOD
 #if UNITY_EDITOR
 		public override void DrawGizmo()
 		{
-			return; //TODO: Remove
 			if (Ctx.EditorSettings.DrawGrassPatchGizmo)
 			{
 				Gizmos.color = new Color(0f, 0f, 1f, 0.5f);
@@ -338,21 +338,25 @@ namespace GrassSimulation.LOD
 			if (Ctx.EditorSettings.DrawGrassDataGizmo || Ctx.EditorSettings.DrawGrassDataDetailGizmo)
 			{
 				Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
+
 				for (var i = 0; i < _argsGeometryGrass[0] * _argsGeometryGrass[1]; i++)
 				{
-					var pos = new Vector3(Ctx.SharedGrassData.UvData[_startIndex + i].Position.x,
-						_grassDataA[i].w, Ctx.SharedGrassData.UvData[_startIndex + i].Position.y);
-					var bladeUp = new Vector3(_grassDataB[i].x, _grassDataB[i].y, _grassDataB[i].z).normalized;
+					var uvLocal = Ctx.SharedGrassData.UvData[_startIndex + i].Position;
+					var uvGlobal = new Vector2(_parameterOffsetX, _parameterOffsetY) + uvLocal;
+					var normalHeight = _normalHeightTexture.GetPixelBilinear(uvLocal.x, uvLocal.y);
+					var pos = new Vector3(uvLocal.x, normalHeight.a, uvLocal.y);
+					var bladeUp = new Vector3(normalHeight.r, normalHeight.g, normalHeight.b).normalized;
 					pos = _patchModelMatrix.MultiplyPoint3x4(pos);
+					var parameters = Ctx.SharedGrassData.ParameterTexture.GetPixelBilinear(uvGlobal.x, uvGlobal.y);
 
 					if (Ctx.EditorSettings.DrawGrassDataDetailGizmo)
 					{
-						var sd = Mathf.Sin(_grassDataC[i].w);
-						var cd = Mathf.Cos(_grassDataC[i].w);
+						var sd = Mathf.Sin(parameters.a);
+						var cd = Mathf.Cos(parameters.a);
 						var tmp = new Vector3(sd, sd + cd, cd).normalized;
 						var bladeDir = Vector3.Cross(bladeUp, tmp).normalized;
 						var bladeFront = Vector3.Cross(bladeUp, bladeDir).normalized;
-						var camdir = (pos - Ctx.Camera.transform.position).normalized;
+						//var camdir = (pos - Ctx.Camera.transform.position).normalized;
 
 						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
 						Gizmos.DrawLine(pos, pos + bladeUp);
@@ -360,8 +364,8 @@ namespace GrassSimulation.LOD
 						Gizmos.DrawLine(pos, pos + bladeDir);
 						Gizmos.color = new Color(0f, 0f, 1f, 0.8f);
 						Gizmos.DrawLine(pos, pos + bladeFront);
-						Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
-						Gizmos.DrawLine(pos, pos + camdir);
+						//Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
+						//Gizmos.DrawLine(pos, pos + camdir);
 					}
 					if (Ctx.EditorSettings.DrawGrassDataGizmo)
 					{

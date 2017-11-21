@@ -144,7 +144,7 @@ Shader "GrassSimulation/GrassShader"
         		OUT.uvLocal = IN[0].uvLocal;
         		OUT.uvGlobal = IN[0].uvGlobal;
         		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, IN[0].uvGlobal, 0);
-        		OUT.bladeUp = normalHeight.xyz;
+        		OUT.bladeUp = normalize(normalHeight.xyz);
         		OUT.v1 = SimulationData0.xyz;
         		OUT.v2 = SimulationData1.xyz;
         		//OUT.bufferID = IN[0].bufferID;

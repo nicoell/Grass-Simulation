@@ -90,7 +90,7 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	//float transition = 1.0;
 	
 	//direction of the blade
-	float3 bladeUp = normalHeight.xyz;
+	float3 bladeUp = normalize(normalHeight.xyz);
 	float sd = sin(dirAlpha);
 	float cd = cos(dirAlpha);
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
@@ -112,13 +112,16 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float3 camDirNorm = normalize(camDir);
 
 	//Height transition
-	/*if (applyTransition)
+	if (applyTransition)
 	{
         float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0.0, 1.0);
         //The relative float of how many instances should be rendered at this position.
         float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
+        SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, relativeInstanceCount);
+        /*
         uint instanceID = floor(relativeInstanceCount);
         float instanceT = frac(relativeInstanceCount);
+        
         if (gid.x > instanceID){
             //Unwanted grassblade which should not be visible. Set tessLevel to zero
             SimulationTexture[uint3(id.xy, 0)] = float4(simulationData0.xyz, 0.0);
@@ -127,8 +130,8 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
             SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, instanceT);
         } else {
             SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, 1.0);
-        }
-    }*/
+        }*/
+    }
         		
 	/*if (distance > 400.0) //distance >= 200.0
 	{
@@ -177,7 +180,7 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
-    float3 bladeUp = normalHeight.xyz;
+    float3 bladeUp = normalize(normalHeight.xyz);
     float posY = normalHeight.w;
     float height = parameters.z;
     
@@ -229,7 +232,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 groundPos = LocalToWorldPos(localGroundPos).xyz;
 	
 	//direction of the blade
-	float3 bladeUp = normalHeight.xyz;
+	float3 bladeUp = normalize(normalHeight.xyz);
 	float sd = sin(dirAlpha);
 	float cd = cos(dirAlpha);
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
