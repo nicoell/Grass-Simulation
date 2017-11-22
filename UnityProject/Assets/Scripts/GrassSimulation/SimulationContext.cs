@@ -90,6 +90,10 @@ namespace GrassSimulation
 			GrassBillboardScreen.SetInt("vertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardScreen.SetFloat("billboardSize", Settings.BillboardSize);
 			
+			GrassSimulationComputeShader.SetFloat("GeometryTessellationMin", Settings.GeometryTessellationMin);
+			GrassSimulationComputeShader.SetFloat("GeometryTessellationMax", Settings.GeometryTessellationMax);
+			GrassSimulationComputeShader.SetFloat("LodDistanceGeometryPeak", Settings.LodDistanceGeometryPeak);
+			GrassSimulationComputeShader.SetFloat("LodDistanceGeometryEnd", Settings.LodDistanceGeometryEnd);
 			/*GrassSimulationComputeShader.SetFloat("LodDistanceFullDetail", Settings.LodDistanceFullDetail);
 			GrassSimulationComputeShader.SetFloat("LodDistanceBillboard", Settings.LodDistanceBillboard);
 			GrassSimulationComputeShader.SetFloat("LodDistanceMax", Settings.LodDistanceMax);

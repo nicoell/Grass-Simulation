@@ -33,6 +33,8 @@ namespace GrassSimulation
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
 		public uint InstancedGrassFactor = 4;
 
+		public float GeometryTessellationMin = 1;
+		public float GeometryTessellationMax = 64;
 		public uint LodInstancesGeometry = 64;
 		public uint LodInstancesBillboardCrossed = 1;
 		public uint LodInstancesBillboardScreen = 1;

@@ -19,6 +19,7 @@ Shader "GrassSimulation/GrassShader"
 			// Create two shader variants, one for geometry grass and one for billboard grass
 			#pragma multi_compile GRASS_BILLBOARD_CROSSED GRASS_BILLBOARD_SCREEN GRASS_GEOMETRY
 			
+			#include "GrassSimulation.cginc"
 			#include "UnityCG.cginc"
 
             struct UvData
@@ -102,20 +103,7 @@ Shader "GrassSimulation/GrassShader"
 			    float4 color : COLOR0;
 			};
 			
-			float SingleLerp(float value, float cur, float peak, float end)
-            {
-                float t1 = clamp((cur - peak) / (end - peak), 0, 1);
-                return value - lerp(0, value, t1);
-            }
-            
-            float DoubleLerp(float value, float cur, float start, float peak, float end)
-            {
-                float t0 = clamp((cur - start) / (peak - start), 0, 1);
-                float t1 = clamp((cur - peak) / (end - peak), 0, 1);
-                return value - (lerp(value, 0, t0) + lerp(0, value, t1));
-            }
-            
-            float GetTessellationLevel(float distance, uint instanceID, float2 uv){
+			float GetTessellationLevel(float distance, uint instanceID, float2 uv){
                 float transition = 0;
                 #ifdef GRASS_BILLBOARD_CROSSED
                 transition = DoubleLerp(LodInstancesBillboardCrossed, distance,
@@ -129,7 +117,7 @@ Shader "GrassSimulation/GrassShader"
                 #endif
                 
                 uint transitionInstanceID = floor(transition);
-
+            
                 #ifdef GRASS_BILLBOARD_CROSSED
                     if (instanceID > transitionInstanceID){
                         return 0;

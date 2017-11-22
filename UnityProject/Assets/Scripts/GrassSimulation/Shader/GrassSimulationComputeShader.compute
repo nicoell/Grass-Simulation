@@ -7,10 +7,16 @@
 #define physicsNumThreadsZ 1
 #define physicsThreadCount physicsNumThreadsX * physicsNumThreadsY * physicsNumThreadsZ
 
+#include "GrassSimulation.cginc"
+
 //Once
 Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
 SamplerState samplerParameterTexture;
-
+float GeometryTessellationMin;
+float GeometryTessellationMax;
+float LodDistanceGeometryPeak;
+float LodDistanceGeometryEnd;
+            
 //PerPatch
 bool applyTransition;
 float GrassDataResolution;
@@ -28,12 +34,6 @@ float deltaTime;
 float4x4 viewProjMatrix;
 float3 camPos;
 float4 gravityVec;
-/*float LodDistanceFullDetail;
-float LodDistanceBillboard;
-float LodDistanceMax;
-float LodDensityFullDetailDistance;
-float LodDensityBillboardDistance;
-float LodDensityMaxDistance;*/
 
 //Per Patch
 
@@ -72,8 +72,6 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float3 groundPos = LocalToWorldPos(localGroundPos).xyz;
 	float3 wV1 = LocalToWorldPos(localGroundPos + simulationData0.xyz).xyz;
 	float3 wV2 = LocalToWorldPos(localGroundPos + simulationData1.xyz).xyz;
-	//float tessLevel = 0.0;
-	//float transition = 1.0;
 	
 	//direction of the blade
 	float3 bladeUp = normalize(normalHeight.xyz);
@@ -82,10 +80,6 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
 	float3 bladeDir = normalize(cross(bladeUp, tmp));
 	float3 bladeFront = normalize(cross(bladeUp, bladeDir));
-
-	/*bladeUp = normalize(mul(patchModelMatrixInverse, float4(bladeUp, 1))).xyz;
-	bladeDir = normalize(mul(patchModelMatrixInverse, float4(bladeDir, 1))).xyz;
-	bladeFront = normalize(mul(patchModelMatrixInverse, float4(bladeFront, 1))).xyz;*/
 
 	float3 midPoint = 0.25 * groundPos + 0.5 * wV1 + 0.25 * wV2;
 
@@ -96,14 +90,17 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float distance = length(camDir);
 	float projDistance = length(camDirProj);
 	float3 camDirNorm = normalize(camDir);
-
+    
+    
+    SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, distance);
+    
+    float tesslevel = SingleLerpMinMax(GeometryTessellationMin, GeometryTessellationMax, distance, LodDistanceGeometryPeak, LodDistanceGeometryEnd);
+    
+    SimulationTexture[uint3(id.xy, 0)] = float4(simulationData0.xyz, tesslevel);
 	//Height transition
-	if (applyTransition)
-	{
-        //float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0.0, 1.0);
-        //The relative float of how many instances should be rendered at this position.
-        //float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
-        SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, distance);
+	//if (applyTransition)
+	//{
+        
         /*
         uint instanceID = floor(relativeInstanceCount);
         float instanceT = frac(relativeInstanceCount);
@@ -117,7 +114,7 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
         } else {
             SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, 1.0);
         }*/
-    }
+    //}
         		
 	/*if (distance > 400.0) //distance >= 200.0
 	{
@@ -142,7 +139,7 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
         return;
     }*/
 
-    SimulationTexture[uint3(id.xy, 0)] = float4(simulationData0.xyz, 12.0);
+    
 }
 
 /*
