@@ -33,8 +33,10 @@ namespace GrassSimulation
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
 		public uint InstancedGrassFactor = 4;
 
-		public float GeometryTessellationMin = 1;
-		public float GeometryTessellationMax = 64;
+		public float LodTessellationMin = 1;
+		public float LodTessellationMax = 64;
+		public float LodDistanceTessellationMin = 0;
+		public float LodDistanceTessellationMax = 20;
 		public uint LodInstancesGeometry = 64;
 		public uint LodInstancesBillboardCrossed = 1;
 		public uint LodInstancesBillboardScreen = 1;
@@ -94,6 +96,7 @@ namespace GrassSimulation
 	[Serializable]
 	public class EditorSettings
 	{
+		[Header("Editor Settings")]
 		public bool EnableLodDistanceGizmo = true;
 		public bool EnableHierarchyGizmo = true;
 		public bool EnablePatchGizmo = true;

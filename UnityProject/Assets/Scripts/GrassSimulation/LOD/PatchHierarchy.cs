@@ -52,12 +52,13 @@ namespace GrassSimulation.LOD
 		{
 			//Transform terrain bounds center from local to world coordinates
 			var localToWorldMatrix = Matrix4x4.TRS(Ctx.Transform.position, Quaternion.identity, Vector3.one);
-			var terrainBoundsWorldCenter = localToWorldMatrix.MultiplyPoint3x4(Ctx.Terrain.terrainData.bounds.center);
+			var terrainBoundsWorldCenter = localToWorldMatrix.MultiplyPoint3x4(Ctx.DimensionsProvider.GetBounds().center);
 			//Prepare some measurements
-			var terrainSize = new Vector2(Ctx.Terrain.terrainData.size.x, Ctx.Terrain.terrainData.size.z);
-			var terrainLevel = Ctx.Terrain.terrainData.size.y;
-			var heightmapSize = new Vector2Int(Ctx.Terrain.terrainData.heightmapWidth,
-				Ctx.Terrain.terrainData.heightmapHeight);
+			var terrainSize = new Vector2(Ctx.DimensionsProvider.GetWidth(), Ctx.DimensionsProvider.GetDepth());
+			var terrainLevel = Ctx.DimensionsProvider.GetHeight();
+			var heightSamplingRate = Ctx.HeightProvider.GetSamplingRate();
+			/*var heightmapSize = new Vector2Int(Ctx.Terrain.terrainData.heightmapWidth,
+				Ctx.Terrain.terrainData.heightmapHeight);*/
 			//var heightmapToTerrainFactor = new Vector2(heightmapSize.x / terrainSize.x, heightmapSize.y / terrainSize.y);
 			var patchQuantity = new Vector2Int((int) (terrainSize.x / Ctx.Settings.PatchSize),
 				(int) (terrainSize.y / Ctx.Settings.PatchSize));
@@ -74,16 +75,16 @@ namespace GrassSimulation.LOD
 
 				//Calculate bounding box center and size in world coordinates
 				var patchBoundsCenter = new Vector3(
-					terrainBoundsWorldCenter.x - Ctx.Terrain.terrainData.bounds.extents.x,
+					terrainBoundsWorldCenter.x - Ctx.DimensionsProvider.GetBounds().extents.x,
 					Ctx.Transform.position.y,
-					terrainBoundsWorldCenter.z - Ctx.Terrain.terrainData.bounds.extents.z);
+					terrainBoundsWorldCenter.z - Ctx.DimensionsProvider.GetBounds().extents.z);
 				var patchBoundsSize = new Vector3(Ctx.Settings.PatchSize, 0, Ctx.Settings.PatchSize);
 				//We can already calculate x and z positions
 				patchBoundsCenter.x += x * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 				patchBoundsCenter.z += y * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 
 				//Sample heightmapTexture to find min and maxheight values of current patch
-				var minHeight = 1f;
+				/*var minHeight = 1f;
 				var maxHeight = 0f;
 				for (var j = (int) (patchTexCoord.x * heightmapSize.x);
 					j < (patchTexCoord.x + patchTexCoord.z) * heightmapSize.x;
@@ -95,7 +96,18 @@ namespace GrassSimulation.LOD
 					var height = Ctx.Heightmap.GetPixel(j, k);
 					if (height.r < minHeight) minHeight = height.r;
 					if (height.r > maxHeight) maxHeight = height.r;
+				}*/
+				var minHeight = 1f;
+				var maxHeight = 0f;
+				for (float j = patchTexCoord.x; j < patchTexCoord.x + patchTexCoord.z; j += heightSamplingRate.x)
+				for (float k = patchTexCoord.y; k < patchTexCoord.y + patchTexCoord.w; k += heightSamplingRate.y)
+				{
+					var height = Ctx.HeightProvider.GetHeight(j, k)  /
+					             Ctx.DimensionsProvider.GetHeight();
+					if (height < minHeight) minHeight = height;
+					if (height > maxHeight) maxHeight = height;
 				}
+				
 				//We can now calculate the center.y and height of BoundingBox
 				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
 				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;

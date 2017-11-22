@@ -1,4 +1,5 @@
 ﻿using System;
+using GrassSimulation.DataProvider;
 using GrassSimulation.Grass;
 using UnityEngine;
 using Random = System.Random;
@@ -8,40 +9,48 @@ namespace GrassSimulation
 	[Serializable]
 	public class SimulationContext : IInitializable
 	{
+		[Header("Requirements")]
+		public Transform Transform;
 		public Camera Camera;
-		public EditorSettings EditorSettings;
 		public ComputeShader GrassSimulationComputeShader;
 		public Material GrassGeometry;
 		[HideInInspector] 
 		public Material GrassBillboardCrossed;
 		[HideInInspector] 
 		public Material GrassBillboardScreen;
-		public Texture2D Heightmap;
+		
+		[Header("Data Provider")]
+		public DimensionsProvider DimensionsProvider;
+		public HeightProvider HeightProvider;
+		public NormalProvider NormalProvider;
+		
 		[HideInInspector]
 		public bool IsReady;
-		[HideInInspector]
-		public int KernelCulling;
+		//[HideInInspector]
+		//public int KernelCulling;
 		[HideInInspector] 
 		public int KernelPhysics;
 		[HideInInspector] 
 		public int KernelSimulationSetup;
 		[HideInInspector] 
 		public Random Random;
-		public SimulationSettings Settings;
 		public SharedGrassData SharedGrassData;
-		public Terrain Terrain;
-		public Transform Transform;
+		//public Terrain Terrain;
+		//Settings
+		public EditorSettings EditorSettings;
+		public SimulationSettings Settings;
 
 		public bool Init()
 		{
-			if (!Camera || !GrassGeometry || !Terrain || !Transform || !GrassSimulationComputeShader)
+			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !HeightProvider || !NormalProvider)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
-				if (!Camera) Debug.Log("GrassSimulation: Camera not set.");
-				if (!GrassGeometry) Debug.Log("GrassSimulation: Material not set.");
-				if (!Terrain) Debug.Log("GrassSimulation: Terrain not set.");
 				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
+				if (!Camera) Debug.Log("GrassSimulation: Camera not set.");
 				if (!GrassSimulationComputeShader) Debug.Log("GrassSimulation: GrassSimulationComputeShader not set.");
+				if (!GrassGeometry) Debug.Log("GrassSimulation: Material not set.");
+				if (!HeightProvider) Debug.Log("GrassSimulation: HeightProvider not set.");
+				if (!NormalProvider) Debug.Log("GrassSimulation: NormalProvider not set.");
 				IsReady = false;
 				return false;
 			}
@@ -52,16 +61,13 @@ namespace GrassSimulation
 				//Settings.GrassBlade = Texture2D.whiteTexture;
 			}
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
-
-			//Build Heightmap Texture
-			Heightmap = Utils.Terrain.CreateHeightmapFromTerrain(Terrain);
-
+			
 			//Create a single random object
 			Random = new Random(Settings.RandomSeed);
 
 			//Find kernels for ComputeShaders
 			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
-			KernelCulling = GrassSimulationComputeShader.FindKernel("CullingMain");
+			//KernelCulling = GrassSimulationComputeShader.FindKernel("CullingMain");
 			KernelSimulationSetup =  GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
 			
 			GrassBillboardCrossed = new Material(GrassGeometry);
@@ -90,10 +96,10 @@ namespace GrassSimulation
 			GrassBillboardScreen.SetInt("vertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardScreen.SetFloat("billboardSize", Settings.BillboardSize);
 			
-			GrassSimulationComputeShader.SetFloat("GeometryTessellationMin", Settings.GeometryTessellationMin);
-			GrassSimulationComputeShader.SetFloat("GeometryTessellationMax", Settings.GeometryTessellationMax);
-			GrassSimulationComputeShader.SetFloat("LodDistanceGeometryPeak", Settings.LodDistanceGeometryPeak);
-			GrassSimulationComputeShader.SetFloat("LodDistanceGeometryEnd", Settings.LodDistanceGeometryEnd);
+			GrassSimulationComputeShader.SetFloat("LodTessellationMin", Settings.LodTessellationMin);
+			GrassSimulationComputeShader.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
+			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
+			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
 			/*GrassSimulationComputeShader.SetFloat("LodDistanceFullDetail", Settings.LodDistanceFullDetail);
 			GrassSimulationComputeShader.SetFloat("LodDistanceBillboard", Settings.LodDistanceBillboard);
 			GrassSimulationComputeShader.SetFloat("LodDistanceMax", Settings.LodDistanceMax);

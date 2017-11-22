@@ -60,7 +60,7 @@ namespace GrassSimulation.Grass
 			Ctx.GrassBillboardScreen.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardScreen.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "ParameterTexture", ParameterTexture);
+			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "ParameterTexture", ParameterTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);
 
 			return true;

@@ -21,7 +21,6 @@ namespace GrassSimulation
                 Context = new SimulationContext
                 {
                     Camera = Camera.main,
-                    Terrain = Terrain.activeTerrain,
                     Transform = transform
                 };
             }

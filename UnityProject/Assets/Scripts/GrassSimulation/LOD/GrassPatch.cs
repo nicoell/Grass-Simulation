@@ -68,7 +68,7 @@ namespace GrassSimulation.LOD
 			_patchModelMatrix = Matrix4x4.TRS(
 				new Vector3(bounds.center.x - bounds.extents.x, Ctx.Transform.position.y, bounds.center.z - bounds.extents.z),
 				Quaternion.identity,
-				new Vector3(Ctx.Settings.PatchSize, Ctx.Terrain.terrainData.size.y, Ctx.Settings.PatchSize));
+				new Vector3(Ctx.Settings.PatchSize, Ctx.DimensionsProvider.GetHeight(), Ctx.Settings.PatchSize));
 
 			// Create the IndirectArguments Buffer
 			_argsGeometryBuffer =
@@ -169,6 +169,7 @@ namespace GrassSimulation.LOD
 			var textureData = new Color[Ctx.Settings.GetPerPatchTextureLength()];
 			int i = 0;
 
+			//TODO: Smooth the edges with neighbouring pixels for smooth transitions between patches.
 			for (int x = 0; x < Ctx.Settings.GetPerPatchTextureWidthHeight(); x++)
 			for (int y = 0; y < Ctx.Settings.GetPerPatchTextureWidthHeight(); y++)
 			{
@@ -177,9 +178,11 @@ namespace GrassSimulation.LOD
 					_patchTexCoord.x + _patchTexCoord.z * uvLocal.x,
 					_patchTexCoord.y + _patchTexCoord.w * uvLocal.y);
 				
-				var posY = Ctx.Terrain.terrainData.GetInterpolatedHeight(bladePosition.x, bladePosition.y) /
-				           Ctx.Terrain.terrainData.size.y;
-				var up = Ctx.Terrain.terrainData.GetInterpolatedNormal(bladePosition.x, bladePosition.y);
+				
+				
+				var posY = Ctx.HeightProvider.GetHeight(bladePosition.x, bladePosition.y) /
+				           Ctx.DimensionsProvider.GetHeight();
+				var up = Ctx.NormalProvider.GetNormal(bladePosition.x, bladePosition.y);
 				
 				textureData[i] = new Color(up.x, up.y, up.z, posY);
 				i++;
@@ -272,7 +275,8 @@ namespace GrassSimulation.LOD
 			
 			//Run Physics Simulation
 			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, (int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
-
+			
+			/*
 			//Set buffers for Culling Kernel
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "SimulationTexture", _simulationTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "NormalHeightTexture", _normalHeightTexture);
@@ -280,6 +284,7 @@ namespace GrassSimulation.LOD
 			//Perform Culling
 			//TODO: threadgroupsX correct?
 			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelCulling, (int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
+			*/
 		}
 
 #if UNITY_EDITOR

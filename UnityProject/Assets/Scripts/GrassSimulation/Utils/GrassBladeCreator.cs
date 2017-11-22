@@ -29,8 +29,8 @@ namespace GrassSimulation.Utils
 			for (var y = 0; y < bladeTexture.height; y++)
 			//for (var x = 0; x < bladeTexture.width; x++)
 			{
-				var r = Mathf.Clamp(BladeCurveU.Evaluate((y + float.Epsilon) / bladeTexture.height), 0f, 1f);
-				var g = Mathf.Clamp(BladeCurveV.Evaluate((y + float.Epsilon) / bladeTexture.height), 0f, 1f);
+				var r = Mathf.Clamp(BladeCurveV.Evaluate((y + float.Epsilon) / bladeTexture.height), 0f, 1f);
+				var g = Mathf.Clamp(BladeCurveU.Evaluate((y + float.Epsilon) / bladeTexture.height), 0f, 1f);
 				var b = Mathf.Clamp(BladeCurveRot.Evaluate((y + float.Epsilon) / bladeTexture.height), 0f, 1f);
 				colors[2*y + 1] = colors[2*y] = new Color(r, g, b, 1f);
 			}

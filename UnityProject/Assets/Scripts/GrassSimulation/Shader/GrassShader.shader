@@ -248,16 +248,16 @@ Shader "GrassSimulation/GrassShader"
                 
                 //TODO: Is this an overhead to create local variables here?
 				float3 pos = IN[0].pos;
-        		float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
-        		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
         		float3 up = IN[0].bladeUp;
         		float3 bladeDir = IN[0].bladeDir;
-        		#ifdef GRASS_BILLBOARD_CROSSED
-        		float width = length(IN[0].v2) * IN[0].transitionFactor;
-        		#elif GRASS_BILLBOARD_SCREEN
-        		float width = length(IN[0].v2) * IN[0].transitionFactor;
-        		#elif GRASS_GEOMETRY
+        		#ifdef GRASS_GEOMETRY
+        		float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
+        		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
         		float width = IN[0].parameters.x;
+        		#else
+        		float3 v1 = pos + IN[0].v1 * billboardSize * IN[0].transitionFactor;
+        		float3 v2 = pos + IN[0].v2 * billboardSize * IN[0].transitionFactor;
+        		float width = length(IN[0].v2) * billboardSize * IN[0].transitionFactor;
         		#endif
         		float bend = IN[0].parameters.y;
         		float height = IN[0].parameters.z;
