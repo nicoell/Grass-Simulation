@@ -7,11 +7,18 @@
 #define physicsNumThreadsZ 1
 #define physicsThreadCount physicsNumThreadsX * physicsNumThreadsY * physicsNumThreadsZ
 
-
+//Once
 Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
 SamplerState samplerParameterTexture;
 
 //PerPatch
+bool applyTransition;
+float GrassDataResolution;
+int startIndex;
+float parameterOffsetX;
+float parameterOffsetY;
+float4x4 patchModelMatrix;
+
 RWTexture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
 Texture2D<float4> NormalHeightTexture; //up.xyz, pos.y
 SamplerState samplerNormalHeightTexture;
@@ -21,22 +28,14 @@ float deltaTime;
 float4x4 viewProjMatrix;
 float3 camPos;
 float4 gravityVec;
-float LodDistanceFullDetail;
+/*float LodDistanceFullDetail;
 float LodDistanceBillboard;
 float LodDistanceMax;
 float LodDensityFullDetailDistance;
 float LodDensityBillboardDistance;
-float LodDensityMaxDistance;
+float LodDensityMaxDistance;*/
 
 //Per Patch
-bool applyTransition;
-float GrassDataResolution;
-int startIndex;
-float parameterOffsetX;
-float parameterOffsetY;
-float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
-float4x4 patchModelMatrix;
-float4x4 patchModelMatrixInverse;
 
 float4 LocalToWorldPos(float4 pos){
 	return mul(patchModelMatrix, pos);
@@ -58,7 +57,6 @@ float4 WorldToClipPos(float3 pos){
 void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 {
 	float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
-    //float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
     float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
@@ -102,10 +100,10 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	//Height transition
 	if (applyTransition)
 	{
-        float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0.0, 1.0);
+        //float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0.0, 1.0);
         //The relative float of how many instances should be rendered at this position.
-        float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
-        SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, relativeInstanceCount);
+        //float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
+        SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, distance);
         /*
         uint instanceID = floor(relativeInstanceCount);
         float instanceT = frac(relativeInstanceCount);
@@ -164,7 +162,6 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     //uint2 threadGroupCount = uint3(GrassDataResolution / physicsNumThreadsX, GrassDataResolution / physicsNumThreadsY);
     //uint i = (gid.z * threadGroupCount.y + gid.y) * threadGroupCount.x + gid.x * physicsThreadCount + gindex;
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
-    //float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
     float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
@@ -203,7 +200,6 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     //uint2 threadGroupCount = uint3(GrassDataResolution / physicsNumThreadsX, GrassDataResolution / physicsNumThreadsY);
     //uint i = (gid.z * threadGroupCount.y + gid.y) * threadGroupCount.x + gid.x * physicsThreadCount + gindex;
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
-    //float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
     float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);

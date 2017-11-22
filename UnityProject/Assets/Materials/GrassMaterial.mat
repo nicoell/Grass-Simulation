@@ -8,7 +8,7 @@ Material:
   m_PrefabInternal: {fileID: 0}
   m_Name: GrassMaterial
   m_Shader: {fileID: 4800000, guid: 446de52cb84644baa70f3bb2532aef0d, type: 3}
-  m_ShaderKeywords: 
+  m_ShaderKeywords: BILLBOARD_GRASS GRASS_GEOMETRY
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0

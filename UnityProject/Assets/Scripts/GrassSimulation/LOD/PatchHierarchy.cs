@@ -144,6 +144,18 @@ namespace GrassSimulation.LOD
 
 		public void DrawGizmo()
 		{
+			if (Ctx.EditorSettings.EnableLodDistanceGizmo)
+			{
+				Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
+				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceGeometryStart);
+				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceGeometryEnd);
+				Gizmos.color = new Color(1f, 1f, 0f, 0.5f);
+				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceBillboardCrossedStart);
+				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceBillboardCrossedEnd);
+				Gizmos.color = new Color(0f, 1f, 0f, 0.5f);
+				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceBillboardScreenStart);
+				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceBillboardScreenEnd);
+			}
 			//Draw Gizmos for Hierchical Patches
 			_rootPatch.DrawGizmo();
 			//Draw Gizmos for visible Leaf Patches
@@ -180,7 +192,10 @@ namespace GrassSimulation.LOD
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
 			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", Ctx.Settings.EnableHeightTransition);
-			Ctx.GrassMaterial.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassGeometry.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardCrossed.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardScreen.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardScreen.SetVector("camUp", Ctx.Camera.transform.up);
 			Ctx.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
 			Ctx.GrassSimulationComputeShader.SetVector("gravityVec", Ctx.Settings.Gravity);
 			Ctx.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",

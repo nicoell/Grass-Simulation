@@ -9,8 +9,9 @@ namespace GrassSimulation
 	{
 		[Header("General Settings")]
 		public int RandomSeed = 42;
-		
+
 		[Header("Grass Settings")]
+		public float BillboardSize = 10f;
 		public float BladeMaxBend = 2f;
 		public float BladeMaxHeight = 1f;
 		public float BladeMaxWidth = 0.5f;
@@ -31,7 +32,21 @@ namespace GrassSimulation
 
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
 		public uint InstancedGrassFactor = 4;
-		
+
+		public uint LodInstancesGeometry = 64;
+		public uint LodInstancesBillboardCrossed = 1;
+		public uint LodInstancesBillboardScreen = 1;
+		public float LodDistanceGeometryStart = 0;
+		public float LodDistanceGeometryPeak = 1;
+		public float LodDistanceGeometryEnd = 200;
+		public float LodDistanceBillboardCrossedStart = 150;		
+		public float LodDistanceBillboardCrossedPeak = 200;		
+		public float LodDistanceBillboardCrossedEnd = 300;		
+		public float LodDistanceBillboardScreenStart = 250;		
+		public float LodDistanceBillboardScreenPeak = 300;		
+		public float LodDistanceBillboardScreenEnd = 400;
+
+		/*
 		[Tooltip("There are max (PatchSize * PatchSize * GrassDensity) Blades per Patch.")]
 		public uint LodDensityFullDetailDistance = 8;
 		public uint LodDensityBillboardDistance = 2;
@@ -41,19 +56,26 @@ namespace GrassSimulation
 		public float LodDistanceMax = 1000f;
 		[Tooltip("The distance billboard grass will be used over single blades. Up to this distance the density will be scaled down to 1.")]
 		public float LodDistanceBillboard = 500f;
+		public float LodDistanceMaxGeoemetry = 600f;
 		[Tooltip("The distance up to which grass will be rendered in full detail.")]
 		public float LodDistanceFullDetail = 50f;
+		*/
 
 		public bool EnableHeightTransition = true;
 
 		public uint GetMaxAmountBladesPerPatch()
 		{
-			return PatchSize * PatchSize * LodDensityFullDetailDistance;
+			return PatchSize * PatchSize * LodInstancesGeometry;
 		}
 
 		public uint GetMinAmountBladesPerPatch()
 		{
 			return PatchSize * PatchSize;
+		}
+		
+		public uint GetMinAmountBillboardsPerPatch()
+		{
+			return PatchSize;
 		}
 
 		public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
@@ -70,9 +92,10 @@ namespace GrassSimulation
 	[Serializable]
 	public class EditorSettings
 	{
-		public bool DrawBoundingPatchGizmo = true;
-		public bool DrawGrassDataDetailGizmo;
-		public bool DrawGrassDataGizmo = true;
-		public bool DrawGrassPatchGizmo = true;
+		public bool EnableLodDistanceGizmo = true;
+		public bool EnableHierarchyGizmo = true;
+		public bool EnablePatchGizmo = true;
+		public bool EnableBladeUpGizmo = false;
+		public bool EnableFullBladeGizmo = false;
 	}
 }
