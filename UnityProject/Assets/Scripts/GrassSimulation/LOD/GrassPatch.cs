@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Timeline;
 using Bounds = GrassSimulation.Utils.Bounds;
 
 namespace GrassSimulation.LOD
@@ -19,19 +21,23 @@ namespace GrassSimulation.LOD
 	 */
 	public class GrassPatch : Patch, IDestroyable, IDrawable
 	{
-		private readonly uint[] _argsBillboardGrass = {0, 0, 0, 0, 0};
-		private readonly ComputeBuffer _argsBillboardGrassBuffer;
-		private readonly uint[] _argsGeometryGrass = {0, 0, 0, 0, 0};
-		private readonly ComputeBuffer _argsGeometryGrassBuffer;
+		private readonly uint[] _argsBillboardCrossed = {0, 0, 0, 0, 0};
+		private readonly ComputeBuffer _argsBillboardCrossedBuffer;
+		private readonly uint[] _argsBillboardScreen = {0, 0, 0, 0, 0};
+		private readonly ComputeBuffer _argsBillboardScreenBuffer;
+		private readonly uint[] _argsGeometry = {0, 0, 0, 0, 0};
+		private readonly ComputeBuffer _argsGeometryBuffer;
 		private readonly Bounds.BoundsVertices _boundsVertices;
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
 		private readonly int _startIndex;
+		private readonly float _parameterOffsetX;
+		private readonly float _parameterOffsetY;
 		private bool _applyTransition;
 		private Mesh _dummyMesh;
-		private ComputeBuffer _grassDataABuffer;
-		private ComputeBuffer _grassDataBBuffer;
-		private ComputeBuffer _grassDataCBuffer;
+
+		public Texture2D _normalHeightTexture;
+		public RenderTexture _simulationTexture;
 
 		/*
 		 * _patchModelMatrix Notes:
@@ -47,9 +53,6 @@ namespace GrassSimulation.LOD
 		 * 			Z: PatchSize
 		 */
 		private Matrix4x4 _patchModelMatrix;
-		private ComputeBuffer _pressureDataBuffer;
-		private ComputeBuffer _tessBuffer;
-		private uint _transitionGroupId;
 
 		public GrassPatch(SimulationContext ctx, Vector4 patchTexCoord, UnityEngine.Bounds bounds) : base(ctx)
 		{
@@ -57,8 +60,10 @@ namespace GrassSimulation.LOD
 			_boundsVertices = new Bounds.BoundsVertices(bounds);
 			_patchTexCoord = patchTexCoord;
 			_startIndex = Ctx.Random.Next(0,
-				(int) (Ctx.Settings.GetAmountInstancedBlades() - Ctx.Settings.GetMaxAmountBladesPerPatch()));
+				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.GetMaxAmountBladesPerPatch()));
 			_materialPropertyBlock = new MaterialPropertyBlock();
+			_parameterOffsetX = (float) Ctx.Random.NextDouble();// * Ctx.Settings.InstancedGrassFactor);
+			_parameterOffsetY = (float) Ctx.Random.NextDouble();// * Ctx.Settings.InstancedGrassFactor);
 
 			_patchModelMatrix = Matrix4x4.TRS(
 				new Vector3(bounds.center.x - bounds.extents.x, Ctx.Transform.position.y, bounds.center.z - bounds.extents.z),
@@ -66,18 +71,24 @@ namespace GrassSimulation.LOD
 				new Vector3(Ctx.Settings.PatchSize, Ctx.Terrain.terrainData.size.y, Ctx.Settings.PatchSize));
 
 			// Create the IndirectArguments Buffer
-			_argsGeometryGrassBuffer =
-				new ComputeBuffer(1, _argsGeometryGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-			_argsGeometryGrass[0] = Ctx.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
-			_argsGeometryGrass[1] = Ctx.Settings.LodDensityFullDetailDistance; //Instance Count
-			_argsGeometryGrassBuffer.SetData(_argsGeometryGrass);
+			_argsGeometryBuffer =
+				new ComputeBuffer(1, _argsGeometry.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+			_argsGeometry[0] = Ctx.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
+			_argsGeometry[1] = Ctx.Settings.LodInstancesGeometry; //Instance Count
+			_argsGeometryBuffer.SetData(_argsGeometry);
 
-			_argsBillboardGrassBuffer =
-				new ComputeBuffer(1, _argsBillboardGrass.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-			_argsBillboardGrass[0] = Ctx.Settings.GetMinAmountBladesPerPatch(); //Vertex Count
-			_argsBillboardGrass[1] = 1; //Instance Count
-			_argsBillboardGrassBuffer.SetData(_argsBillboardGrass);
-			CreateGrassData();
+			_argsBillboardCrossedBuffer =
+				new ComputeBuffer(1, _argsBillboardCrossed.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+			_argsBillboardCrossed[0] = Ctx.Settings.GetMinAmountBillboardsPerPatch(); //Vertex Count
+			_argsBillboardCrossed[1] = 1; //Instance Count
+			_argsBillboardCrossedBuffer.SetData(_argsBillboardCrossed);
+			
+			_argsBillboardScreenBuffer =
+				new ComputeBuffer(1, _argsBillboardScreen.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+			_argsBillboardScreen[0] = Ctx.Settings.GetMinAmountBillboardsPerPatch(); //Vertex Count
+			_argsBillboardScreen[1] = 1; //Instance Count
+			_argsBillboardScreenBuffer.SetData(_argsBillboardScreen);
+			CreateGrassDataTexture();
 			CreateDummyMesh();
 			SetupMaterialPropertyBlock();
 		}
@@ -86,115 +97,116 @@ namespace GrassSimulation.LOD
 
 		public void Destroy()
 		{
-			_argsGeometryGrassBuffer.Release();
-			_grassDataABuffer.Release();
-			_grassDataBBuffer.Release();
-			_grassDataCBuffer.Release();
-			_tessBuffer.Release();
+			//TODO: Clean up buffers and textures
+			_argsGeometryBuffer.Release();
 		}
 
 		public void Draw()
 		{
 			//TODO: Add CPU LOD algorithm
-			//TODO: Actually use _argsGeometryGrassBuffer in computeShader or if CPU only, don't use Indirect Draw Methd
+			//TODO: Actually use _argsGeometryBuffer in computeShader or if CPU only, don't use Indirect Draw Methd
 			//TODO: Add settings for options in computeShader
 			ComputeLod();
 			RunSimulationComputeShader();
+			
 
-			//SetupMaterialPropertyBlock();
-
-			Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassMaterial, Bounds, _argsGeometryGrassBuffer, 0,
+			if (_argsGeometry[1] > 0) Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0,
+				_materialPropertyBlock);
+			
+			if (_argsBillboardCrossed[1] > 0) Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBillboardCrossed, Bounds, _argsBillboardCrossedBuffer, 0,
+				_materialPropertyBlock);
+			
+			if (_argsBillboardScreen[1] > 0) Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBillboardScreen, Bounds, _argsBillboardScreenBuffer, 0,
 				_materialPropertyBlock);
 		}
 
 		private void ComputeLod()
 		{
-			if (!Utils.Bounds.BoundsVertices.IntersectsSphere(_boundsVertices, Ctx.Camera.transform.position,
-				Ctx.Settings.LodDistanceMax)) //Bounds outside LodDistanceMax -> Render nothing
-			{
-				_argsBillboardGrass[1] = 0;
-				_argsGeometryGrass[1] = 0;
-				_applyTransition = false;
-			} else if (!Utils.Bounds.BoundsVertices.IntersectsSphere(_boundsVertices, Ctx.Camera.transform.position,
-				Ctx.Settings.LodDistanceBillboard)) //Bounds outside Billboard threshold -> Render billboards
-			{
-				//TODO: Change this when implementing billboard grass
-				_argsBillboardGrass[1] = 0;
-				_argsGeometryGrass[1] = Ctx.Settings.LodDensityBillboardDistance;
-				_applyTransition = Ctx.Settings.EnableHeightTransition;
-			} else //Bounds inside Billboard threshold -> Render geometry
-			{
-				var distance = Vector3.Distance(Ctx.Camera.transform.position, Bounds.ClosestPoint(Ctx.Camera.transform.position));
-				var t = (distance - Ctx.Settings.LodDistanceFullDetail) /
-				        (Ctx.Settings.LodDistanceBillboard - Ctx.Settings.LodDistanceFullDetail);
-				//Unitys Lerp is already clamping the t value.
-				var instanceCount = (uint) Mathf.Ceil(Mathf.Lerp(Ctx.Settings.LodDensityFullDetailDistance,
-					Ctx.Settings.LodDensityBillboardDistance, t));
-
-				//TODO: Fade in Billboards
-				_argsBillboardGrass[1] = (uint) (instanceCount <= 2 ? 1 : 0);
-				_argsGeometryGrass[1] = (uint) Mathf.Min(instanceCount, Ctx.Settings.LodDensityFullDetailDistance);
-				_applyTransition = Ctx.Settings.EnableHeightTransition;
-			}
-
-			_argsGeometryGrassBuffer.SetData(_argsGeometryGrass);
-			_argsBillboardGrassBuffer.SetData(_argsBillboardGrass);
+			//Distance between Camera and closest Point on BoundingBox from Camera
+			var distance = Vector3.Distance(Ctx.Camera.transform.position, Bounds.ClosestPoint(Ctx.Camera.transform.position));
+			
+			//Calculate InstanceCounts of different LODs (Geometry, BillboardsCrossed, BillboardsScreen)
+			var geometryInstanceCount = (uint) Mathf.Ceil(SingleLerp(Ctx.Settings.LodInstancesGeometry, distance,
+				Ctx.Settings.LodDistanceGeometryPeak, Ctx.Settings.LodDistanceGeometryEnd));
+			var billboardCrossedInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardCrossed, distance,
+				Ctx.Settings.LodDistanceBillboardCrossedStart, Ctx.Settings.LodDistanceBillboardCrossedPeak, Ctx.Settings.LodDistanceBillboardCrossedEnd));
+			var billboardScreenInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardScreen, distance,
+				Ctx.Settings.LodDistanceBillboardScreenStart, Ctx.Settings.LodDistanceBillboardScreenPeak, Ctx.Settings.LodDistanceBillboardScreenEnd));
+			
+			_applyTransition = Ctx.Settings.EnableHeightTransition;
+			
+			_argsGeometry[1] = geometryInstanceCount;
+			_argsBillboardCrossed[1] = billboardCrossedInstanceCount;
+			_argsBillboardScreen[1] = billboardScreenInstanceCount;
+			
+			_argsGeometryBuffer.SetData(_argsGeometry);
+			_argsBillboardCrossedBuffer.SetData(_argsBillboardCrossed);
+			_argsBillboardScreenBuffer.SetData(_argsBillboardScreen);
 		}
 
-		private void CreateGrassData()
+		private static float SingleLerp(uint value, float cur, float peak, float end)
 		{
-			//Precompute grassData for the all blades (the maximum possible number)
-#if !UNITY_EDITOR
-			Vector4[] _grassDataA;
-			Vector4[] _grassDataB;
-			Vector4[] _grassDataC;
-			Vector4[] _pressureData;
-			Vector4[] _tessData;
-#endif
-			_grassDataA = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_grassDataB = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_grassDataC = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_pressureData = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			_tessData = new Vector4[Ctx.Settings.GetMaxAmountBladesPerPatch()];
-			for (var i = 0; i < Ctx.Settings.GetMaxAmountBladesPerPatch(); i++)
+			var t1 = Mathf.Clamp01((cur - peak) / (end - peak));
+			return value -  Mathf.LerpUnclamped(0, value, t1);
+		}
+		
+		private static float DoubleLerp(uint value, float cur, float start, float peak, float end)
+		{
+			var t0 = Mathf.Clamp01((cur - start) / (peak - start));
+			var t1 = Mathf.Clamp01((cur - peak) / (end - peak));
+			return value - (Mathf.LerpUnclamped(value, 0, t0) + Mathf.LerpUnclamped(0, value, t1));
+		}
+		
+		private void CreateGrassDataTexture()
+		{
+			
+			_normalHeightTexture = new Texture2D(Ctx.Settings.GetPerPatchTextureWidthHeight(), Ctx.Settings.GetPerPatchTextureWidthHeight(),
+				TextureFormat.RGBAFloat, true, true)
 			{
-				//Fill _grassDataA
-				var bladePosition =
-					new Vector2(_patchTexCoord.x + _patchTexCoord.z * Ctx.SharedGrassData.GrassData[_startIndex + i].x,
-						_patchTexCoord.y + _patchTexCoord.w * Ctx.SharedGrassData.GrassData[_startIndex + i].y);
-				var posY = Ctx.Terrain.terrainData.GetInterpolatedHeight(bladePosition.x, bladePosition.y) / Ctx.Terrain.terrainData.size.y;
-				/*var posY = Ctx.Heightmap.GetPixel((int) (bladePosition.x * Ctx.Heightmap.width),
-					(int) (bladePosition.y * Ctx.Heightmap.height)).r;*/
+				filterMode = Ctx.Settings.GrassDataTrilinearFiltering ? FilterMode.Trilinear : FilterMode.Bilinear,
+				wrapMode = TextureWrapMode.Clamp
+			};
+			var textureData = new Color[Ctx.Settings.GetPerPatchTextureLength()];
+			int i = 0;
+
+			for (int x = 0; x < Ctx.Settings.GetPerPatchTextureWidthHeight(); x++)
+			for (int y = 0; y < Ctx.Settings.GetPerPatchTextureWidthHeight(); y++)
+			{
+				var uvLocal = new Vector2((float)y/Ctx.Settings.GrassDataResolution, (float)x/Ctx.Settings.GrassDataResolution);
+				var bladePosition = new Vector2(
+					_patchTexCoord.x + _patchTexCoord.z * uvLocal.x,
+					_patchTexCoord.y + _patchTexCoord.w * uvLocal.y);
+				
+				var posY = Ctx.Terrain.terrainData.GetInterpolatedHeight(bladePosition.x, bladePosition.y) /
+				           Ctx.Terrain.terrainData.size.y;
 				var up = Ctx.Terrain.terrainData.GetInterpolatedNormal(bladePosition.x, bladePosition.y);
-				_grassDataA[i].Set(up.x, up.y, up.z, posY);
-				//Fill _grassDataB
-				var height = (float) (Ctx.Settings.BladeMinHeight +
-				                      Ctx.Random.NextDouble() *
-				                      (Ctx.Settings.BladeMaxHeight - Ctx.Settings.BladeMinHeight));
-				_grassDataB[i].Set(up.x * height, up.y * height, up.z * height, height);
-				//Fill _grassDataC
-				var dirAlpha = (float) (Ctx.Random.NextDouble() * Mathf.PI * 2f);
-				_grassDataC[i].Set(up.x * height, up.y * height, up.z * height, dirAlpha);
-
-				_pressureData[i].Set(0, 0, 0, 0);
-				_tessData[i].Set(8.0f, 1.0f, 1.0f, 1.0f);
+				
+				textureData[i] = new Color(up.x, up.y, up.z, posY);
+				i++;
 			}
+			
+			_normalHeightTexture.SetPixels(textureData);
+			_normalHeightTexture.Apply();
+			
+			_simulationTexture = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(), Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
+				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
+			{
+				filterMode = Ctx.Settings.GrassDataTrilinearFiltering ? FilterMode.Trilinear : FilterMode.Bilinear,
+				autoGenerateMips = Ctx.Settings.GrassDataTrilinearFiltering,
+				useMipMap = Ctx.Settings.GrassDataTrilinearFiltering,
+				dimension = TextureDimension.Tex2DArray,
+				volumeDepth = 2,
+				enableRandomWrite = true,
+				wrapMode = TextureWrapMode.Clamp
+			};
+			_simulationTexture.Create();
 
-			//Create the computeBuffers and fill them with the just created data
-			_grassDataABuffer = new ComputeBuffer(_grassDataA.Length, 16, ComputeBufferType.Default);
-			_grassDataBBuffer = new ComputeBuffer(_grassDataB.Length, 16, ComputeBufferType.Default);
-			_grassDataCBuffer = new ComputeBuffer(_grassDataC.Length, 16, ComputeBufferType.Default);
-			_pressureDataBuffer = new ComputeBuffer(_pressureData.Length, 16, ComputeBufferType.Default);
-			_grassDataABuffer.SetData(_grassDataA);
-			_grassDataBBuffer.SetData(_grassDataB);
-			_grassDataCBuffer.SetData(_grassDataC);
-			_pressureDataBuffer.SetData(_pressureData);
-			_tessBuffer = new ComputeBuffer(_tessData.Length, 16, ComputeBufferType.Default);
-			_tessBuffer.SetData(_tessData);
+			SetupSimulation();
 		}
 
 		private void CreateDummyMesh()
 		{
+			//TODO: meshSize and computeshader thread count needs to be connected
 			var dummyMeshSize = Ctx.Settings.GetMinAmountBladesPerPatch();
 			var dummyVertices = new Vector3[dummyMeshSize];
 			var indices = new int[dummyMeshSize];
@@ -214,69 +226,93 @@ namespace GrassSimulation.LOD
 		{
 			//TODO: Add option to update things like matrix not only on startup but also on update
 			_materialPropertyBlock.SetFloat("startIndex", _startIndex);
-			_materialPropertyBlock.SetBuffer("grassDataABuffer", _grassDataABuffer);
-			_materialPropertyBlock.SetBuffer("grassDataBBuffer", _grassDataBBuffer);
-			_materialPropertyBlock.SetBuffer("grassDataCBuffer", _grassDataCBuffer);
-			_materialPropertyBlock.SetBuffer("tessDataBuffer", _tessBuffer);
+			_materialPropertyBlock.SetFloat("parameterOffsetX", _parameterOffsetX);
+			_materialPropertyBlock.SetFloat("parameterOffsetY", _parameterOffsetY);
+			_materialPropertyBlock.SetTexture("SimulationTexture", _simulationTexture);
+			_materialPropertyBlock.SetTexture("NormalHeightTexture", _normalHeightTexture);
 			_materialPropertyBlock.SetMatrix("patchModelMatrix", _patchModelMatrix);
 		}
 
+		private void SetupSimulation()
+		{
+			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", _applyTransition);
+			Ctx.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
+			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetX", _parameterOffsetX);
+			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetY", _parameterOffsetY);
+			Ctx.GrassSimulationComputeShader.SetFloat("GrassDataResolution", Ctx.Settings.GrassDataResolution);
+			Ctx.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
+			
+			//Set buffers for SimulationSetup Kernel
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture", _simulationTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
+			
+			uint threadGroupX, threadGroupY, threadGroupZ;
+			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelSimulationSetup, out threadGroupX, out threadGroupY, out threadGroupZ);
+			
+			//Run Physics Simulation
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelSimulationSetup, (int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
+		}
+		
 		private void RunSimulationComputeShader()
 		{
 			//Set per patch data for whole compute shader
 			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", _applyTransition);
 			Ctx.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
+			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetX", _parameterOffsetX);
+			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetY", _parameterOffsetY);
+			Ctx.GrassSimulationComputeShader.SetFloat("GrassDataResolution", Ctx.Settings.GrassDataResolution);
 			Ctx.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
-			Ctx.GrassSimulationComputeShader.SetMatrix("patchModelMatrixInverse", _patchModelMatrix.transpose.inverse);
 
 			//Set buffers for Physics Kernel
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "grassDataABuffer", _grassDataABuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "grassDataBBuffer", _grassDataBBuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "grassDataCBuffer", _grassDataCBuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "pressureDataBuffer", _pressureDataBuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "tessDataBuffer", _tessBuffer);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture", _simulationTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", _normalHeightTexture);
 
+			uint threadGroupX, threadGroupY, threadGroupZ;
+			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelPhysics, out threadGroupX, out threadGroupY, out threadGroupZ);
+			
 			//Run Physics Simulation
-			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, (int) Ctx.Settings.LodDensityFullDetailDistance, 1, 1);
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, (int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
 
 			//Set buffers for Culling Kernel
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "grassDataABuffer", _grassDataABuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "grassDataBBuffer", _grassDataBBuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "grassDataCBuffer", _grassDataCBuffer);
-			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelCulling, "tessDataBuffer", _tessBuffer);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "SimulationTexture", _simulationTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "NormalHeightTexture", _normalHeightTexture);
 
 			//Perform Culling
 			//TODO: threadgroupsX correct?
-			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelCulling, (int) _argsGeometryGrass[1], 1, 1);
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelCulling, (int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
 		}
 
 #if UNITY_EDITOR
 		public override void DrawGizmo()
 		{
-			if (Ctx.EditorSettings.DrawGrassPatchGizmo)
+			if (Ctx.EditorSettings.EnablePatchGizmo)
 			{
 				Gizmos.color = new Color(0f, 0f, 1f, 0.5f);
 				Gizmos.DrawWireSphere(Bounds.center, 0.5f);
 				Gizmos.DrawWireCube(Bounds.center, Bounds.size);
 			}
-			if (Ctx.EditorSettings.DrawGrassDataGizmo || Ctx.EditorSettings.DrawGrassDataDetailGizmo)
+			if (Ctx.EditorSettings.EnableBladeUpGizmo || Ctx.EditorSettings.EnableFullBladeGizmo)
 			{
 				Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
-				for (var i = 0; i < Ctx.Settings.GetMaxAmountBladesPerPatch(); i++)
-				{
-					var pos = new Vector3(Ctx.SharedGrassData.GrassData[_startIndex + i].x,
-						_grassDataA[i].w, Ctx.SharedGrassData.GrassData[_startIndex + i].y);
-					var bladeUp = new Vector3(_grassDataB[i].x, _grassDataB[i].y, _grassDataB[i].z).normalized;
-					pos = _patchModelMatrix.MultiplyPoint3x4(pos);
 
-					if (Ctx.EditorSettings.DrawGrassDataDetailGizmo)
+				for (var i = 0; i < _argsGeometry[0] * _argsGeometry[1]; i++)
+				{
+					var uvLocal = Ctx.SharedGrassData.UvData[_startIndex + i].Position;
+					var uvGlobal = new Vector2(_parameterOffsetX, _parameterOffsetY) + uvLocal;
+					var normalHeight = _normalHeightTexture.GetPixelBilinear(uvLocal.x, uvLocal.y);
+					var pos = new Vector3(uvLocal.x, normalHeight.a, uvLocal.y);
+					var bladeUp = new Vector3(normalHeight.r, normalHeight.g, normalHeight.b).normalized;
+					pos = _patchModelMatrix.MultiplyPoint3x4(pos);
+					var parameters = Ctx.SharedGrassData.ParameterTexture.GetPixelBilinear(uvGlobal.x, uvGlobal.y);
+
+					if (Ctx.EditorSettings.EnableFullBladeGizmo)
 					{
-						var sd = Mathf.Sin(_grassDataC[i].w);
-						var cd = Mathf.Cos(_grassDataC[i].w);
+						var sd = Mathf.Sin(parameters.a);
+						var cd = Mathf.Cos(parameters.a);
 						var tmp = new Vector3(sd, sd + cd, cd).normalized;
 						var bladeDir = Vector3.Cross(bladeUp, tmp).normalized;
 						var bladeFront = Vector3.Cross(bladeUp, bladeDir).normalized;
-						var camdir = (pos - Ctx.Camera.transform.position).normalized;
+						//var camdir = (pos - Ctx.Camera.transform.position).normalized;
 
 						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
 						Gizmos.DrawLine(pos, pos + bladeUp);
@@ -284,10 +320,10 @@ namespace GrassSimulation.LOD
 						Gizmos.DrawLine(pos, pos + bladeDir);
 						Gizmos.color = new Color(0f, 0f, 1f, 0.8f);
 						Gizmos.DrawLine(pos, pos + bladeFront);
-						Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
-						Gizmos.DrawLine(pos, pos + camdir);
+						//Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
+						//Gizmos.DrawLine(pos, pos + camdir);
 					}
-					if (Ctx.EditorSettings.DrawGrassDataGizmo)
+					if (Ctx.EditorSettings.EnableBladeUpGizmo)
 					{
 						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
 						Gizmos.DrawLine(pos, pos + bladeUp);
@@ -295,14 +331,6 @@ namespace GrassSimulation.LOD
 				}
 			}
 		}
-
-		//We only need this for drawing debug Gizmos in Editor
-		private Vector4[] _grassDataA; //xyz: upVector, w: pos.y
-
-		private Vector4[] _grassDataB; //xyz: v1, w: height
-		private Vector4[] _grassDataC; //xyz: v2, w: dirAlpha
-		private Vector4[] _pressureData;
-		private Vector4[] _tessData; //x: tessLevel
 #endif
 	}
 }

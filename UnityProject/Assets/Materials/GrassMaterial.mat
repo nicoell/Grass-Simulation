@@ -8,7 +8,7 @@ Material:
   m_PrefabInternal: {fileID: 0}
   m_Name: GrassMaterial
   m_Shader: {fileID: 4800000, guid: 446de52cb84644baa70f3bb2532aef0d, type: 3}
-  m_ShaderKeywords: 
+  m_ShaderKeywords: BILLBOARD_GRASS GRASS_GEOMETRY
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -18,6 +18,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - GrassBlade:
+        m_Texture: {fileID: 2800000, guid: 38ebcf3098af8944ea942e5092a2b15d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}

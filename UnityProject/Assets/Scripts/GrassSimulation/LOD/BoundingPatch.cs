@@ -43,7 +43,7 @@ namespace GrassSimulation.LOD
 
 		public override void DrawGizmo()
 		{
-			if (!Ctx.EditorSettings.DrawBoundingPatchGizmo) return;
+			if (!Ctx.EditorSettings.EnableHierarchyGizmo) return;
 			
 			Gizmos.color = new Color(1f, 0f, 0f, 0.2f);
 			Gizmos.DrawWireSphere(Bounds.center, 0.5f);

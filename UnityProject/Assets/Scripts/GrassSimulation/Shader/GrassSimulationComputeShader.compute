@@ -1,35 +1,41 @@
 ﻿#pragma kernel CullingMain
 #pragma kernel PhysicsMain
+#pragma kernel SimulationSetup
 
-#define threads_x 64
-#define threads_y 1
-#define threads_z 1
-                                                // X 			Y 			Z 			W
-StructuredBuffer<float4> SharedGrassDataBuffer;	// pos.x 		pos.z 		width, 		bend
-RWStructuredBuffer<float4> grassDataABuffer;	// up.x 		up.y 		up.z 		pos.y
-RWStructuredBuffer<float4> grassDataBBuffer;	// v1.x 		v1.y 		v1.z 		height
-RWStructuredBuffer<float4> grassDataCBuffer;	// v2.x 		v2.y 		v2.z 		dirAlpha
-RWStructuredBuffer<float4> pressureDataBuffer;  //
-RWStructuredBuffer<float4> tessDataBuffer;		// tessLevel 	NONE 		NONE 		NONE
+#define physicsNumThreadsX 16
+#define physicsNumThreadsY 16
+#define physicsNumThreadsZ 1
+#define physicsThreadCount physicsNumThreadsX * physicsNumThreadsY * physicsNumThreadsZ
+
+//Once
+Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
+SamplerState samplerParameterTexture;
+
+//PerPatch
+bool applyTransition;
+float GrassDataResolution;
+int startIndex;
+float parameterOffsetX;
+float parameterOffsetY;
+float4x4 patchModelMatrix;
+
+RWTexture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
+Texture2D<float4> NormalHeightTexture; //up.xyz, pos.y
+SamplerState samplerNormalHeightTexture;
 
 //Per Frame
 float deltaTime;
 float4x4 viewProjMatrix;
 float3 camPos;
 float4 gravityVec;
-float LodDistanceFullDetail;
+/*float LodDistanceFullDetail;
 float LodDistanceBillboard;
 float LodDistanceMax;
 float LodDensityFullDetailDistance;
 float LodDensityBillboardDistance;
-float LodDensityMaxDistance;
+float LodDensityMaxDistance;*/
 
 //Per Patch
-bool applyTransition;
-int transitionGroupId;
-int startIndex;
-float4x4 patchModelMatrix;
-float4x4 patchModelMatrixInverse;
 
 float4 LocalToWorldPos(float4 pos){
 	return mul(patchModelMatrix, pos);
@@ -47,25 +53,30 @@ float4 WorldToClipPos(float3 pos){
 	return WorldToClipPos(float4(pos, 1.0));
 }
 
-[numthreads(threads_x,threads_y,threads_z)]
+[numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
 void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 {
-	uint i = id.x;
-	/*if (i > 0) {
-		tessDataBuffer[i].x = 0;
-		return;
-	}*/
-	//grassDataBBuffer[i].w = 0.3;
-	//grassDataCBuffer[i].w = 0.1;
-
-	float dirAlpha = grassDataCBuffer[i].w;
-	float3 localPos = float3(SharedGrassDataBuffer[startIndex + i].x, grassDataABuffer[i].w, SharedGrassDataBuffer[startIndex + i].y);
-	float3 pos = LocalToWorldPos(localPos).xyz;
-	float3 wV1 = LocalToWorldPos(localPos + float3(grassDataBBuffer[i].xyz)).xyz;
-	float3 wV2 = LocalToWorldPos(localPos + float3(grassDataCBuffer[i].xyz)).xyz;
+	float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
+    float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
+    float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
+    float4 simulationData0 = SimulationTexture.Load(uint3(id.xy, 0));
+    float4 simulationData1 = SimulationTexture.Load(uint3(id.xy, 1));
+    
+	float width = parameters.x;
+	float bendingFactor = parameters.y;
+	float height = parameters.z;
+	float invHeight = 1.0 / height;
+	float dirAlpha = parameters.w;
+	float3 localGroundPos = float3(uvLocal.x, normalHeight.w, uvLocal.y);
+	float3 groundPos = LocalToWorldPos(localGroundPos).xyz;
+	float3 wV1 = LocalToWorldPos(localGroundPos + simulationData0.xyz).xyz;
+	float3 wV2 = LocalToWorldPos(localGroundPos + simulationData1.xyz).xyz;
+	//float tessLevel = 0.0;
+	//float transition = 1.0;
 	
 	//direction of the blade
-	float3 bladeUp = normalize(grassDataABuffer[i].xyz);
+	float3 bladeUp = normalize(normalHeight.xyz);
 	float sd = sin(dirAlpha);
 	float cd = cos(dirAlpha);
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
@@ -76,10 +87,10 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	bladeDir = normalize(mul(patchModelMatrixInverse, float4(bladeDir, 1))).xyz;
 	bladeFront = normalize(mul(patchModelMatrixInverse, float4(bladeFront, 1))).xyz;*/
 
-	float3 midPoint = 0.25 * pos + 0.5 * wV1 + 0.25 * wV2;
+	float3 midPoint = 0.25 * groundPos + 0.5 * wV1 + 0.25 * wV2;
 
 	//Visibility Check
-	float3 camDir = pos - camPos;
+	float3 camDir = groundPos - camPos;
 	//Project camdir on the local plane defined by the up-vector
 	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
 	float distance = length(camDir);
@@ -89,20 +100,23 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	//Height transition
 	if (applyTransition)
 	{
-        float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0.0, 1.0);
+        //float t = clamp((distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail), 0.0, 1.0);
         //The relative float of how many instances should be rendered at this position.
-        float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
+        //float relativeInstanceCount = lerp(LodDensityFullDetailDistance, LodDensityBillboardDistance, t) ;
+        SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, distance);
+        /*
         uint instanceID = floor(relativeInstanceCount);
         float instanceT = frac(relativeInstanceCount);
+        
         if (gid.x > instanceID){
-            //Unwanted grassblade which should not be visible.
-            tessDataBuffer[i].x = 0;
+            //Unwanted grassblade which should not be visible. Set tessLevel to zero
+            SimulationTexture[uint3(id.xy, 0)] = float4(simulationData0.xyz, 0.0);
             return;
         } else if (gid.x == instanceID){
-            tessDataBuffer[i].y = instanceT;
+            SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, instanceT);
         } else {
-            tessDataBuffer[i].y = 1;
-        }
+            SimulationTexture[uint3(id.xy, 1)] = float4(simulationData1.xyz, 1.0);
+        }*/
     }
         		
 	/*if (distance > 400.0) //distance >= 200.0
@@ -128,24 +142,81 @@ void CullingMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
         return;
     }*/
 
-    tessDataBuffer[i].x = 12;
+    SimulationTexture[uint3(id.xy, 0)] = float4(simulationData0.xyz, 12.0);
 }
 
-[numthreads(threads_x,threads_y,threads_z)]
-void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
-{
-	uint i = id.x;
+/*
+ * Kernels working on Textures below.
+ */
+ 
+float3 CalculateV1(float3 v2, float3 bladeUp, float height, float invHeight){
+    float3 g = v2 - dot(v2, bladeUp) * bladeUp;
+    float v2ratio = abs(length(g) * invHeight);
+    float fac = max(1.0 - v2ratio, 0.05 * max(v2ratio, 1.0));
+    return bladeUp * height * 0.5 * fac;
+}
 
-	float dirAlpha = grassDataCBuffer[i].w;
-	float height = grassDataBBuffer[i].w;
-	float invHeight = 1.0f / height;
-	float width = SharedGrassDataBuffer[startIndex + i ].z;
-	float bendingFactor = SharedGrassDataBuffer[startIndex + i ].w;
-	float3 localGroundPos = float3(SharedGrassDataBuffer[startIndex + i].x, grassDataABuffer[i].w, SharedGrassDataBuffer[startIndex + i].y);
+[numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
+void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+{
+    //uint2 threadGroupCount = uint3(GrassDataResolution / physicsNumThreadsX, GrassDataResolution / physicsNumThreadsY);
+    //uint i = (gid.z * threadGroupCount.y + gid.y) * threadGroupCount.x + gid.x * physicsThreadCount + gindex;
+    float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
+    float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
+    float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
+    float3 bladeUp = normalize(normalHeight.xyz);
+    float posY = normalHeight.w;
+    float height = parameters.z;
+    
+    float3 v2 = bladeUp * height;
+    float3 v1 = CalculateV1(v2, bladeUp, height, 1.0/height);
+    
+    float3 v01 = v1;
+    float3 v12 = v2 - v1;
+    float lv01 = length(v1);
+    float lv12 = length(v12);
+
+    float L1 = lv01 + lv12;
+    float L0 = length(v2);
+    float L = (2.0 * L0 + L1) / 3.0; //http://steve.hollasch.net/cgindex/curves/cbezarclen.html
+
+    float ldiff = height / L;
+    v01 = v01 * ldiff;
+    v12 = v12 * ldiff;
+    v1 *= ldiff;
+    v2 = v1 + v12;
+    
+    float tessLevel = 12.0;
+    float transition = 1.0;
+    
+    SimulationTexture[uint3(id.xy, 0)] = float4(v1, tessLevel);
+    SimulationTexture[uint3(id.xy, 1)] = float4(v2, transition);
+}
+
+[numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
+void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+{
+    //uint2 threadGroupCount = uint3(GrassDataResolution / physicsNumThreadsX, GrassDataResolution / physicsNumThreadsY);
+    //uint i = (gid.z * threadGroupCount.y + gid.y) * threadGroupCount.x + gid.x * physicsThreadCount + gindex;
+    float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
+    float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
+    float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
+
+    float4 simulationData0 = SimulationTexture.Load(uint3(id.xy, 0));
+    float4 simulationData1 = SimulationTexture.Load(uint3(id.xy, 1));
+    
+	float width = parameters.x;
+	float bendingFactor = parameters.y;
+	float height = parameters.z;
+	float invHeight = 1.0 / height;
+	float dirAlpha = parameters.w;
+	float3 localGroundPos = float3(uvLocal.x, normalHeight.w, uvLocal.y);
 	float3 groundPos = LocalToWorldPos(localGroundPos).xyz;
 	
 	//direction of the blade
-	float3 bladeUp = (grassDataABuffer[i].xyz);
+	float3 bladeUp = normalize(normalHeight.xyz);
 	float sd = sin(dirAlpha);
 	float cd = cos(dirAlpha);
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
@@ -154,13 +225,15 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 
 	float mdt = min(deltaTime, 1.0);
 
-	float4 oldPressure = pressureDataBuffer[i];
-	float collisionForce = max(oldPressure.w - (1.0 - bendingFactor) * 0.5 * mdt, 0.0);
-
+	//float4 oldPressure = pressureDataBuffer[i];
+	//float collisionForce = max(oldPressure.w - (1.0 - bendingFactor) * 0.5 * mdt, 0.0);
+    
+    //TODO
+    
 	float3 idleV2 = bladeUp * height;
 	//apply old pressure
 	//float3 v2 = idleV2 - oldPressure.xyz;
-	float3 v2 = grassDataCBuffer[i].xyz;
+	float3 v2 = simulationData1.xyz;
 	//float3 relativeV2 = v2 - groundPos;
 
 	//gravity
@@ -172,8 +245,8 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	//wind
 	//TODO
 
-	//stiffness
-	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0 - collisionForce, 0.1) * mdt;
+	//stiffness //TODO: Rework temp max without collisionForce
+	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(0.0, 0.1) * mdt;
 
 	//apply new forces
 	v2 += gravity + stiffness;
@@ -186,7 +259,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	float3 g = v2 - dot(v2, bladeUp) * bladeUp;
     float v2ratio = abs(length(g) * invHeight);
     float fac = max(1.0 - v2ratio, 0.05 * max(v2ratio, 1.0));
-    float3 v1 =  bladeUp * height * 0.5;
+    float3 v1 =  bladeUp * height * 0.5 * fac;
 
 	//Make persistent length
 	
@@ -207,10 +280,12 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 	
 	//TODO: Collisions
 
-	float3 pressure = v2 - idleV2;
-	grassDataBBuffer[i].xyz = v1;
-	grassDataCBuffer[i].xyz = v2;
-	pressureDataBuffer[i].xyz = pressure;
-	pressureDataBuffer[i].w = collisionForce;
+    SimulationTexture[uint3(id.xy, 0)] = float4(v1, simulationData0.w);
+    SimulationTexture[uint3(id.xy, 1)] = float4(v2, simulationData1.w);
+	//float3 pressure = v2 - idleV2;
+	//grassDataBBuffer[i].xyz = v1;
+	//grassDataCBuffer[i].xyz = v2;
+	//pressureDataBuffer[i].xyz = pressure;
+	//pressureDataBuffer[i].w = collisionForce;
 
 }
