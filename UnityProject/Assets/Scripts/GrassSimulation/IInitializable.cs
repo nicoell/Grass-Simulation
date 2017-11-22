@@ -4,4 +4,9 @@
 	{
 		bool Init();
 	}
+
+	public interface IIntializableWithCtx
+	{
+		bool Init(SimulationContext context);
+	}
 }

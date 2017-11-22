@@ -14,9 +14,9 @@ namespace GrassSimulation
 		public Camera Camera;
 		public ComputeShader GrassSimulationComputeShader;
 		public Material GrassGeometry;
-		[HideInInspector] 
+		[NonSerialized]
 		public Material GrassBillboardCrossed;
-		[HideInInspector] 
+		[NonSerialized]
 		public Material GrassBillboardScreen;
 		
 		[Header("Data Provider")]
@@ -32,7 +32,7 @@ namespace GrassSimulation
 		public int KernelPhysics;
 		[HideInInspector] 
 		public int KernelSimulationSetup;
-		[HideInInspector] 
+		[NonSerialized] 
 		public Random Random;
 		public SharedGrassData SharedGrassData;
 		//public Terrain Terrain;
@@ -100,12 +100,6 @@ namespace GrassSimulation
 			GrassSimulationComputeShader.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
-			/*GrassSimulationComputeShader.SetFloat("LodDistanceFullDetail", Settings.LodDistanceFullDetail);
-			GrassSimulationComputeShader.SetFloat("LodDistanceBillboard", Settings.LodDistanceBillboard);
-			GrassSimulationComputeShader.SetFloat("LodDistanceMax", Settings.LodDistanceMax);
-			GrassSimulationComputeShader.SetFloat("LodDensityFullDetailDistance", Settings.LodDensityFullDetailDistance);
-			GrassSimulationComputeShader.SetFloat("LodDensityBillboardDistance", Settings.LodDensityBillboardDistance);
-			GrassSimulationComputeShader.SetFloat("LodDensityMaxDistance", Settings.LodDensityMaxDistance);*/
 			
 			Shader.SetGlobalFloat("LodInstancesGeometry", Settings.LodInstancesGeometry);
 			Shader.SetGlobalFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);
@@ -119,7 +113,18 @@ namespace GrassSimulation
 			Shader.SetGlobalFloat("LodDistanceBillboardScreenStart", Settings.LodDistanceBillboardScreenStart);
 			Shader.SetGlobalFloat("LodDistanceBillboardScreenPeak", Settings.LodDistanceBillboardScreenPeak);
 			Shader.SetGlobalFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
-
+			
+			//If possible initialize the Data Providers
+			if (DimensionsProvider is IIntializableWithCtx) (DimensionsProvider as IIntializableWithCtx).Init(this);
+			else if (DimensionsProvider is IInitializable) (DimensionsProvider as IInitializable).Init();
+			
+			if (HeightProvider is IIntializableWithCtx) (HeightProvider as IIntializableWithCtx).Init(this);
+			else if (HeightProvider is IInitializable) (HeightProvider as IInitializable).Init();
+			
+			if (NormalProvider is IIntializableWithCtx) (NormalProvider as IIntializableWithCtx).Init(this);
+			else if (NormalProvider is IInitializable) (NormalProvider as IInitializable).Init();
+			
+			
 			//Everything is ready.
 			IsReady = true;
 			return true;
