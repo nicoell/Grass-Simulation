@@ -1,4 +1,7 @@
-﻿using UnityEditor;
+﻿using System;
+using GrassSimulation.Core.Inputs;
+using GrassSimulation.StandardInputs;
+using UnityEditor;
 using UnityEngine;
 
 namespace GrassSimulation.Editor
@@ -11,17 +14,13 @@ namespace GrassSimulation.Editor
 		public override void OnInspectorGUI()
 		{
 			base.OnInspectorGUI();
+			serializedObject.Update();
 			var controller = (GrassSimulationController) target;
 			
-			/*serializedObject.Update();
-			CreateCachedEditor(controller.Context, null, ref _editor);
-			EditorGUI.indentLevel++;
-			_editor.OnInspectorGUI();
-			EditorGUI.indentLevel--;
-			serializedObject.ApplyModifiedProperties();*/
-
 			if (GUILayout.Button("Prepare Simulation"))
 				controller.PrepareSimulation();
+			
+			serializedObject.ApplyModifiedProperties();
 		}
 	}
 }

@@ -1,5 +1,7 @@
-﻿using GrassSimulation.Grass;
-using GrassSimulation.LOD;
+﻿using GrassSimulation.Core;
+using GrassSimulation.Core.Attribute;
+using GrassSimulation.Core.Patches;
+using GrassSimulation.StandardContainers;
 using UnityEngine;
 
 //TODO: Revisit namespaces
@@ -9,20 +11,17 @@ namespace GrassSimulation
     public class GrassSimulationController : MonoBehaviour
     {
         //TODO: Revisit the null reference tests used all over the place
+        [EmbeddedScriptableObject]
         public SimulationContext Context;
 
-        private PatchHierarchy _patchHierarchy;
-        
+        private PatchContainer _patchHierarchy;
+
         // Use this for initialization
         private void OnEnable()
         {
             if (Context == null)
             {
-                Context = new SimulationContext
-                {
-                    Camera = Camera.main,
-                    Transform = transform
-                };
+                Context = ScriptableObject.CreateInstance<SimulationContext>();
             }
              PrepareSimulation();  
         }
@@ -30,7 +29,7 @@ namespace GrassSimulation
         public void PrepareSimulation()
         {
             if (Context == null || !Context.Init()) return;
-            _patchHierarchy = new PatchHierarchy(Context);
+            _patchHierarchy = new UniformGridHierarchyPatchContainer(Context);
             _patchHierarchy.Init();
         }
 
@@ -64,7 +63,7 @@ namespace GrassSimulation
 
         private void OnGUI()
         {
-            //GUI.DrawTexture(new Rect(0, 0, 512, 512), Context.SharedGrassData.ParameterTexture);
+            //GUI.DrawTexture(new Rect(0, 0, 512, 512), Context.GrassInstance.ParameterTexture);
             //if (_patchHierarchy != null) _patchHierarchy.DebugDraw();
         }
     }

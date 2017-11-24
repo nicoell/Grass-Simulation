@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657844, g: 0.49641222, b: 0.57481694, a: 1}
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -112,6 +112,18 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!114 &75975264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e2e6445dfbe4d39a2b896cb76498f7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _terrain: {fileID: 1583463535}
 --- !u!1 &201734321
 GameObject:
   m_ObjectHideFlags: 0
@@ -139,56 +151,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0daa79084ab428b9de708a3d1a6d73b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Context:
-    Transform: {fileID: 1583463536}
-    Camera: {fileID: 420063494}
-    GrassSimulationComputeShader: {fileID: 7200000, guid: 93a2e5d79b32ac944aeb5020f6fcac78,
-      type: 3}
-    GrassGeometry: {fileID: 2100000, guid: 8ff4c177c22ae5247b425fcc6d509504, type: 2}
-    DimensionsProvider: {fileID: 1583463539}
-    HeightProvider: {fileID: 1583463538}
-    NormalProvider: {fileID: 1583463537}
-    IsReady: 1
-    KernelPhysics: 0
-    KernelSimulationSetup: 1
-    EditorSettings:
-      EnableLodDistanceGizmo: 1
-      EnableHierarchyGizmo: 0
-      EnablePatchGizmo: 0
-      EnableBladeUpGizmo: 0
-      EnableFullBladeGizmo: 0
-    Settings:
-      RandomSeed: 42
-      BillboardSize: 5
-      BladeMaxBend: 0.7
-      BladeMaxHeight: 0.3
-      BladeMaxWidth: 0.05
-      BladeMinBend: 0.2
-      BladeMinHeight: 0.15
-      BladeMinWidth: 0.01
-      GrassBlade: {fileID: 2800000, guid: 38ebcf3098af8944ea942e5092a2b15d, type: 3}
-      Gravity: {x: 0, y: -1, z: 0, w: 0.2}
-      GrassDataResolution: 64
-      GrassDataTrilinearFiltering: 1
-      PatchSize: 8
-      InstancedGrassFactor: 4
-      LodTessellationMin: 2
-      LodTessellationMax: 64
-      LodDistanceTessellationMin: 0
-      LodDistanceTessellationMax: 20
-      LodInstancesGeometry: 512
-      LodInstancesBillboardCrossed: 12
-      LodInstancesBillboardScreen: 6
-      LodDistanceGeometryStart: 0
-      LodDistanceGeometryPeak: 50
-      LodDistanceGeometryEnd: 200
-      LodDistanceBillboardCrossedStart: 75
-      LodDistanceBillboardCrossedPeak: 200
-      LodDistanceBillboardCrossedEnd: 300
-      LodDistanceBillboardScreenStart: 250
-      LodDistanceBillboardScreenPeak: 300
-      LodDistanceBillboardScreenEnd: 400
-      EnableHeightTransition: 1
+  Context: {fileID: 1411286440}
 --- !u!4 &201734323
 Transform:
   m_ObjectHideFlags: 0
@@ -202,6 +165,18 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &314005761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f8b4f7f76d94de1af459cf03e7a4ba7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _terrain: {fileID: 1583463535}
 --- !u!1 &420063491
 GameObject:
   m_ObjectHideFlags: 0
@@ -370,6 +345,18 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!114 &565421724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb94b40cabcd40d0a5c7acede2c9f9b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _terrain: {fileID: 1583463535}
 --- !u!1 &1111654734
 GameObject:
   m_ObjectHideFlags: 0
@@ -497,6 +484,72 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 0
   BladeName: Default
+--- !u!114 &1411286440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cdde0086d694b30a863c3abacc37ccc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Transform: {fileID: 1583463536}
+  Camera: {fileID: 420063494}
+  GrassSimulationComputeShader: {fileID: 7200000, guid: 93a2e5d79b32ac944aeb5020f6fcac78,
+    type: 3}
+  GrassGeometry: {fileID: 2100000, guid: 8ff4c177c22ae5247b425fcc6d509504, type: 2}
+  DimensionsInputType:
+    _classRef: GrassSimulation.StandardInputs.TerrainDimensionsInput, Assembly-CSharp
+  DimensionsInput: {fileID: 565421724}
+  HeightInputType:
+    _classRef: GrassSimulation.StandardInputs.TerrainHeightInput, Assembly-CSharp
+  HeightInput: {fileID: 75975264}
+  NormalInputType:
+    _classRef: GrassSimulation.StandardInputs.TerrainAdvancedNormalInput, Assembly-CSharp
+  NormalInput: {fileID: 314005761}
+  IsReady: 1
+  KernelPhysics: 0
+  KernelSimulationSetup: 1
+  EditorSettings:
+    EnableLodDistanceGizmo: 1
+    EnableHierarchyGizmo: 0
+    EnablePatchGizmo: 0
+    EnableBladeUpGizmo: 0
+    EnableFullBladeGizmo: 0
+  Settings:
+    RandomSeed: 42
+    BillboardSize: 10
+    BladeMaxBend: 2
+    BladeMaxHeight: 1
+    BladeMaxWidth: 0.5
+    BladeMinBend: 0.5
+    BladeMinHeight: 0.5
+    BladeMinWidth: 0.1
+    GrassBlade: {fileID: 0}
+    Gravity: {x: 0, y: -1, z: 0, w: 2}
+    GrassDataResolution: 16
+    GrassDataTrilinearFiltering: 1
+    PatchSize: 8
+    InstancedGrassFactor: 4
+    LodTessellationMin: 1
+    LodTessellationMax: 64
+    LodDistanceTessellationMin: 0
+    LodDistanceTessellationMax: 20
+    LodInstancesGeometry: 64
+    LodInstancesBillboardCrossed: 1
+    LodInstancesBillboardScreen: 1
+    LodDistanceGeometryStart: 0
+    LodDistanceGeometryPeak: 1
+    LodDistanceGeometryEnd: 200
+    LodDistanceBillboardCrossedStart: 150
+    LodDistanceBillboardCrossedPeak: 200
+    LodDistanceBillboardCrossedEnd: 300
+    LodDistanceBillboardScreenStart: 250
+    LodDistanceBillboardScreenPeak: 300
+    LodDistanceBillboardScreenEnd: 400
+    EnableHeightTransition: 1
 --- !u!1 &1583463533
 GameObject:
   m_ObjectHideFlags: 0
@@ -507,9 +560,6 @@ GameObject:
   - component: {fileID: 1583463536}
   - component: {fileID: 1583463535}
   - component: {fileID: 1583463534}
-  - component: {fileID: 1583463539}
-  - component: {fileID: 1583463538}
-  - component: {fileID: 1583463537}
   m_Layer: 0
   m_Name: Terrain
   m_TagString: Untagged
@@ -571,42 +621,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1583463537
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1583463533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6f8b4f7f76d94de1af459cf03e7a4ba7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _terrain: {fileID: 1583463535}
---- !u!114 &1583463538
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1583463533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3e2e6445dfbe4d39a2b896cb76498f7f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _terrain: {fileID: 1583463535}
---- !u!114 &1583463539
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1583463533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb94b40cabcd40d0a5c7acede2c9f9b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _terrain: {fileID: 1583463535}
 --- !u!1 &1870263202
 GameObject:
   m_ObjectHideFlags: 0
