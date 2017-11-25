@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using GrassSimulation.Core.ClassTypeReference;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ namespace GrassSimulation.ClassTypeReference.Editor {
 	/// <summary>
 	/// Custom property drawer for <see cref="ClassTypeReference"/> properties.
 	/// </summary>
-	[CustomPropertyDrawer(typeof(ClassTypeReference))]
+	[CustomPropertyDrawer(typeof(Core.ClassTypeReference.ClassTypeReference))]
 	[CustomPropertyDrawer(typeof(ClassTypeConstraintAttribute), true)]
 	public sealed class ClassTypeReferencePropertyDrawer : PropertyDrawer {
 
@@ -242,7 +243,7 @@ namespace GrassSimulation.ClassTypeReference.Editor {
 		private static void OnSelectedTypeName(object userData) {
 			var selectedType = userData as Type;
 
-			s_SelectedClassRef = ClassTypeReference.GetClassRef(selectedType);
+			s_SelectedClassRef = Core.ClassTypeReference.ClassTypeReference.GetClassRef(selectedType);
 			var typeReferenceUpdatedEvent = EditorGUIUtility.CommandEvent("TypeReferenceUpdated");
 			EditorWindow.focusedWindow.SendEvent(typeReferenceUpdatedEvent);
 		}

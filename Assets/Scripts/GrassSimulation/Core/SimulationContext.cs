@@ -1,6 +1,6 @@
 ﻿using System;
-using GrassSimulation.ClassTypeReference;
 using GrassSimulation.Core.Attribute;
+using GrassSimulation.Core.ClassTypeReference;
 using GrassSimulation.Core.Inputs;
 using GrassSimulation.Core.Patches;
 using UnityEngine;

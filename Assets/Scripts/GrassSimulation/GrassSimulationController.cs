@@ -1,7 +1,5 @@
 ﻿using GrassSimulation.Core;
 using GrassSimulation.Core.Attribute;
-using GrassSimulation.Core.Patches;
-using GrassSimulation.StandardContainers;
 using UnityEngine;
 
 //TODO: Revisit namespaces
