@@ -15,18 +15,20 @@ namespace GrassSimulation.Core.Editor
 		// Draw the property inside the given rect
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
-			if (property.objectReferenceValue == null) return;
+			if (property.objectReferenceValue == null)
+			{
+				EditorGUILayout.PropertyField(property, label);
+				return;
+			}
 			if (Target.OverlapTitle)
 			{
 				position.y -= 16;
 				position.height = 16;
-				Target.ShowScriptableObject =
-					EditorGUI.Foldout(position, Target.ShowScriptableObject, label, true, Target.Style);
+				Target.ShowScriptableObject = EditorGUI.Foldout(position, Target.ShowScriptableObject, label, true, Target.Style);
 			}
 			else
 			{
-				Target.ShowScriptableObject =
-					EditorGUILayout.Foldout(Target.ShowScriptableObject, label, true, Target.Style);
+				Target.ShowScriptableObject = EditorGUILayout.Foldout(Target.ShowScriptableObject, label, true, Target.Style);
 			}
 			if (Target.ShowScriptableObject)
 			{

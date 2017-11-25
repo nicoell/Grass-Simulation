@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace GrassSimulation.Core.Attribute
 {
+	[Serializable]
 	[AttributeUsage(AttributeTargets.Field)]
 	public class EmbeddedScriptableObjectAttribute : PropertyAttribute
 	{

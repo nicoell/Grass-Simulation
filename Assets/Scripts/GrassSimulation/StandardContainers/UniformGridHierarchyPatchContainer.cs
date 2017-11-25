@@ -12,10 +12,6 @@ namespace GrassSimulation.StandardContainers
 		private BoundingPatch _rootPatch;
 		private List<GrassPatch> _visiblePatches;
 
-		public UniformGridHierarchyPatchContainer(SimulationContext ctx) : base(ctx)
-		{
-		}
-
 		public override void Destroy()
 		{
 			foreach (var grassPatch in _grassPatches)
@@ -30,15 +26,13 @@ namespace GrassSimulation.StandardContainers
 				visiblePatch.Draw();
 		}
 
-		public override bool Init()
+		public override void SetupContainer()
 		{
 			//TODO: A progressBar would be nice
 			_planes = new Plane[6];
 			_visiblePatches = new List<GrassPatch>();
 			CreateGrassPatchGrid();
 			CreatePatchHierarchy();
-
-			return true;
 		}
 
 		private void CreateGrassPatchGrid()

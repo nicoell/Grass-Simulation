@@ -165,6 +165,18 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &231870127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb94b40cabcd40d0a5c7acede2c9f9b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _terrain: {fileID: 1583463535}
 --- !u!114 &314005761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -345,18 +357,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
---- !u!114 &565421724
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb94b40cabcd40d0a5c7acede2c9f9b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _terrain: {fileID: 1583463535}
 --- !u!1 &1111654734
 GameObject:
   m_ObjectHideFlags: 0
@@ -502,7 +502,7 @@ MonoBehaviour:
   GrassGeometry: {fileID: 2100000, guid: 8ff4c177c22ae5247b425fcc6d509504, type: 2}
   DimensionsInputType:
     _classRef: GrassSimulation.StandardInputs.TerrainDimensionsInput, Assembly-CSharp
-  DimensionsInput: {fileID: 565421724}
+  DimensionsInput: {fileID: 231870127}
   HeightInputType:
     _classRef: GrassSimulation.StandardInputs.TerrainHeightInput, Assembly-CSharp
   HeightInput: {fileID: 75975264}

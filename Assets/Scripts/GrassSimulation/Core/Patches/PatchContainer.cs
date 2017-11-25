@@ -2,17 +2,21 @@
 
 namespace GrassSimulation.Core.Patches
 {
-	public abstract class PatchContainer : ContextRequirement, IInitializable, IDestroyable, IDrawable
+	public abstract class PatchContainer : ScriptableObject, IIntializableWithCtx, IDestroyable, IDrawable
 	{
-		public PatchContainer(SimulationContext ctx) : base(ctx)
-		{
-		}
+		protected SimulationContext Ctx;
 
 		public abstract void Destroy();
 
 		public abstract void Draw();
 
-		public abstract bool Init();
+		public bool Init(SimulationContext context)
+		{
+			Ctx = context;
+			return true;
+		}
+
+		public abstract void SetupContainer();
 
 		public virtual void DrawGizmo()
 		{

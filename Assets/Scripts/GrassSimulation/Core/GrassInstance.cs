@@ -29,7 +29,7 @@ namespace GrassSimulation.Core
 			UvData = new UvData[Ctx.Settings.GetSharedBufferLength()];
 
 			for (var i = 0; i < Ctx.Settings.GetSharedBufferLength(); i++)
-				UvData[i].Position = new Vector2((float) Ctx.Random.NextDouble(), (float) Ctx.Random.NextDouble());
+				UvData[i].Position = Ctx.PositionInput.GetPosition(i);
 			UvBuffer = new ComputeBuffer((int) Ctx.Settings.GetSharedBufferLength(), 2 * sizeof(float),
 				ComputeBufferType.Default);
 			UvBuffer.SetData(UvData);

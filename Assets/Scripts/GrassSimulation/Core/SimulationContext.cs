@@ -20,20 +20,34 @@ namespace GrassSimulation.Core
 		public Material GrassBillboardCrossed;
 		[NonSerialized]
 		public Material GrassBillboardScreen;
+		[Header("PatchContainer")]
+		
+		[ClassExtends(typeof(PatchContainer), " ")]
+		public ClassTypeReference.ClassTypeReference PatchContainerType;
+		[EmbeddedScriptableObject(false, true)]
+		public PatchContainer PatchContainer;
 		
 		[Header("Inputs")]
+		
 		[ClassExtends(typeof(DimensionsInput), " ")]
 		public ClassTypeReference.ClassTypeReference DimensionsInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public DimensionsInput DimensionsInput;
+		
 		[ClassExtends(typeof(HeightInput), " ")]
 		public ClassTypeReference.ClassTypeReference HeightInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public HeightInput HeightInput;
+		
 		[ClassExtends(typeof(NormalInput), " ")]
 		public ClassTypeReference.ClassTypeReference NormalInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public NormalInput NormalInput;
+		
+		[ClassExtends(typeof(PositionInput), " ")]
+		public ClassTypeReference.ClassTypeReference PositionInputType;
+		[EmbeddedScriptableObject(false, true)]
+		public PositionInput PositionInput;
 		
 		[HideInInspector]
 		public bool IsReady;
@@ -67,11 +81,21 @@ namespace GrassSimulation.Core
 				NormalInput = null;
 			else if (NormalInput == null || NormalInput.GetType() != NormalInputType.Type)
 				NormalInput = Activator.CreateInstance(NormalInputType) as NormalInput;
+			
+			if (PositionInputType.Type == null)
+				PositionInput = null;
+			else if (PositionInput == null || PositionInput.GetType() != PositionInputType.Type)
+				PositionInput = Activator.CreateInstance(PositionInputType) as PositionInput;
+			
+			if (PatchContainerType.Type == null)
+				PatchContainer = null;
+			else if (PatchContainer == null || PatchContainer.GetType() != PatchContainerType.Type)
+				PatchContainer = Activator.CreateInstance(PatchContainerType) as PatchContainer;
 		}
 
 		public bool Init()
 		{
-			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !HeightInput || !NormalInput)
+			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
 				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
@@ -81,16 +105,15 @@ namespace GrassSimulation.Core
 				if (!DimensionsInput) Debug.Log("GrassSimulation: DimensionsInput not set.");
 				if (!HeightInput) Debug.Log("GrassSimulation: HeightInput not set.");
 				if (!NormalInput) Debug.Log("GrassSimulation: NormalInput not set.");
+				if (!PositionInput) Debug.Log("GrassSimulation: PositionInput not set.");
+				if (!PatchContainer) Debug.Log("GrassSimulation: PatchContainer not set.");
 				IsReady = false;
 				return false;
 			}
 			
-			//HeightInput = Activator.CreateInstance(HeightInputType) as IHeightInput;
-
 			if (Settings == null)
 			{
 				Settings = new SimulationSettings();
-				//Settings.GrassBlade = Texture2D.whiteTexture;
 			}
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
 			
@@ -99,15 +122,10 @@ namespace GrassSimulation.Core
 
 			//Find kernels for ComputeShaders
 			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
-			//KernelCulling = GrassSimulationComputeShader.FindKernel("CullingMain");
 			KernelSimulationSetup =  GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
 			
 			GrassBillboardCrossed = new Material(GrassGeometry);
 			GrassBillboardScreen = new Material(GrassGeometry);
-			
-			//Create sharedGrassData
-			GrassInstance = new GrassInstance(this);
-			GrassInstance.Init();
 
 			GrassGeometry.EnableKeyword("GRASS_GEOMETRY");
 			GrassGeometry.DisableKeyword("GRASS_BILLBOARD_CROSSED");
@@ -147,15 +165,24 @@ namespace GrassSimulation.Core
 			Shader.SetGlobalFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
 			
 			//If possible initialize the Data Providers
-			if (DimensionsInput is IIntializableWithCtx) (DimensionsInput as IIntializableWithCtx).Init(this);
-			else if (DimensionsInput is IInitializable) (DimensionsInput as IInitializable).Init();
+			if (DimensionsInput is IIntializableWithCtx) ((IIntializableWithCtx) DimensionsInput).Init(this);
+			else if (DimensionsInput is IInitializable) ((IInitializable) DimensionsInput).Init();
 			
-			if (HeightInput is IIntializableWithCtx) (HeightInput as IIntializableWithCtx).Init(this);
-			else if (HeightInput is IInitializable) (HeightInput as IInitializable).Init();
+			if (HeightInput is IIntializableWithCtx) ((IIntializableWithCtx) HeightInput).Init(this);
+			else if (HeightInput is IInitializable) ((IInitializable) HeightInput).Init();
 			
-			if (NormalInput is IIntializableWithCtx) (NormalInput as IIntializableWithCtx).Init(this);
-			else if (NormalInput is IInitializable) (NormalInput as IInitializable).Init();
+			if (NormalInput is IIntializableWithCtx) ((IIntializableWithCtx) NormalInput).Init(this);
+			else if (NormalInput is IInitializable) ((IInitializable) NormalInput).Init();
 			
+			if (PositionInput is IIntializableWithCtx) ((IIntializableWithCtx) PositionInput).Init(this);
+			else if (PositionInput is IInitializable) ((IInitializable) PositionInput).Init();
+
+			//Create sharedGrassData
+			GrassInstance = new GrassInstance(this);
+			GrassInstance.Init();
+			
+			PatchContainer.Init(this);
+			PatchContainer.SetupContainer();
 			
 			//Everything is ready.
 			IsReady = true;
