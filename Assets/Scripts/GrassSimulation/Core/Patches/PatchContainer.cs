@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using UnityEditor;
+using UnityEngine;
 
 namespace GrassSimulation.Core.Patches
 {
@@ -8,7 +9,13 @@ namespace GrassSimulation.Core.Patches
 
 		public abstract void Destroy();
 
-		public abstract void Draw();
+		public void Draw()
+		{
+			UpdatePerFrameData();
+			DrawImpl();
+		}
+
+		protected abstract void DrawImpl();
 
 		public bool Init(SimulationContext context)
 		{
@@ -18,7 +25,7 @@ namespace GrassSimulation.Core.Patches
 
 		public abstract void SetupContainer();
 
-		public virtual void DrawGizmo()
+		public void DrawGizmo()
 		{
 			if (Ctx.EditorSettings.EnableLodDistanceGizmo)
 			{
@@ -32,6 +39,25 @@ namespace GrassSimulation.Core.Patches
 				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceBillboardScreenStart);
 				Gizmos.DrawWireSphere(Ctx.Camera.transform.position, Ctx.Settings.LodDistanceBillboardScreenEnd);
 			}
+			DrawGizmoImpl();
+		}
+
+		protected abstract void DrawGizmoImpl();
+		
+		protected void UpdatePerFrameData()
+		{
+			//TODO: Maybe outsource all the computeshader data settings to its own class
+			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", Ctx.Settings.EnableHeightTransition);
+			Ctx.GrassGeometry.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardCrossed.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardScreen.SetVector("camPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardScreen.SetVector("camUp", Ctx.Camera.transform.up);
+			Ctx.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
+			Ctx.GrassSimulationComputeShader.SetVector("gravityVec", Ctx.Settings.Gravity);
+			Ctx.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
+				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassSimulationComputeShader.SetFloats("camPos", Ctx.Camera.transform.position.x,
+				Ctx.Camera.transform.position.y, Ctx.Camera.transform.position.z);
 		}
 	}
 }

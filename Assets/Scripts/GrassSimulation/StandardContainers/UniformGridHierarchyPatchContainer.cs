@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using GrassSimulation.Core;
 using GrassSimulation.Core.Patches;
 using UnityEngine;
 
@@ -18,10 +17,9 @@ namespace GrassSimulation.StandardContainers
 				grassPatch.Destroy();
 		}
 
-		public override void Draw()
+		protected override void DrawImpl()
 		{
 			CullViewFrustum();
-			UpdatePerFrameData();
 			foreach (var visiblePatch in _visiblePatches)
 				visiblePatch.Draw();
 		}
@@ -44,9 +42,6 @@ namespace GrassSimulation.StandardContainers
 			var terrainSize = new Vector2(Ctx.DimensionsInput.GetWidth(), Ctx.DimensionsInput.GetDepth());
 			var terrainLevel = Ctx.DimensionsInput.GetHeight();
 			var heightSamplingRate = Ctx.HeightInput.GetSamplingRate();
-			/*var heightmapSize = new Vector2Int(Ctx.Terrain.terrainData.heightmapWidth,
-				Ctx.Terrain.terrainData.heightmapHeight);*/
-			//var heightmapToTerrainFactor = new Vector2(heightmapSize.x / terrainSize.x, heightmapSize.y / terrainSize.y);
 			var patchQuantity = new Vector2Int((int) (terrainSize.x / Ctx.Settings.PatchSize),
 				(int) (terrainSize.y / Ctx.Settings.PatchSize));
 			_grassPatches = new GrassPatch[patchQuantity.y, patchQuantity.x];
@@ -70,31 +65,17 @@ namespace GrassSimulation.StandardContainers
 				patchBoundsCenter.x += x * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 				patchBoundsCenter.z += y * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 
-				//Sample heightmapTexture to find min and maxheight values of current patch
-				/*var minHeight = 1f;
-				var maxHeight = 0f;
-				for (var j = (int) (patchTexCoord.x * heightmapSize.x);
-					j < (patchTexCoord.x + patchTexCoord.z) * heightmapSize.x;
-					j++)
-				for (var k = (int) (patchTexCoord.y * heightmapSize.y);
-					k < (patchTexCoord.y + patchTexCoord.w) * heightmapSize.y;
-					k++)
-				{
-					var height = Ctx.Heightmap.GetPixel(j, k);
-					if (height.r < minHeight) minHeight = height.r;
-					if (height.r > maxHeight) maxHeight = height.r;
-				}*/
 				var minHeight = 1f;
 				var maxHeight = 0f;
-				for (float j = patchTexCoord.x; j < patchTexCoord.x + patchTexCoord.z; j += heightSamplingRate.x)
-				for (float k = patchTexCoord.y; k < patchTexCoord.y + patchTexCoord.w; k += heightSamplingRate.y)
+				for (var j = patchTexCoord.x; j < patchTexCoord.x + patchTexCoord.z; j += heightSamplingRate.x)
+				for (var k = patchTexCoord.y; k < patchTexCoord.y + patchTexCoord.w; k += heightSamplingRate.y)
 				{
-					var height = Ctx.HeightInput.GetHeight(j, k)  /
+					var height = Ctx.HeightInput.GetHeight(j, k) /
 					             Ctx.DimensionsInput.GetHeight();
 					if (height < minHeight) minHeight = height;
 					if (height > maxHeight) maxHeight = height;
 				}
-				
+
 				//We can now calculate the center.y and height of BoundingBox
 				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
 				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
@@ -141,9 +122,8 @@ namespace GrassSimulation.StandardContainers
 			return patchesOutput;
 		}
 
-		public override void DrawGizmo()
+		protected override void DrawGizmoImpl()
 		{
-			base.DrawGizmo();
 			//Draw Gizmos for Hierchical Patches
 			_rootPatch.DrawGizmo();
 			//Draw Gizmos for visible Leaf Patches
@@ -174,22 +154,6 @@ namespace GrassSimulation.StandardContainers
 				foreach (var childPatch in childPatches)
 					if (childPatch != null) TestViewFrustum(childPatch);
 			}
-		}
-
-		private void UpdatePerFrameData()
-		{
-			//TODO: Maybe outsource all the computeshader data settings to its own class
-			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", Ctx.Settings.EnableHeightTransition);
-			Ctx.GrassGeometry.SetVector("camPos", Ctx.Camera.transform.position);
-			Ctx.GrassBillboardCrossed.SetVector("camPos", Ctx.Camera.transform.position);
-			Ctx.GrassBillboardScreen.SetVector("camPos", Ctx.Camera.transform.position);
-			Ctx.GrassBillboardScreen.SetVector("camUp", Ctx.Camera.transform.up);
-			Ctx.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
-			Ctx.GrassSimulationComputeShader.SetVector("gravityVec", Ctx.Settings.Gravity);
-			Ctx.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
-				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
-			Ctx.GrassSimulationComputeShader.SetFloats("camPos", Ctx.Camera.transform.position.x,
-				Ctx.Camera.transform.position.y, Ctx.Camera.transform.position.z);
 		}
 	}
 }
