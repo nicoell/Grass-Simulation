@@ -11,7 +11,7 @@ namespace GrassSimulation
     public class GrassSimulationController : MonoBehaviour
     {
         //TODO: Revisit the null reference tests used all over the place
-        [EmbeddedScriptableObject]
+        [EmbeddedScriptableObject(true)]
         public SimulationContext Context;
 
         private PatchContainer _patchHierarchy;

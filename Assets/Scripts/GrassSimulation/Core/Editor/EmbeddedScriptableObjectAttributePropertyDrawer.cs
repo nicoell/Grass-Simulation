@@ -15,9 +15,20 @@ namespace GrassSimulation.Core.Editor
 		// Draw the property inside the given rect
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
-			Target.ShowScriptableObject =
-				EditorGUILayout.Foldout(Target.ShowScriptableObject, property.displayName, true, EditorStyles.foldout);
-			if (Target.ShowScriptableObject && property.objectReferenceValue != null)
+			if (property.objectReferenceValue == null) return;
+			if (Target.OverlapTitle)
+			{
+				position.y -= 16;
+				position.height = 16;
+				Target.ShowScriptableObject =
+					EditorGUI.Foldout(position, Target.ShowScriptableObject, label, true, Target.Style);
+			}
+			else
+			{
+				Target.ShowScriptableObject =
+					EditorGUILayout.Foldout(Target.ShowScriptableObject, label, true, Target.Style);
+			}
+			if (Target.ShowScriptableObject)
 			{
 				var so = new SerializedObject(property.objectReferenceValue);
 				so.Update();
@@ -25,7 +36,7 @@ namespace GrassSimulation.Core.Editor
 				prop.NextVisible(true);
 				while (prop.NextVisible(false))
 				{
-					EditorGUI.indentLevel = prop.depth;
+					EditorGUI.indentLevel = prop.depth + (Target.OverlapTitle ? 1 : 0);
 					EditorGUILayout.PropertyField(prop, true);
 				}
 
@@ -36,7 +47,7 @@ namespace GrassSimulation.Core.Editor
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
-			return 0;
+			return Target.OverlapTitle ? 0 : 0;
 		}
 	}
 }

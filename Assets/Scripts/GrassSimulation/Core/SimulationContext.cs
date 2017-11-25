@@ -1,8 +1,8 @@
 ﻿using System;
+using GrassSimulation.ClassTypeReference;
 using GrassSimulation.Core.Attribute;
 using GrassSimulation.Core.Inputs;
 using GrassSimulation.Core.Patches;
-using TypeReferences;
 using UnityEngine;
 using Random = System.Random;
 
@@ -22,17 +22,17 @@ namespace GrassSimulation.Core
 		public Material GrassBillboardScreen;
 		
 		[Header("Inputs")]
-		[ClassExtends(typeof(DimensionsInput))]
+		[ClassExtends(typeof(DimensionsInput), " ")]
 		public ClassTypeReference.ClassTypeReference DimensionsInputType;
-		[EmbeddedScriptableObject]
+		[EmbeddedScriptableObject(false, true)]
 		public DimensionsInput DimensionsInput;
-		[ClassExtends(typeof(HeightInput))]
+		[ClassExtends(typeof(HeightInput), " ")]
 		public ClassTypeReference.ClassTypeReference HeightInputType;
-		[EmbeddedScriptableObject]
+		[EmbeddedScriptableObject(false, true)]
 		public HeightInput HeightInput;
-		[ClassExtends(typeof(NormalInput))]
+		[ClassExtends(typeof(NormalInput), " ")]
 		public ClassTypeReference.ClassTypeReference NormalInputType;
-		[EmbeddedScriptableObject]
+		[EmbeddedScriptableObject(false, true)]
 		public NormalInput NormalInput;
 		
 		[HideInInspector]

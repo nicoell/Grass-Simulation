@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using TypeReferences;
 using UnityEditor;
 using UnityEngine;
 
@@ -254,7 +253,11 @@ namespace GrassSimulation.ClassTypeReference.Editor {
 			return EditorStyles.popup.CalcHeight(GUIContent.none, 0);
 		}
 
-		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+		{
+			var classTypeConstraintAttribute = attribute as ClassTypeConstraintAttribute;
+			if (classTypeConstraintAttribute != null && classTypeConstraintAttribute.CustomLabel != "")
+				label = new GUIContent(classTypeConstraintAttribute.CustomLabel);
 			DrawTypeSelectionControl(position, property.FindPropertyRelative("_classRef"), label, attribute as ClassTypeConstraintAttribute);
 		}
 

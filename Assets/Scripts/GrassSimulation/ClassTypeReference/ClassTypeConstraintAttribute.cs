@@ -2,10 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root.
 
 using System;
-using GrassSimulation.ClassTypeReference;
 using UnityEngine;
 
-namespace TypeReferences {
+namespace GrassSimulation.ClassTypeReference {
 
 	/// <summary>
 	/// Indicates how selectable classes should be collated in drop-down menu.
@@ -39,6 +38,7 @@ namespace TypeReferences {
 
 		private ClassGrouping _grouping = ClassGrouping.ByNamespaceFlat;
 		private bool _allowAbstract = false;
+		public string CustomLabel = "";
 
 		/// <summary>
 		/// Gets or sets grouping of selectable classes. Defaults to <see cref="ClassGrouping.ByNamespaceFlat"/>
@@ -93,6 +93,11 @@ namespace TypeReferences {
 			BaseType = baseType;
 		}
 
+		public ClassExtendsAttribute(Type baseType, string customLabel) : this(baseType)
+		{
+			CustomLabel = customLabel;
+		}
+
 		/// <summary>
 		/// Gets the type of class that selectable classes must derive from.
 		/// </summary>
@@ -125,6 +130,11 @@ namespace TypeReferences {
 		/// <param name="interfaceType">Type of interface that selectable classes must implement.</param>
 		public ClassImplementsAttribute(Type interfaceType) {
 			InterfaceType = interfaceType;
+		}
+
+		public ClassImplementsAttribute(Type interfaceType, string customLabel) : this(interfaceType)
+		{
+			CustomLabel = customLabel;
 		}
 
 		/// <summary>
