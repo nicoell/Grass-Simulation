@@ -20,6 +20,12 @@ namespace GrassSimulation.Core
 		public Material GrassBillboardCrossed;
 		[NonSerialized]
 		public Material GrassBillboardScreen;
+
+		[EmbeddedScriptableObject]
+		public BladeContainer BladeContainer;
+		public Texture2DArray BladeTexture2DArray0;
+		public Texture2DArray BladeTexture2DArray1;
+		
 		[Header("PatchContainer")]
 		
 		[ClassExtends(typeof(PatchContainer), " ")]
@@ -95,7 +101,10 @@ namespace GrassSimulation.Core
 
 		public bool Init()
 		{
-			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer)
+			if (BladeContainer == null) BladeContainer = ScriptableObject.CreateInstance<BladeContainer>();
+			BladeTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(0);
+			BladeTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(1);
+			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
 				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
@@ -107,9 +116,12 @@ namespace GrassSimulation.Core
 				if (!NormalInput) Debug.Log("GrassSimulation: NormalInput not set.");
 				if (!PositionInput) Debug.Log("GrassSimulation: PositionInput not set.");
 				if (!PatchContainer) Debug.Log("GrassSimulation: PatchContainer not set.");
+				if (BladeTexture2DArray0 == null || BladeTexture2DArray1 == null) Debug.Log("GrassSimulation: No Grass Blades set. Cannot create Textures.");
 				IsReady = false;
 				return false;
 			}
+			
+			//BladeContainer = new BladeContainer();
 			
 			if (Settings == null)
 			{
@@ -130,19 +142,22 @@ namespace GrassSimulation.Core
 			GrassGeometry.EnableKeyword("GRASS_GEOMETRY");
 			GrassGeometry.DisableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassGeometry.DisableKeyword("GRASS_BILLBOARD_SCREEN");
-			GrassGeometry.SetTexture("GrassBlade", Settings.GrassBlade);
+			GrassGeometry.SetTexture("GrassBlades0", BladeTexture2DArray0);
+			GrassGeometry.SetTexture("GrassBlades1", BladeTexture2DArray1);
 			GrassGeometry.SetInt("vertexCount", (int) Settings.GetMinAmountBladesPerPatch());
 			GrassGeometry.SetFloat("billboardSize", Settings.BillboardSize);
 			GrassBillboardCrossed.DisableKeyword("GRASS_GEOMETRY");
 			GrassBillboardCrossed.EnableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassBillboardCrossed.DisableKeyword("GRASS_BILLBOARD_SCREEN");
-			GrassBillboardCrossed.SetTexture("GrassBlade", Settings.GrassBlade);
+			GrassBillboardCrossed.SetTexture("GrassBlades0", BladeTexture2DArray0);
+			GrassBillboardCrossed.SetTexture("GrassBlades1", BladeTexture2DArray1);
 			GrassBillboardCrossed.SetInt("vertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardCrossed.SetFloat("billboardSize", Settings.BillboardSize);
 			GrassBillboardScreen.DisableKeyword("GRASS_GEOMETRY");
 			GrassBillboardScreen.DisableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassBillboardScreen.EnableKeyword("GRASS_BILLBOARD_SCREEN");
-			GrassBillboardScreen.SetTexture("GrassBlade", Settings.GrassBlade);
+			GrassBillboardScreen.SetTexture("GrassBlades0", BladeTexture2DArray0);
+			GrassBillboardScreen.SetTexture("GrassBlades1", BladeTexture2DArray1);
 			GrassBillboardScreen.SetInt("vertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardScreen.SetFloat("billboardSize", Settings.BillboardSize);
 			
@@ -151,6 +166,7 @@ namespace GrassSimulation.Core
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
 			
+			Shader.SetGlobalFloat("LodTessellationMax", Settings.LodTessellationMax);
 			Shader.SetGlobalFloat("LodInstancesGeometry", Settings.LodInstancesGeometry);
 			Shader.SetGlobalFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);
 			Shader.SetGlobalFloat("LodInstancesBillboardScreen", Settings.LodInstancesBillboardScreen);

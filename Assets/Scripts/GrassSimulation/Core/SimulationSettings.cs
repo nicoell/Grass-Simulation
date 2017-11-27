@@ -22,6 +22,9 @@ namespace GrassSimulation.Core
 		[Header("Physics Settings")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
 
+		[Header("GrassMap Settings")]
+		public int GrassMapResolution = 256;
+		
 		[Header("LOD Settings")]
 		public int GrassDataResolution = 16;
 		public bool GrassDataTrilinearFiltering = true;

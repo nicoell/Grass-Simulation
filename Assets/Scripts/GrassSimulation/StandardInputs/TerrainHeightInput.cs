@@ -11,6 +11,9 @@ namespace GrassSimulation.StandardInputs {
 
 		public override float GetHeight(float x, float y) { return _terrain.terrainData.GetInterpolatedHeight(x, y); }
 
-		public override Vector2 GetSamplingRate() { return new Vector2(1.0f / _terrain.terrainData.heightmapWidth, 1.0f / _terrain.terrainData.heightmapHeight);}
+		public override Vector2 GetSamplingRate()
+		{
+			return new Vector2(1.0f / _terrain.terrainData.heightmapWidth, 1.0f / _terrain.terrainData.heightmapHeight);
+		}
 	}
 }

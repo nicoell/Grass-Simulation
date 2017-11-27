@@ -40,7 +40,7 @@ namespace GrassSimulation.Core
 				TextureFormat.RGBAFloat, false, true)
 			{
 				filterMode = FilterMode.Bilinear,
-				wrapMode = TextureWrapMode.Repeat
+				wrapMode = TextureWrapMode.Repeat //TODO: Is mirror better?
 			};
 
 			var parameterData = new Color[Ctx.Settings.GetSharedTextureLength()];
@@ -56,6 +56,8 @@ namespace GrassSimulation.Core
 
 			ParameterTexture.SetPixels(parameterData);
 			ParameterTexture.Apply();
+			
+			//TODO: Build grassmap
 
 			Ctx.GrassGeometry.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassGeometry.SetTexture("ParameterTexture", ParameterTexture);

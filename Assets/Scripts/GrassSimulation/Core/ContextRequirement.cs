@@ -11,14 +11,4 @@ namespace GrassSimulation.Core
 			Ctx = ctx;
 		}
 	}
-
-	public abstract class ScriptableObjectContextRequirement : ScriptableObject
-	{
-		protected SimulationContext Ctx;
-
-		protected ScriptableObjectContextRequirement(SimulationContext ctx)
-		{
-			Ctx = ctx;
-		}
-	}
 }

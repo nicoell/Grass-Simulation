@@ -31,6 +31,8 @@ Shader "GrassSimulation/GrassShader"
             uniform int vertexCount;
             uniform float billboardSize;
             
+            uniform float LodTessellationMax;
+            
             uniform float LodInstancesGeometry;
             uniform float LodInstancesBillboardCrossed;
             uniform float LodInstancesBillboardScreen;
@@ -49,8 +51,9 @@ Shader "GrassSimulation/GrassShader"
 			StructuredBuffer<UvData> UvBuffer;	// pos.x 		pos.z
             Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
             SamplerState samplerParameterTexture;
-			Texture2D GrassBlade;
-            SamplerState samplerGrassBlade;
+            Texture2DArray<float4> GrassBlades0;
+            SamplerState samplerGrassBlades0;
+            Texture2DArray<float4> GrassBlades1;
             
             //PerFrame
             uniform float4 camPos;
@@ -235,6 +238,9 @@ Shader "GrassSimulation/GrassShader"
                 float3 tmp = normalize(float3(sd, sd + cd, cd));
                	OUT.bladeDir = normalize(cross(OUT.bladeUp, tmp));
                	#endif
+               	//We do not need dirAlpha in domainshader so we can use OUT.parameters for something else
+               	//Calculate mipmaplevel for grass texture lookup based on tessellationfactor 
+               	OUT.parameters.w = lerp(5.0 * (LodTessellationMax / 64), 0, (SimulationData0.w / LodTessellationMax));
                   
         		return OUT;
             }
@@ -299,14 +305,15 @@ Shader "GrassSimulation/GrassShader"
             
                 //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
                 //float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
+                float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, 0), IN[0].parameters.w);
+                float4 texSample1 = GrassBlades1.SampleLevel(samplerGrassBlades0, float3(uv.xy, 0), IN[0].parameters.w);
                 #ifdef GRASS_BILLBOARD_CROSSED
                 float3 outpos = lerp(i1, i2, u);
                 #elif GRASS_BILLBOARD_SCREEN
                 float3 outpos = lerp(i1, i2, u);
                 #elif GRASS_GEOMETRY
-                float3 texSample = GrassBlade.SampleLevel(samplerGrassBlade, uv.xy, 0.0);
-                float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                float t = u + ((texSample.g*u) + ((1.0-texSample.g)*omu));
+                float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample1.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                float t = u + ((texSample0.r*u) + ((1.0-texSample0.r)*omu));
                 float3 outpos = lerp(i1, i2, t) + translation;
                 #endif
                 /*if(dot(lightDirection, teNormal) > 0.0)
@@ -332,8 +339,11 @@ Shader "GrassSimulation/GrassShader"
         		}*/
       
                 OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
-                OUT.color = float4(lerp(float3(0.44, 0.61, 0.2), float3(0.12, 0.18, 0.055), 1-v), 1);
-               
+                //#ifdef GRASS_GEOMETRY
+                OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
+                //#else
+                //OUT.color = float4(lerp(float3(0.44, 0.61, 0.2), float3(0.12, 0.18, 0.055), 1-v), 1);
+                //#endif
            
         		return OUT;
 }
