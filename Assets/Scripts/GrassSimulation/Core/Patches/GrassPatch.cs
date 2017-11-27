@@ -230,6 +230,7 @@ namespace GrassSimulation.Core.Patches
 			_materialPropertyBlock.SetFloat("startIndex", _startIndex);
 			_materialPropertyBlock.SetFloat("parameterOffsetX", _parameterOffsetX);
 			_materialPropertyBlock.SetFloat("parameterOffsetY", _parameterOffsetY);
+			_materialPropertyBlock.SetVector("PatchTexCoord", _patchTexCoord);
 			_materialPropertyBlock.SetTexture("SimulationTexture", _simulationTexture);
 			_materialPropertyBlock.SetTexture("NormalHeightTexture", _normalHeightTexture);
 			_materialPropertyBlock.SetMatrix("patchModelMatrix", _patchModelMatrix);

@@ -9,6 +9,7 @@ namespace GrassSimulation.Core
 
 	public class GrassInstance : ContextRequirement, IInitializable, IDestroyable
 	{
+		public Texture2D GrassMapTexture;
 		public Texture2D ParameterTexture;
 		public ComputeBuffer UvBuffer;
 
@@ -56,15 +57,33 @@ namespace GrassSimulation.Core
 
 			ParameterTexture.SetPixels(parameterData);
 			ParameterTexture.Apply();
-			
-			//TODO: Build grassmap
+
+
+			//Create and fill GrassMapTexture
+			GrassMapTexture = new Texture2D(Ctx.Settings.GrassMapResolution,
+				Ctx.Settings.GrassMapResolution,
+				TextureFormat.RGBA32, false, true)
+			{
+				filterMode = FilterMode.Bilinear,
+				wrapMode = TextureWrapMode.Clamp //TODO: Is mirror better?
+			};
+
+			var grassMapData = new Color[Ctx.Settings.GrassMapResolution * Ctx.Settings.GrassMapResolution];
+			for (var i = 0; i < Ctx.Settings.GrassMapResolution * Ctx.Settings.GrassMapResolution; i++)
+				grassMapData[i] = new Color(Ctx.GrassMapInput.GetGrassType(0, 0, 0) / 255f, 0, 0, 0);
+
+			GrassMapTexture.SetPixels(grassMapData);
+			GrassMapTexture.Apply();
 
 			Ctx.GrassGeometry.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassGeometry.SetTexture("ParameterTexture", ParameterTexture);
+			Ctx.GrassGeometry.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassBillboardCrossed.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardCrossed.SetTexture("ParameterTexture", ParameterTexture);
+			Ctx.GrassBillboardCrossed.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassBillboardScreen.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardScreen.SetTexture("ParameterTexture", ParameterTexture);
+			Ctx.GrassBillboardScreen.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
 			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "ParameterTexture", ParameterTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);

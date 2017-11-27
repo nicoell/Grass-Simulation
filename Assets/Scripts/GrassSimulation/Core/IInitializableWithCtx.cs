@@ -1,6 +1,6 @@
 ﻿namespace GrassSimulation.Core
 {
-	public interface IIntializableWithCtx
+	public interface IInitializableWithCtx
 	{
 		bool Init(SimulationContext context);
 	}

@@ -6,7 +6,7 @@ using Random = System.Random;
 
 namespace GrassSimulation.StandardInputs
 {
-	public class SimplePositionInput : PositionInput, IIntializableWithCtx
+	public class SimplePositionInput : PositionInput, IInitializableWithCtx
 	{
 		private Random _random;
 

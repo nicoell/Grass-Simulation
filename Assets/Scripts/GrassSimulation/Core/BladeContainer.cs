@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace GrassSimulation.Core
 {
+	//TODO: Cap Blade Array Count to 256 values
 	public class BladeContainer : ScriptableObject
 	{
 		public Blade[] Blades;
@@ -58,6 +59,11 @@ namespace GrassSimulation.Core
 		public Texture2DArray GetBillboardTexture2DArray()
 		{
 			return null;
+		}
+
+		public byte GetTypeCount()
+		{
+			return (byte) Blades.Length;
 		}
 	}
 }

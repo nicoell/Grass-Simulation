@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace GrassSimulation.Core.Patches
 {
-	public abstract class PatchContainer : ScriptableObject, IIntializableWithCtx, IDestroyable, IDrawable
+	public abstract class PatchContainer : ScriptableObject, IInitializableWithCtx, IDestroyable, IDrawable
 	{
 		protected SimulationContext Ctx;
 

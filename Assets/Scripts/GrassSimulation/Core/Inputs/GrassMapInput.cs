@@ -5,9 +5,9 @@ namespace GrassSimulation.Core.Inputs
 	public abstract class GrassMapInput : ScriptableObject
 	{
 		/// <summary>
-		///     <para>Gets the color and type of grass at given position.</para>
+		///     <para>Gets the type of grass at given position.</para>
 		/// </summary>
-		/// <returns>Color32 where rgb is the color and alpha is the TypeId</returns> 
-		public abstract Color32 GetColorAndType(float x, float y, float z);
+		/// <returns>The index corresponding to the array position in the GrassContainer represtenting the grass type.</returns> 
+		public abstract byte GetGrassType(float x, float y, float z);
 	}
 }

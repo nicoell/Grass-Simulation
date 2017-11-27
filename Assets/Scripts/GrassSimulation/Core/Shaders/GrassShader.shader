@@ -51,6 +51,7 @@ Shader "GrassSimulation/GrassShader"
 			StructuredBuffer<UvData> UvBuffer;	// pos.x 		pos.z
             Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
             SamplerState samplerParameterTexture;
+            Texture2D GrassMapTexture;
             Texture2DArray<float4> GrassBlades0;
             SamplerState samplerGrassBlades0;
             Texture2DArray<float4> GrassBlades1;
@@ -92,6 +93,7 @@ Shader "GrassSimulation/GrassShader"
 			    float3 v1 : TEXCOORD3;
 			    float3 v2 : TEXCOORD4;
 			    float3 bladeDir : TEXCOORD5;
+			    float4 grassMapData : TEXCOORD6;
 			};
 			
 			struct DSOut
@@ -193,10 +195,12 @@ Shader "GrassSimulation/GrassShader"
     		
         		HSOut OUT = (HSOut)0;
 
-        		float2 uvGlobal = float2(parameterOffsetX, parameterOffsetY) + IN[0].uvLocal;
+        		float2 uvParameter = float2(parameterOffsetX, parameterOffsetY) + IN[0].uvLocal;
+        		float2 uvGrassMap = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, IN[0].uvLocal, 0);
         		float4 SimulationData0 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0);
 				float4 SimulationData1 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0);
+        		float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGrassMap, 0);
         		
         		float distance = SimulationData1.w;
         		
@@ -222,7 +226,7 @@ Shader "GrassSimulation/GrassShader"
         		}
 
         		OUT.pos = mul(patchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
-        		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
+        		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
         		OUT.bladeUp = normalize(normalHeight.xyz);
         		OUT.v1 = SimulationData0.xyz;
         		OUT.v2 = SimulationData1.xyz;
@@ -241,6 +245,8 @@ Shader "GrassSimulation/GrassShader"
                	//We do not need dirAlpha in domainshader so we can use OUT.parameters for something else
                	//Calculate mipmaplevel for grass texture lookup based on tessellationfactor 
                	OUT.parameters.w = lerp(5.0 * (LodTessellationMax / 64), 0, (SimulationData0.w / LodTessellationMax));
+               	OUT.grassMapData.x = grassMapData.x * 255;
+               	OUT.grassMapData.yzw = grassMapData.yzw;
                   
         		return OUT;
             }
@@ -305,8 +311,8 @@ Shader "GrassSimulation/GrassShader"
             
                 //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
                 //float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
-                float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, 0), IN[0].parameters.w);
-                float4 texSample1 = GrassBlades1.SampleLevel(samplerGrassBlades0, float3(uv.xy, 0), IN[0].parameters.w);
+                float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
+                float4 texSample1 = GrassBlades1.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                 #ifdef GRASS_BILLBOARD_CROSSED
                 float3 outpos = lerp(i1, i2, u);
                 #elif GRASS_BILLBOARD_SCREEN

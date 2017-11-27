@@ -39,6 +39,11 @@ namespace GrassSimulation.Core
 		public ClassTypeReference.ClassTypeReference DimensionsInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public DimensionsInput DimensionsInput;
+
+		[ClassExtends(typeof(GrassMapInput), " ")]
+		public ClassTypeReference.ClassTypeReference GrassMapInputType;
+		[EmbeddedScriptableObject(false, true)]
+		public GrassMapInput GrassMapInput;
 		
 		[ClassExtends(typeof(HeightInput), " ")]
 		public ClassTypeReference.ClassTypeReference HeightInputType;
@@ -83,6 +88,11 @@ namespace GrassSimulation.Core
 			else if (DimensionsInput == null || DimensionsInput.GetType() != DimensionsInputType.Type)
 				DimensionsInput = Activator.CreateInstance(DimensionsInputType) as DimensionsInput;
 			
+			if (GrassMapInputType.Type == null)
+				GrassMapInput = null;
+			else if (GrassMapInput == null || GrassMapInput.GetType() != GrassMapInputType.Type)
+				GrassMapInput = Activator.CreateInstance(GrassMapInputType) as GrassMapInput;
+			
 			if (NormalInputType.Type == null)
 				NormalInput = null;
 			else if (NormalInput == null || NormalInput.GetType() != NormalInputType.Type)
@@ -104,7 +114,7 @@ namespace GrassSimulation.Core
 			if (BladeContainer == null) BladeContainer = ScriptableObject.CreateInstance<BladeContainer>();
 			BladeTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(0);
 			BladeTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(1);
-			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
+			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
 				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
@@ -112,6 +122,7 @@ namespace GrassSimulation.Core
 				if (!GrassSimulationComputeShader) Debug.Log("GrassSimulation: GrassSimulationComputeShader not set.");
 				if (!GrassGeometry) Debug.Log("GrassSimulation: Material not set.");
 				if (!DimensionsInput) Debug.Log("GrassSimulation: DimensionsInput not set.");
+				if (!GrassMapInput) Debug.Log("GrassSimulation: GrassMapInput not set.");
 				if (!HeightInput) Debug.Log("GrassSimulation: HeightInput not set.");
 				if (!NormalInput) Debug.Log("GrassSimulation: NormalInput not set.");
 				if (!PositionInput) Debug.Log("GrassSimulation: PositionInput not set.");
@@ -181,16 +192,19 @@ namespace GrassSimulation.Core
 			Shader.SetGlobalFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
 			
 			//If possible initialize the Data Providers
-			if (DimensionsInput is IIntializableWithCtx) ((IIntializableWithCtx) DimensionsInput).Init(this);
+			if (DimensionsInput is IInitializableWithCtx) ((IInitializableWithCtx) DimensionsInput).Init(this);
 			else if (DimensionsInput is IInitializable) ((IInitializable) DimensionsInput).Init();
 			
-			if (HeightInput is IIntializableWithCtx) ((IIntializableWithCtx) HeightInput).Init(this);
+			if (GrassMapInput is IInitializableWithCtx) ((IInitializableWithCtx) GrassMapInput).Init(this);
+			else if (GrassMapInput is IInitializable) ((IInitializable) GrassMapInput).Init();
+			
+			if (HeightInput is IInitializableWithCtx) ((IInitializableWithCtx) HeightInput).Init(this);
 			else if (HeightInput is IInitializable) ((IInitializable) HeightInput).Init();
 			
-			if (NormalInput is IIntializableWithCtx) ((IIntializableWithCtx) NormalInput).Init(this);
+			if (NormalInput is IInitializableWithCtx) ((IInitializableWithCtx) NormalInput).Init(this);
 			else if (NormalInput is IInitializable) ((IInitializable) NormalInput).Init();
 			
-			if (PositionInput is IIntializableWithCtx) ((IIntializableWithCtx) PositionInput).Init(this);
+			if (PositionInput is IInitializableWithCtx) ((IInitializableWithCtx) PositionInput).Init(this);
 			else if (PositionInput is IInitializable) ((IInitializable) PositionInput).Init();
 
 			//Create sharedGrassData

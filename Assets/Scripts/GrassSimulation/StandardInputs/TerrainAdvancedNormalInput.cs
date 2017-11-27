@@ -5,7 +5,7 @@ using Random = System.Random;
 
 namespace GrassSimulation.StandardInputs
 {
-	public class TerrainAdvancedNormalInput : NormalInput, IIntializableWithCtx
+	public class TerrainAdvancedNormalInput : NormalInput, IInitializableWithCtx
 	{
 		private Random _random;
 		[SerializeField]
