@@ -1,5 +1,4 @@
-﻿using System;
-using GrassSimulation.Core;
+﻿using GrassSimulation.Core;
 using GrassSimulation.Core.Inputs;
 using UnityEngine;
 using Random = System.Random;

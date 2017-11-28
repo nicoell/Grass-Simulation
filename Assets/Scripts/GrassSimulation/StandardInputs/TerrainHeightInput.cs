@@ -1,15 +1,17 @@
-﻿using System;
-using GrassSimulation.Core.Inputs;
+﻿using GrassSimulation.Core.Inputs;
 using UnityEngine;
 
-namespace GrassSimulation.StandardInputs {
-	
+namespace GrassSimulation.StandardInputs
+{
 	public class TerrainHeightInput : HeightInput
 	{
 		[SerializeField]
 		private Terrain _terrain;
 
-		public override float GetHeight(float x, float y) { return _terrain.terrainData.GetInterpolatedHeight(x, y); }
+		public override float GetHeight(float x, float y)
+		{
+			return _terrain.terrainData.GetInterpolatedHeight(x, y) / _terrain.terrainData.size.y;
+		}
 
 		public override Vector2 GetSamplingRate()
 		{

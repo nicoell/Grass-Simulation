@@ -8,8 +8,8 @@ namespace GrassSimulation.Core.Patches
 		{
 		}
 
-		private Bounds _bounds;
-		public Bounds Bounds { get { return _bounds; } protected set { _bounds = value; } }
+		public Bounds Bounds { get; protected set; }
+
 		public abstract bool IsLeaf { get; }
 
 		public virtual void DrawGizmo()

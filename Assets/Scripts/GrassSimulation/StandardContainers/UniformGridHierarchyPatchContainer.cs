@@ -70,8 +70,7 @@ namespace GrassSimulation.StandardContainers
 				for (var j = patchTexCoord.x; j < patchTexCoord.x + patchTexCoord.z; j += heightSamplingRate.x)
 				for (var k = patchTexCoord.y; k < patchTexCoord.y + patchTexCoord.w; k += heightSamplingRate.y)
 				{
-					var height = Ctx.HeightInput.GetHeight(j, k) /
-					             Ctx.DimensionsInput.GetHeight();
+					var height = Ctx.HeightInput.GetHeight(j, k);
 					if (height < minHeight) minHeight = height;
 					if (height > maxHeight) maxHeight = height;
 				}
@@ -79,7 +78,7 @@ namespace GrassSimulation.StandardContainers
 				//We can now calculate the center.y and height of BoundingBox
 				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
 				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
-				
+
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Ctx, patchTexCoord,
 					new Bounds(patchBoundsCenter, patchBoundsSize));
