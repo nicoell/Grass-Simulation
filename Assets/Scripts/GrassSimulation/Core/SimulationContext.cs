@@ -111,7 +111,14 @@ namespace GrassSimulation.Core
 
 		public bool Init()
 		{
-			if (BladeContainer == null) BladeContainer = ScriptableObject.CreateInstance<BladeContainer>();
+			if (Settings == null)
+			{
+				Settings = new SimulationSettings();
+			}
+			if (EditorSettings == null) EditorSettings = new EditorSettings();
+			
+			if (BladeContainer == null) BladeContainer = CreateInstance<BladeContainer>();
+			BladeContainer.Init(this);
 			BladeTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(0);
 			BladeTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(1);
 			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
@@ -134,11 +141,6 @@ namespace GrassSimulation.Core
 			
 			//BladeContainer = new BladeContainer();
 			
-			if (Settings == null)
-			{
-				Settings = new SimulationSettings();
-			}
-			if (EditorSettings == null) EditorSettings = new EditorSettings();
 			
 			//Create a single random object
 			Random = new Random(Settings.RandomSeed);
@@ -177,6 +179,7 @@ namespace GrassSimulation.Core
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
 			
+			Shader.SetGlobalFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
 			Shader.SetGlobalFloat("LodTessellationMax", Settings.LodTessellationMax);
 			Shader.SetGlobalFloat("LodInstancesGeometry", Settings.LodInstancesGeometry);
 			Shader.SetGlobalFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);

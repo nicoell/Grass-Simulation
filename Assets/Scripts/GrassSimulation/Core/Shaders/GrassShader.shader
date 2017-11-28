@@ -31,6 +31,8 @@ Shader "GrassSimulation/GrassShader"
             uniform int vertexCount;
             uniform float billboardSize;
             
+            uniform float BladeTextureMaxMipmapLevel;
+            
             uniform float LodTessellationMax;
             
             uniform float LodInstancesGeometry;
@@ -244,7 +246,8 @@ Shader "GrassSimulation/GrassShader"
                	#endif
                	//We do not need dirAlpha in domainshader so we can use OUT.parameters for something else
                	//Calculate mipmaplevel for grass texture lookup based on tessellationfactor 
-               	OUT.parameters.w = lerp(5.0 * (LodTessellationMax / 64), 0, (SimulationData0.w / LodTessellationMax));
+               	OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, clamp(SimulationData0.w / LodTessellationMax, 0, 1));
+               	
                	OUT.grassMapData.x = grassMapData.x * 255;
                	OUT.grassMapData.yzw = grassMapData.yzw;
                   

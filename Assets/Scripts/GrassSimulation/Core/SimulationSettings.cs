@@ -17,7 +17,8 @@ namespace GrassSimulation.Core
 		public float BladeMinBend = 0.5f;
 		public float BladeMinHeight = 0.5f;
 		public float BladeMinWidth = 0.1f;
-		public Texture2D GrassBlade;
+		[Range(0, 6)]
+		public float BladeTextureMaxMipmapLevel = 5;
 		
 		[Header("Physics Settings")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration

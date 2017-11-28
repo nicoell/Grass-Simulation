@@ -155,7 +155,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	//TODO
 
 	//stiffness //TODO: Rework temp max without collisionForce
-	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(0.0, 0.1) * mdt;
+	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0, 0.1) * mdt;
 
 	//apply new forces
 	v2 += gravity + stiffness;
