@@ -26,7 +26,7 @@ namespace GrassSimulation.Core.Patches
 		private readonly ComputeBuffer _argsBillboardScreenBuffer;
 		private readonly uint[] _argsGeometry = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsGeometryBuffer;
-		private readonly Bounds.BoundsVertices _boundsVertices;
+		//private readonly Bounds.BoundsVertices _boundsVertices;
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
 		private readonly int _startIndex;
@@ -55,8 +55,11 @@ namespace GrassSimulation.Core.Patches
 
 		public GrassPatch(SimulationContext ctx, Vector4 patchTexCoord, UnityEngine.Bounds bounds) : base(ctx)
 		{
-			Bounds = bounds;
-			_boundsVertices = new Bounds.BoundsVertices(bounds);
+			//Extend BoundingBox by blades maxheight to avoid false culling
+			var boundsCorrected = bounds;
+			boundsCorrected.size += new Vector3(Ctx.Settings.BladeMaxHeight * 2, Ctx.Settings.BladeMaxHeight * 2, Ctx.Settings.BladeMaxHeight * 2);
+			Bounds = boundsCorrected;
+			//_boundsVertices = new Bounds.BoundsVertices(bounds);
 			_patchTexCoord = patchTexCoord;
 			_startIndex = Ctx.Random.Next(0,
 				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.GetMaxAmountBladesPerPatch()));
@@ -177,8 +180,6 @@ namespace GrassSimulation.Core.Patches
 					_patchTexCoord.x + _patchTexCoord.z * uvLocal.x,
 					_patchTexCoord.y + _patchTexCoord.w * uvLocal.y);
 				
-				
-				
 				var posY = Ctx.HeightInput.GetHeight(bladePosition.x, bladePosition.y) /
 				           Ctx.DimensionsInput.GetHeight();
 				var up = Ctx.NormalInput.GetNormal(bladePosition.x, bladePosition.y);
@@ -282,7 +283,6 @@ namespace GrassSimulation.Core.Patches
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelCulling, "NormalHeightTexture", _normalHeightTexture);
 
 			//Perform Culling
-			//TODO: threadgroupsX correct?
 			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelCulling, (int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
 			*/
 		}

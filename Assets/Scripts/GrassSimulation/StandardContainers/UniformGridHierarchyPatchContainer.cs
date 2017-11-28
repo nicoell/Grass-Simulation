@@ -79,9 +79,7 @@ namespace GrassSimulation.StandardContainers
 				//We can now calculate the center.y and height of BoundingBox
 				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
 				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
-
-				//TODO: Tessellated grass may exceed this bounds, need to add some tolerance
-
+				
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Ctx, patchTexCoord,
 					new Bounds(patchBoundsCenter, patchBoundsSize));

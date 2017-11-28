@@ -2,7 +2,6 @@
 using GrassSimulation.Core.Attribute;
 using UnityEngine;
 
-//TODO: Revisit namespaces
 namespace GrassSimulation
 {
     [ExecuteInEditMode]

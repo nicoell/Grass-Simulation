@@ -41,7 +41,7 @@ namespace GrassSimulation.Core
 				TextureFormat.RGBAFloat, false, true)
 			{
 				filterMode = FilterMode.Bilinear,
-				wrapMode = TextureWrapMode.Repeat //TODO: Is mirror better?
+				wrapMode = TextureWrapMode.Repeat
 			};
 
 			var parameterData = new Color[Ctx.Settings.GetSharedTextureLength()];
@@ -65,7 +65,7 @@ namespace GrassSimulation.Core
 				TextureFormat.RGBA32, false, true)
 			{
 				filterMode = FilterMode.Bilinear,
-				wrapMode = TextureWrapMode.Clamp //TODO: Is mirror better?
+				wrapMode = TextureWrapMode.Clamp
 			};
 
 			var grassMapData = new Color[Ctx.Settings.GrassMapResolution * Ctx.Settings.GrassMapResolution];
