@@ -17,7 +17,7 @@ namespace GrassSimulation.Core.Patches
 	 * 		 - translates to Transform.position.y
 	 * 		 - scales to TerrainSize
 	 */
-	public class GrassPatch : Patch, IDestroyable, IDrawable
+	public class GrassPatch : Patch
 	{
 		private const int MultiSampleLevel = 1;
 		private readonly uint[] _argsBillboardCrossed = {0, 0, 0, 0, 0};
@@ -39,7 +39,7 @@ namespace GrassSimulation.Core.Patches
 		private readonly int _startIndex;
 		private bool _applyTransition;
 		private Mesh _dummyMesh;
-
+		private Bounds _inputBounds;
 		private Texture2D _normalHeightTexture;
 
 		/*
@@ -61,6 +61,7 @@ namespace GrassSimulation.Core.Patches
 
 		public GrassPatch(SimulationContext ctx, Vector4 patchTexCoord, Bounds bounds) : base(ctx)
 		{
+			_inputBounds = bounds;
 			//Extend BoundingBox by blades maxheight to avoid false culling
 			var boundsCorrected = bounds;
 			boundsCorrected.size += new Vector3(Ctx.Settings.BladeMaxHeight * 2, Ctx.Settings.BladeMaxHeight * 2,
@@ -100,15 +101,14 @@ namespace GrassSimulation.Core.Patches
 			_argsBillboardScreen[0] = Ctx.Settings.GetMinAmountBillboardsPerPatch(); //Vertex Count
 			_argsBillboardScreen[1] = 1; //Instance Count
 			_argsBillboardScreenBuffer.SetData(_argsBillboardScreen);
+			
+			
 			CreateGrassDataTexture();
 			CreateDummyMesh();
 			SetupMaterialPropertyBlock();
 		}
 
-		public override bool IsLeaf
-		{
-			get { return true; }
-		}
+		public override bool IsLeaf { get { return true; } }
 
 		public void Destroy()
 		{
@@ -123,7 +123,6 @@ namespace GrassSimulation.Core.Patches
 			//TODO: Add settings for options in computeShader
 			ComputeLod();
 			RunSimulationComputeShader();
-
 
 			if (_argsGeometry[1] > 0)
 				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0,
@@ -152,8 +151,6 @@ namespace GrassSimulation.Core.Patches
 			var billboardScreenInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardScreen, distance,
 				Ctx.Settings.LodDistanceBillboardScreenStart, Ctx.Settings.LodDistanceBillboardScreenPeak,
 				Ctx.Settings.LodDistanceBillboardScreenEnd));
-
-			_applyTransition = Ctx.Settings.EnableHeightTransition;
 
 			_argsGeometry[1] = geometryInstanceCount;
 			_argsBillboardCrossed[1] = billboardCrossedInstanceCount;
@@ -265,7 +262,6 @@ namespace GrassSimulation.Core.Patches
 
 		private void CreateDummyMesh()
 		{
-			//TODO: meshSize and computeshader thread count needs to be connected
 			var dummyMeshSize = Ctx.Settings.GetMinAmountBladesPerPatch();
 			var dummyVertices = new Vector3[dummyMeshSize];
 			var indices = new int[dummyMeshSize];
@@ -295,11 +291,9 @@ namespace GrassSimulation.Core.Patches
 
 		private void SetupSimulation()
 		{
-			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", _applyTransition);
 			Ctx.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
 			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetX", _parameterOffsetX);
 			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetY", _parameterOffsetY);
-			Ctx.GrassSimulationComputeShader.SetFloat("GrassDataResolution", Ctx.Settings.GrassDataResolution);
 			Ctx.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for SimulationSetup Kernel
@@ -319,9 +313,9 @@ namespace GrassSimulation.Core.Patches
 		private void RunSimulationComputeShader()
 		{
 			//Set per patch data for whole compute shader
-			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", _applyTransition);
 			Ctx.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
 			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetX", _parameterOffsetX);
+			Ctx.GrassSimulationComputeShader.SetVector("PatchTexCoord", _patchTexCoord);
 			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetY", _parameterOffsetY);
 			Ctx.GrassSimulationComputeShader.SetFloat("GrassDataResolution", Ctx.Settings.GrassDataResolution);
 			Ctx.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
@@ -348,14 +342,18 @@ namespace GrassSimulation.Core.Patches
 			*/
 		}
 
+		public override void OnGUI() {}
+
 #if UNITY_EDITOR
 		public override void DrawGizmo()
 		{
 			if (Ctx.EditorSettings.EnablePatchGizmo)
 			{
-				Gizmos.color = new Color(0f, 0f, 1f, 0.5f);
+				Gizmos.color = new Color(0f, 0f, 1f, 0.2f);
 				Gizmos.DrawWireSphere(Bounds.center, 0.5f);
 				Gizmos.DrawWireCube(Bounds.center, Bounds.size);
+				Gizmos.color = new Color(0f, 0f, 1f, 0.5f);
+				Gizmos.DrawWireCube(_inputBounds.center, _inputBounds.size);
 			}
 			if (Ctx.EditorSettings.EnableBladeUpGizmo || Ctx.EditorSettings.EnableFullBladeGizmo)
 			{

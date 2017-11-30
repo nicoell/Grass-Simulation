@@ -7,7 +7,7 @@ namespace GrassSimulation.Core
 		public Vector2 Position;
 	}
 
-	public class GrassInstance : ContextRequirement, IInitializable, IDestroyable
+	public class GrassInstance : ContextRequirement, IInitializable
 	{
 		public Texture2D GrassMapTexture;
 		public Texture2D ParameterTexture;
@@ -43,7 +43,6 @@ namespace GrassSimulation.Core
 				filterMode = FilterMode.Bilinear,
 				wrapMode = TextureWrapMode.Repeat
 			};
-
 			var parameterData = new Color[Ctx.Settings.GetSharedTextureLength()];
 			for (var i = 0; i < Ctx.Settings.GetSharedTextureLength(); i++)
 				parameterData[i] = new Color(
@@ -57,7 +56,6 @@ namespace GrassSimulation.Core
 
 			ParameterTexture.SetPixels(parameterData);
 			ParameterTexture.Apply();
-
 
 			//Create and fill GrassMapTexture
 			GrassMapTexture = new Texture2D(Ctx.Settings.GrassMapResolution,

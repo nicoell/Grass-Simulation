@@ -19,13 +19,17 @@ namespace GrassSimulation
 		public void PrepareSimulation()
 		{
 			if (Context == null) Context = ScriptableObject.CreateInstance<SimulationContext>();
-			Context.Init();
+			Context.Init(gameObject);
 		}
 
 		// Update is called once per frame
 		private void Update()
 		{
-			if (Context.IsReady) Context.PatchContainer.Draw();
+			if (Context.IsReady)
+			{
+				Context.CollisionTextureRenderer.UpdateDepthTexture();
+				Context.PatchContainer.Draw();
+			}
 		}
 
 		private void OnDrawGizmos()
@@ -38,5 +42,7 @@ namespace GrassSimulation
 		{
 			if (Context.IsReady) Context.PatchContainer.Destroy();
 		}
+
+		private void OnGUI() { Context.OnGUI(); }
 	}
 }

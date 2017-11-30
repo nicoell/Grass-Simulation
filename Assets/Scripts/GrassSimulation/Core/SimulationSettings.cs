@@ -24,7 +24,9 @@ namespace GrassSimulation.Core
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
 
 		[Header("GrassMap Settings")]
+		//TODO: Handle width and height seperately for non-quad containers
 		public int GrassMapResolution = 256;
+		public int CollisionDepthResolution = 512;
 		
 		[Header("LOD Settings")]
 		public int GrassDataResolution = 16;
@@ -87,6 +89,7 @@ namespace GrassSimulation.Core
 
 		public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
 
+		//TODO: Change for non-quad Containers
 		public uint GetSharedTextureLength() { return (uint) (GrassDataResolution * GrassDataResolution * InstancedGrassFactor * InstancedGrassFactor); }
 		
 		public int GetSharedTextureWidthHeight() { return (int) (GrassDataResolution * InstancedGrassFactor); }

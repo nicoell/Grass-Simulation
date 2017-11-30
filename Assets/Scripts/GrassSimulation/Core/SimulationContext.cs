@@ -9,17 +9,25 @@ using Random = System.Random;
 namespace GrassSimulation.Core
 {
 	[Serializable]
-	public class SimulationContext : ScriptableObject, IInitializable
+	public class SimulationContext : ScriptableObject
 	{
+		[NonSerialized]
+		public GameObject Parent;
+		
 		[Header("Requirements")]
 		public Transform Transform;
 		public Camera Camera;
 		public ComputeShader GrassSimulationComputeShader;
+		public Shader CollisionDepthShader;
+		[HideInInspector]
+		public CollisionTextureRenderer CollisionTextureRenderer;
 		public Material GrassGeometry;
 		[NonSerialized]
 		public Material GrassBillboardCrossed;
 		[NonSerialized]
 		public Material GrassBillboardScreen;
+		[HideInInspector]
+		public Camera CollisionCamera;
 
 		[EmbeddedScriptableObject]
 		public BladeContainer BladeContainer;
@@ -109,24 +117,28 @@ namespace GrassSimulation.Core
 				PatchContainer = Activator.CreateInstance(PatchContainerType) as PatchContainer;
 		}
 
-		public bool Init()
+		public bool Init(GameObject parent)
 		{
+			Parent = parent;
 			if (Settings == null)
 			{
 				Settings = new SimulationSettings();
 			}
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
+			if (CollisionCamera == null) CollisionCamera = GameObject.FindWithTag("GrassSimulationCollisionCamera").GetComponent<Camera>();
 			
 			if (BladeContainer == null) BladeContainer = CreateInstance<BladeContainer>();
 			BladeContainer.Init(this);
 			BladeTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(0);
 			BladeTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(1);
-			if (!Transform || !Camera || !GrassSimulationComputeShader || !GrassGeometry || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
+			if (!Transform || !Camera || !CollisionCamera || !GrassSimulationComputeShader || !CollisionDepthShader || !GrassGeometry || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
 				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
 				if (!Camera) Debug.Log("GrassSimulation: Camera not set.");
+				if (!CollisionCamera) Debug.Log("GrassSimulation: Could not find Camera on GameObject with Tag GrassSimulationCollisionCamera");
 				if (!GrassSimulationComputeShader) Debug.Log("GrassSimulation: GrassSimulationComputeShader not set.");
+				if (!CollisionDepthShader) Debug.Log("GrassSimulation: CollisionDepthShader not set.");
 				if (!GrassGeometry) Debug.Log("GrassSimulation: Material not set.");
 				if (!DimensionsInput) Debug.Log("GrassSimulation: DimensionsInput not set.");
 				if (!GrassMapInput) Debug.Log("GrassSimulation: GrassMapInput not set.");
@@ -138,9 +150,8 @@ namespace GrassSimulation.Core
 				IsReady = false;
 				return false;
 			}
-			
+
 			//BladeContainer = new BladeContainer();
-			
 			
 			//Create a single random object
 			Random = new Random(Settings.RandomSeed);
@@ -174,6 +185,8 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen.SetInt("vertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardScreen.SetFloat("billboardSize", Settings.BillboardSize);
 			
+			GrassSimulationComputeShader.SetBool("applyTransition", Settings.EnableHeightTransition);
+			GrassSimulationComputeShader.SetFloat("GrassDataResolution", Settings.GrassDataResolution);
 			GrassSimulationComputeShader.SetFloat("LodTessellationMin", Settings.LodTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
@@ -209,17 +222,25 @@ namespace GrassSimulation.Core
 			
 			if (PositionInput is IInitializableWithCtx) ((IInitializableWithCtx) PositionInput).Init(this);
 			else if (PositionInput is IInitializable) ((IInitializable) PositionInput).Init();
+			
+			
 
-			//Create sharedGrassData
+			//TODO: Use same setup pattern for all classes
+			
+			
 			GrassInstance = new GrassInstance(this);
 			GrassInstance.Init();
 			
 			PatchContainer.Init(this);
 			PatchContainer.SetupContainer();
 			
+			CollisionTextureRenderer = new CollisionTextureRenderer(this, PatchContainer.GetBounds());
+			
 			//Everything is ready.
 			IsReady = true;
 			return true;
 		}
+
+		public void OnGUI() { PatchContainer.OnGUI(); }
 	}
 }

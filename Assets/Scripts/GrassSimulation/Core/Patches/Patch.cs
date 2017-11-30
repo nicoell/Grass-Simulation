@@ -18,5 +18,7 @@ namespace GrassSimulation.Core.Patches
 			Gizmos.DrawWireSphere(Bounds.center, 0.5f);
 			Gizmos.DrawWireCube(Bounds.center, Bounds.size);
 		}
+
+		public virtual void OnGUI() { }
 	}
 }

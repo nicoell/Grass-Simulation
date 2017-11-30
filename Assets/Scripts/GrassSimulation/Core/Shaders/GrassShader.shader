@@ -2,7 +2,7 @@ Shader "GrassSimulation/GrassShader"
 {
 	SubShader
 	{
-		
+		Tags { "RenderType" = "GrassSimulation" }
 		Pass
 		{
 		    Fog{Mode off}

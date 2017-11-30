@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using GrassSimulation.Core.Patches;
 using UnityEngine;
 
@@ -13,15 +14,18 @@ namespace GrassSimulation.StandardContainers
 
 		public override void Destroy()
 		{
-			foreach (var grassPatch in _grassPatches)
-				grassPatch.Destroy();
+			foreach (var grassPatch in _grassPatches) grassPatch.Destroy();
+		}
+
+		public override Bounds GetBounds()
+		{
+			return _rootPatch.Bounds;
 		}
 
 		protected override void DrawImpl()
 		{
 			CullViewFrustum();
-			foreach (var visiblePatch in _visiblePatches)
-				visiblePatch.Draw();
+			foreach (var visiblePatch in _visiblePatches) visiblePatch.Draw();
 		}
 
 		public override void SetupContainer()
@@ -89,8 +93,7 @@ namespace GrassSimulation.StandardContainers
 		{
 			var patchHierarchy = Combine2X2Patches(_grassPatches);
 
-			while (patchHierarchy.Length > 1)
-				patchHierarchy = Combine2X2Patches(patchHierarchy);
+			while (patchHierarchy.Length > 1) patchHierarchy = Combine2X2Patches(patchHierarchy);
 			_rootPatch = patchHierarchy[0, 0];
 		}
 
@@ -124,8 +127,12 @@ namespace GrassSimulation.StandardContainers
 			//Draw Gizmos for Hierchical Patches
 			_rootPatch.DrawGizmo();
 			//Draw Gizmos for visible Leaf Patches
-			foreach (var visiblePatch in _visiblePatches)
-				visiblePatch.DrawGizmo();
+			foreach (var visiblePatch in _visiblePatches) visiblePatch.DrawGizmo();
+		}
+
+		public override void OnGUI()
+		{
+			if (_visiblePatches.Count > 0) _visiblePatches[0].OnGUI();
 		}
 
 		private void CullViewFrustum()
@@ -143,13 +150,11 @@ namespace GrassSimulation.StandardContainers
 			if (patch.IsLeaf)
 			{
 				_visiblePatches.Add(patch as GrassPatch);
-			}
-			else
+			} else
 			{
 				var childPatches = ((BoundingPatch) patch).ChildPatches;
 				if (childPatches == null) return;
-				foreach (var childPatch in childPatches)
-					if (childPatch != null) TestViewFrustum(childPatch);
+				foreach (var childPatch in childPatches) if (childPatch != null) TestViewFrustum(childPatch);
 			}
 		}
 	}

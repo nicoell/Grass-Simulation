@@ -1,13 +1,20 @@
-﻿using UnityEditor;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace GrassSimulation.Core.Patches
 {
-	public abstract class PatchContainer : ScriptableObject, IInitializableWithCtx, IDestroyable, IDrawable
+	public abstract class PatchContainer : ScriptableObject, IInitializableWithCtx
 	{
 		protected SimulationContext Ctx;
 
+		public bool Init(SimulationContext context)
+		{
+			Ctx = context;
+			return true;
+		}
+
 		public abstract void Destroy();
+
+		public abstract Bounds GetBounds();
 
 		public void Draw()
 		{
@@ -16,12 +23,6 @@ namespace GrassSimulation.Core.Patches
 		}
 
 		protected abstract void DrawImpl();
-
-		public bool Init(SimulationContext context)
-		{
-			Ctx = context;
-			return true;
-		}
 
 		public abstract void SetupContainer();
 
@@ -43,7 +44,9 @@ namespace GrassSimulation.Core.Patches
 		}
 
 		protected abstract void DrawGizmoImpl();
-		
+
+		public abstract void OnGUI();
+
 		protected void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
