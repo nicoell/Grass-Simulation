@@ -49,6 +49,8 @@ Shader "GrassSimulation/GrassShader"
             uniform float LodDistanceBillboardScreenPeak;		
             uniform float LodDistanceBillboardScreenEnd;
             
+            uniform float4 NormalHeightUvCorrection;
+            
             
 			StructuredBuffer<UvData> UvBuffer;	// pos.x 		pos.z
             Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
@@ -198,8 +200,9 @@ Shader "GrassSimulation/GrassShader"
         		HSOut OUT = (HSOut)0;
 
         		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
+        		float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, IN[0].uvLocal);
         		float2 uvGrassMap = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
-        		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, IN[0].uvLocal, 0);
+        		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvNormalHeight, 0);
         		float4 SimulationData0 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0);
 				float4 SimulationData1 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0);
         		float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGrassMap, 0);
@@ -350,6 +353,7 @@ Shader "GrassSimulation/GrassShader"
                 OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
                 //#ifdef GRASS_GEOMETRY
                 OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
+                //OUT.color = float4(float3(pos.y / 40, pos.y / 40, pos.y / 40), 1);
                 //#else
                 //OUT.color = float4(lerp(float3(0.44, 0.61, 0.2), float3(0.12, 0.18, 0.055), 1-v), 1);
                 //#endif

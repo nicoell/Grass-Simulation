@@ -41,7 +41,7 @@ namespace GrassSimulation.Core
 				TextureFormat.RGBAFloat, false, true)
 			{
 				filterMode = FilterMode.Bilinear,
-				wrapMode = TextureWrapMode.Repeat
+				wrapMode = TextureWrapMode.Mirror
 			};
 			var parameterData = new Color[Ctx.Settings.GetSharedTextureLength()];
 			for (var i = 0; i < Ctx.Settings.GetSharedTextureLength(); i++)

@@ -21,6 +21,7 @@ float3 CollisionVolumeSize;
 float3 CollisionVolumeMin;
 float3 CollisionVolumeMax;
 float4x4 CollisionViewProj;
+float4 NormalHeightUvCorrection;
             
 //PerPatch
 float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
@@ -87,8 +88,9 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     //uint2 threadGroupCount = uint3(GrassDataResolution / physicsNumThreadsX, GrassDataResolution / physicsNumThreadsY);
     //uint i = (gid.z * threadGroupCount.y + gid.y) * threadGroupCount.x + gid.x * physicsThreadCount + gindex;
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
+    float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
     float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
-    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvNormalHeight, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
     float3 bladeUp = normalize(normalHeight.xyz);
     float posY = normalHeight.w;
@@ -126,10 +128,11 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     //uint2 threadGroupCount = uint3(GrassDataResolution / physicsNumThreadsX, GrassDataResolution / physicsNumThreadsY);
     //uint i = (gid.z * threadGroupCount.y + gid.y) * threadGroupCount.x + gid.x * physicsThreadCount + gindex;
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
+    float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
     float2 uvCollisionTexture = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
     uvCollisionTexture.x = 1 - uvCollisionTexture.x;
     float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
-    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvNormalHeight, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
 
     float4 simulationData0 = SimulationTexture.Load(uint3(id.xy, 0));

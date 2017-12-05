@@ -163,6 +163,10 @@ namespace GrassSimulation.Core
 			GrassBillboardCrossed = new Material(GrassGeometry);
 			GrassBillboardScreen = new Material(GrassGeometry);
 
+			var normalHeightUvCorrectionMinMax = new Vector4(Settings.GetPerPatchTextureUvStepNarrowed(),
+				Settings.GetPerPatchTextureUvStepNarrowed(), 1f - Settings.GetPerPatchTextureUvStepNarrowed(),
+				1f - Settings.GetPerPatchTextureUvStepNarrowed());
+			
 			GrassGeometry.EnableKeyword("GRASS_GEOMETRY");
 			GrassGeometry.DisableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassGeometry.DisableKeyword("GRASS_BILLBOARD_SCREEN");
@@ -170,6 +174,7 @@ namespace GrassSimulation.Core
 			GrassGeometry.SetTexture("GrassBlades1", BladeTexture2DArray1);
 			GrassGeometry.SetInt("VertexCount", (int) Settings.GetMinAmountBladesPerPatch());
 			GrassGeometry.SetFloat("BillboardSize", Settings.BillboardSize);
+			GrassGeometry.SetVector("NormalHeightUvCorrection", normalHeightUvCorrectionMinMax);
 			GrassBillboardCrossed.DisableKeyword("GRASS_GEOMETRY");
 			GrassBillboardCrossed.EnableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassBillboardCrossed.DisableKeyword("GRASS_BILLBOARD_SCREEN");
@@ -177,6 +182,7 @@ namespace GrassSimulation.Core
 			GrassBillboardCrossed.SetTexture("GrassBlades1", BladeTexture2DArray1);
 			GrassBillboardCrossed.SetInt("VertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardCrossed.SetFloat("BillboardSize", Settings.BillboardSize);
+			GrassBillboardCrossed.SetVector("NormalHeightUvCorrection", normalHeightUvCorrectionMinMax);
 			GrassBillboardScreen.DisableKeyword("GRASS_GEOMETRY");
 			GrassBillboardScreen.DisableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassBillboardScreen.EnableKeyword("GRASS_BILLBOARD_SCREEN");
@@ -184,6 +190,7 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen.SetTexture("GrassBlades1", BladeTexture2DArray1);
 			GrassBillboardScreen.SetInt("VertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardScreen.SetFloat("BillboardSize", Settings.BillboardSize);
+			GrassBillboardScreen.SetVector("NormalHeightUvCorrection", normalHeightUvCorrectionMinMax);
 			
 			GrassSimulationComputeShader.SetBool("ApplyTransition", Settings.EnableHeightTransition);
 			GrassSimulationComputeShader.SetFloat("GrassDataResolution", Settings.GrassDataResolution);
@@ -191,6 +198,7 @@ namespace GrassSimulation.Core
 			GrassSimulationComputeShader.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
+			GrassSimulationComputeShader.SetVector("NormalHeightUvCorrection", normalHeightUvCorrectionMinMax);
 			
 			Shader.SetGlobalFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
 			Shader.SetGlobalFloat("LodTessellationMax", Settings.LodTessellationMax);
