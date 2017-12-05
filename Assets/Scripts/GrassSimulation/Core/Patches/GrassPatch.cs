@@ -64,6 +64,7 @@ namespace GrassSimulation.Core.Patches
 			_inputBounds = bounds;
 			//Extend BoundingBox by blades maxheight to avoid false culling
 			var boundsCorrected = bounds;
+			//TODO: Unify bound correction
 			boundsCorrected.size += new Vector3(Ctx.Settings.BladeMaxHeight * 2, Ctx.Settings.BladeMaxHeight * 2,
 				Ctx.Settings.BladeMaxHeight * 2);
 			Bounds = boundsCorrected;
@@ -280,21 +281,21 @@ namespace GrassSimulation.Core.Patches
 		private void SetupMaterialPropertyBlock()
 		{
 			//TODO: Add option to update things like matrix not only on startup but also on update
-			_materialPropertyBlock.SetFloat("startIndex", _startIndex);
-			_materialPropertyBlock.SetFloat("parameterOffsetX", _parameterOffsetX);
-			_materialPropertyBlock.SetFloat("parameterOffsetY", _parameterOffsetY);
+			_materialPropertyBlock.SetFloat("StartIndex", _startIndex);
+			_materialPropertyBlock.SetFloat("ParameterOffsetX", _parameterOffsetX);
+			_materialPropertyBlock.SetFloat("ParameterOffsetY", _parameterOffsetY);
 			_materialPropertyBlock.SetVector("PatchTexCoord", _patchTexCoord);
 			_materialPropertyBlock.SetTexture("SimulationTexture", _simulationTexture);
 			_materialPropertyBlock.SetTexture("NormalHeightTexture", _normalHeightTexture);
-			_materialPropertyBlock.SetMatrix("patchModelMatrix", _patchModelMatrix);
+			_materialPropertyBlock.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 		}
 
 		private void SetupSimulation()
 		{
-			Ctx.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
-			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetX", _parameterOffsetX);
-			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetY", _parameterOffsetY);
-			Ctx.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
+			Ctx.GrassSimulationComputeShader.SetInt("StartIndex", _startIndex);
+			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetX", _parameterOffsetX);
+			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetY", _parameterOffsetY);
+			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for SimulationSetup Kernel
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture", _simulationTexture);
@@ -313,12 +314,12 @@ namespace GrassSimulation.Core.Patches
 		private void RunSimulationComputeShader()
 		{
 			//Set per patch data for whole compute shader
-			Ctx.GrassSimulationComputeShader.SetInt("startIndex", _startIndex);
-			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetX", _parameterOffsetX);
+			Ctx.GrassSimulationComputeShader.SetInt("StartIndex", _startIndex);
+			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetX", _parameterOffsetX);
 			Ctx.GrassSimulationComputeShader.SetVector("PatchTexCoord", _patchTexCoord);
-			Ctx.GrassSimulationComputeShader.SetFloat("parameterOffsetY", _parameterOffsetY);
+			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetY", _parameterOffsetY);
 			Ctx.GrassSimulationComputeShader.SetFloat("GrassDataResolution", Ctx.Settings.GrassDataResolution);
-			Ctx.GrassSimulationComputeShader.SetMatrix("patchModelMatrix", _patchModelMatrix);
+			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for Physics Kernel
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture", _simulationTexture);

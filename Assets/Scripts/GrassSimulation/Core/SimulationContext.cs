@@ -168,24 +168,24 @@ namespace GrassSimulation.Core
 			GrassGeometry.DisableKeyword("GRASS_BILLBOARD_SCREEN");
 			GrassGeometry.SetTexture("GrassBlades0", BladeTexture2DArray0);
 			GrassGeometry.SetTexture("GrassBlades1", BladeTexture2DArray1);
-			GrassGeometry.SetInt("vertexCount", (int) Settings.GetMinAmountBladesPerPatch());
-			GrassGeometry.SetFloat("billboardSize", Settings.BillboardSize);
+			GrassGeometry.SetInt("VertexCount", (int) Settings.GetMinAmountBladesPerPatch());
+			GrassGeometry.SetFloat("BillboardSize", Settings.BillboardSize);
 			GrassBillboardCrossed.DisableKeyword("GRASS_GEOMETRY");
 			GrassBillboardCrossed.EnableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassBillboardCrossed.DisableKeyword("GRASS_BILLBOARD_SCREEN");
 			GrassBillboardCrossed.SetTexture("GrassBlades0", BladeTexture2DArray0);
 			GrassBillboardCrossed.SetTexture("GrassBlades1", BladeTexture2DArray1);
-			GrassBillboardCrossed.SetInt("vertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
-			GrassBillboardCrossed.SetFloat("billboardSize", Settings.BillboardSize);
+			GrassBillboardCrossed.SetInt("VertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
+			GrassBillboardCrossed.SetFloat("BillboardSize", Settings.BillboardSize);
 			GrassBillboardScreen.DisableKeyword("GRASS_GEOMETRY");
 			GrassBillboardScreen.DisableKeyword("GRASS_BILLBOARD_CROSSED");
 			GrassBillboardScreen.EnableKeyword("GRASS_BILLBOARD_SCREEN");
 			GrassBillboardScreen.SetTexture("GrassBlades0", BladeTexture2DArray0);
 			GrassBillboardScreen.SetTexture("GrassBlades1", BladeTexture2DArray1);
-			GrassBillboardScreen.SetInt("vertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
-			GrassBillboardScreen.SetFloat("billboardSize", Settings.BillboardSize);
+			GrassBillboardScreen.SetInt("VertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
+			GrassBillboardScreen.SetFloat("BillboardSize", Settings.BillboardSize);
 			
-			GrassSimulationComputeShader.SetBool("applyTransition", Settings.EnableHeightTransition);
+			GrassSimulationComputeShader.SetBool("ApplyTransition", Settings.EnableHeightTransition);
 			GrassSimulationComputeShader.SetFloat("GrassDataResolution", Settings.GrassDataResolution);
 			GrassSimulationComputeShader.SetFloat("LodTessellationMin", Settings.LodTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
@@ -241,6 +241,9 @@ namespace GrassSimulation.Core
 			return true;
 		}
 
-		public void OnGUI() { PatchContainer.OnGUI(); }
+		public void OnGUI()
+		{
+			PatchContainer.OnGUI();
+		}
 	}
 }

@@ -28,8 +28,8 @@ Shader "GrassSimulation/GrassShader"
             };
             
             //Once
-            uniform int vertexCount;
-            uniform float billboardSize;
+            uniform int VertexCount;
+            uniform float BillboardSize;
             
             uniform float BladeTextureMaxMipmapLevel;
             
@@ -59,14 +59,14 @@ Shader "GrassSimulation/GrassShader"
             Texture2DArray<float4> GrassBlades1;
             
             //PerFrame
-            uniform float4 camPos;
-            uniform float4 camUp;
+            uniform float4 CamPos;
+            uniform float4 CamUp;
 			
 			//PerPatch
-			uniform float startIndex;
-			uniform float parameterOffsetX;
-			uniform float parameterOffsetY;
-            uniform float4x4 patchModelMatrix;
+			uniform float StartIndex;
+			uniform float ParameterOffsetX;
+			uniform float ParameterOffsetY;
+            uniform float4x4 PatchModelMatrix;
             uniform float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
 			Texture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
 			SamplerState samplerSimulationTexture;
@@ -148,7 +148,7 @@ Shader "GrassSimulation/GrassShader"
 				VSOut OUT;
 				OUT.vertexID = vertexID;
 				OUT.instanceID = instanceID;
-				OUT.uvLocal = UvBuffer[startIndex + vertexCount * instanceID + vertexID].Position;
+				OUT.uvLocal = UvBuffer[StartIndex + VertexCount * instanceID + vertexID].Position;
 
 				return OUT;
 			}
@@ -197,7 +197,7 @@ Shader "GrassSimulation/GrassShader"
     		
         		HSOut OUT = (HSOut)0;
 
-        		float2 uvParameter = float2(parameterOffsetX, parameterOffsetY) + IN[0].uvLocal;
+        		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
         		float2 uvGrassMap = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, IN[0].uvLocal, 0);
         		float4 SimulationData0 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0);
@@ -227,15 +227,15 @@ Shader "GrassSimulation/GrassShader"
         		    OUT.transitionFactor = 1;
         		}
 
-        		OUT.pos = mul(patchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
+        		OUT.pos = mul(PatchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
         		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
         		OUT.bladeUp = normalize(normalHeight.xyz);
         		OUT.v1 = SimulationData0.xyz;
         		OUT.v2 = SimulationData1.xyz;
         		
         		#ifdef GRASS_BILLBOARD_SCREEN
-        		float3 camDir = normalize(OUT.pos - camPos);
-        		float3 right = cross(camDir, camUp.xyz);
+        		float3 camDir = normalize(OUT.pos - CamPos);
+        		float3 right = cross(camDir, CamUp.xyz);
         		OUT.bladeDir = normalize(cross(OUT.bladeUp, camDir));
         		#else
         		float dirAlpha = OUT.parameters.w;
@@ -270,9 +270,9 @@ Shader "GrassSimulation/GrassShader"
         		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
         		float width = IN[0].parameters.x;
         		#else
-        		float3 v1 = pos + IN[0].v1 * billboardSize * IN[0].transitionFactor;
-        		float3 v2 = pos + IN[0].v2 * billboardSize * IN[0].transitionFactor;
-        		float width = length(IN[0].v2) * billboardSize * IN[0].transitionFactor;
+        		float3 v1 = pos + IN[0].v1 * BillboardSize * IN[0].transitionFactor;
+        		float3 v2 = pos + IN[0].v2 * BillboardSize * IN[0].transitionFactor;
+        		float width = length(IN[0].v2) * BillboardSize * IN[0].transitionFactor;
         		#endif
         		float bend = IN[0].parameters.y;
         		float height = IN[0].parameters.z;
@@ -335,7 +335,7 @@ Shader "GrassSimulation/GrassShader"
         		float3 pos = float3(IN[0].pos.x + (uv.x - 0.5)*0.1, IN[0].pos.y + uv.y, IN[0].pos.z);*/
       
                 //DEBUG COLORING
-                /*float distance = length(pos - camPos);
+                /*float distance = length(pos - CamPos);
         		float debugT = (distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail);
         		float debugInterpolant = frac(lerp(LodDensityBillboardDistance, LodDensityFullDetailDistance, debugT));
 

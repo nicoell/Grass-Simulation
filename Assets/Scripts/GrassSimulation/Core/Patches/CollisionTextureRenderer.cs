@@ -4,12 +4,11 @@ namespace GrassSimulation.Core.Patches
 {
 	public class CollisionTextureRenderer : ContextRequirement
 	{
-		private Bounds _bounds;
-		public RenderTexture CollisionDepthTexture;
+		public readonly RenderTexture CollisionDepthTexture;
 
 		public CollisionTextureRenderer(SimulationContext ctx, Bounds bounds) : base(ctx)
 		{
-			_bounds = bounds;
+
 			//Create CollisionDepthTexture
 			//Init Collision Camera
 			CollisionDepthTexture = new RenderTexture(Ctx.Settings.CollisionDepthResolution,
@@ -17,27 +16,31 @@ namespace GrassSimulation.Core.Patches
 				RenderTextureFormat.Depth, RenderTextureReadWrite.Linear)
 			{
 				wrapMode = TextureWrapMode.Clamp,
-				depth = 32
+				depth = 32,
+				filterMode = FilterMode.Bilinear
 			};
 			CollisionDepthTexture.Create();
 
 			Ctx.CollisionCamera.aspect = Ctx.DimensionsInput.GetWidth() / Ctx.DimensionsInput.GetDepth();//Settings.PatchSize / Settings.PatchSize;
 			Ctx.CollisionCamera.orthographic = true;
-			Ctx.CollisionCamera.orthographicSize = Mathf.Max(_bounds.extents.x, _bounds.extents.z);
+			//TODO: Unify bound correction
+			Ctx.CollisionCamera.orthographicSize = Mathf.Max(bounds.extents.x - Ctx.Settings.BladeMaxHeight, bounds.extents.z - Ctx.Settings.BladeMaxHeight);
 			Ctx.CollisionCamera.nearClipPlane = 0;
-			Ctx.CollisionCamera.farClipPlane = _bounds.size.y;
+			Ctx.CollisionCamera.farClipPlane = bounds.size.y;
 			Ctx.CollisionCamera.useOcclusionCulling = false;
 			Ctx.CollisionCamera.depthTextureMode = DepthTextureMode.Depth;
 			Ctx.CollisionCamera.SetReplacementShader(Ctx.CollisionDepthShader, "RenderType");
 			Ctx.CollisionCamera.targetTexture = CollisionDepthTexture;
 			
-			_bounds = bounds;
-			var position = _bounds.center - new Vector3(0, _bounds.extents.y, 0);
+			var position = bounds.center - new Vector3(0, bounds.extents.y, 0);
 			var rotation = Quaternion.LookRotation(Ctx.Transform.up, Ctx.Transform.forward);
 			Ctx.CollisionCamera.transform.SetPositionAndRotation(position, rotation);
 			
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "CollisionDepthTexture", CollisionDepthTexture);
-			Ctx.GrassSimulationComputeShader.SetFloat("CollisionVolumeHeight", _bounds.size.y);
+			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeSize", bounds.size.x, bounds.size.y, bounds.size.z);
+			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMin", bounds.min.x, bounds.min.y, bounds.min.z);
+			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMax", bounds.max.x, bounds.max.y, bounds.max.z);
+			Ctx.GrassSimulationComputeShader.SetMatrix("CollisionViewProj", Ctx.CollisionCamera.projectionMatrix * Ctx.CollisionCamera.worldToCameraMatrix);
 		}
 
 		public void UpdateDepthTexture()

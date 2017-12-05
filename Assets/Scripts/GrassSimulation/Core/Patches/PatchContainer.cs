@@ -50,16 +50,16 @@ namespace GrassSimulation.Core.Patches
 		protected void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
-			Ctx.GrassSimulationComputeShader.SetBool("applyTransition", Ctx.Settings.EnableHeightTransition);
-			Ctx.GrassGeometry.SetVector("camPos", Ctx.Camera.transform.position);
-			Ctx.GrassBillboardCrossed.SetVector("camPos", Ctx.Camera.transform.position);
-			Ctx.GrassBillboardScreen.SetVector("camPos", Ctx.Camera.transform.position);
-			Ctx.GrassBillboardScreen.SetVector("camUp", Ctx.Camera.transform.up);
-			Ctx.GrassSimulationComputeShader.SetFloat("deltaTime", Time.deltaTime);
-			Ctx.GrassSimulationComputeShader.SetVector("gravityVec", Ctx.Settings.Gravity);
-			Ctx.GrassSimulationComputeShader.SetMatrix("viewProjMatrix",
+			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);
+			Ctx.GrassGeometry.SetVector("CamPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardCrossed.SetVector("CamPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardScreen.SetVector("CamPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardScreen.SetVector("CamUp", Ctx.Camera.transform.up);
+			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", Time.deltaTime);
+			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
+			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
-			Ctx.GrassSimulationComputeShader.SetFloats("camPos", Ctx.Camera.transform.position.x,
+			Ctx.GrassSimulationComputeShader.SetFloats("CamPos", Ctx.Camera.transform.position.x,
 				Ctx.Camera.transform.position.y, Ctx.Camera.transform.position.z);
 		}
 	}

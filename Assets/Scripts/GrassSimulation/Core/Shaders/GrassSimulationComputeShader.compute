@@ -16,16 +16,19 @@ float LodTessellationMin;
 float LodTessellationMax;
 float LodDistanceTessellationMin;
 float LodDistanceTessellationMax;
-bool applyTransition;
-float CollisionVolumeHeight;
+bool ApplyTransition;
+float3 CollisionVolumeSize;
+float3 CollisionVolumeMin;
+float3 CollisionVolumeMax;
+float4x4 CollisionViewProj;
             
 //PerPatch
 float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
 float GrassDataResolution;
-int startIndex;
-float parameterOffsetX;
-float parameterOffsetY;
-float4x4 patchModelMatrix;
+int StartIndex;
+float ParameterOffsetX;
+float ParameterOffsetY;
+float4x4 PatchModelMatrix;
 
 RWTexture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
 Texture2D<float4> NormalHeightTexture; //up.xyz, pos.y
@@ -34,34 +37,44 @@ Texture2D CollisionDepthTexture; //up.xyz, pos.y
 SamplerState samplerCollisionDepthTexture;
 
 //Per Frame
-float deltaTime;
-float4x4 viewProjMatrix;
-float3 camPos;
-float4 gravityVec;
+float DeltaTime;
+float4x4 ViewProjMatrix;
+float3 CamPos;
+float4 GravityVec;
 
 //Per Patch
 
-float4 LocalToWorldPos(float4 pos){
-	return mul(patchModelMatrix, pos);
+float4 LocalToWorldPos(float4 pos)
+{
+	return mul(PatchModelMatrix, pos);
 }
 
-float4 LocalToWorldPos(float3 pos){
-	return mul(patchModelMatrix, float4(pos, 1.0));
+float4 LocalToWorldPos(float3 pos)
+{
+	return mul(PatchModelMatrix, float4(pos, 1.0));
 }
 
-float4 WorldToClipPos(float4 pos){
-	return mul(viewProjMatrix, pos);
+float4 WorldToClipPos(float4 pos)
+{
+	return mul(ViewProjMatrix, pos);
 }
 
-float4 WorldToClipPos(float3 pos){
+float4 WorldToClipPos(float3 pos)
+{
 	return WorldToClipPos(float4(pos, 1.0));
+}
+
+float4 GetCollisionVolumePos(float3 worldpos)
+{
+    return mul(CollisionViewProj, float4(worldpos, 1.0));
 }
 
 /*
  * Kernels working on Textures below.
  */
  
-float3 CalculateV1(float3 v2, float3 bladeUp, float height, float invHeight){
+float3 CalculateV1(float3 v2, float3 bladeUp, float height, float invHeight)
+{
     float3 g = v2 - dot(v2, bladeUp) * bladeUp;
     float v2ratio = abs(length(g) * invHeight);
     float fac = max(1.0 - v2ratio, 0.05 * max(v2ratio, 1.0));
@@ -74,7 +87,7 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     //uint2 threadGroupCount = uint3(GrassDataResolution / physicsNumThreadsX, GrassDataResolution / physicsNumThreadsY);
     //uint i = (gid.z * threadGroupCount.y + gid.y) * threadGroupCount.x + gid.x * physicsThreadCount + gindex;
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
-    float2 uvParameter = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
+    float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
     float3 bladeUp = normalize(normalHeight.xyz);
@@ -115,7 +128,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
     float2 uvCollisionTexture = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
     uvCollisionTexture.x = 1 - uvCollisionTexture.x;
-    float2 uvParameter = float2(parameterOffsetX, parameterOffsetY) + uvLocal;
+    float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvLocal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
 
@@ -138,7 +151,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 bladeDir = normalize(cross(bladeUp, tmp));
 	float3 bladeFront = normalize(cross(bladeUp, bladeDir));
 
-	float mdt = min(deltaTime, 1.0);
+	float mdt = min(DeltaTime, 1.0);
 
 	//float4 oldPressure = pressureDataBuffer[i];
 	//float collisionForce = max(oldPressure.w - (1.0 - bendingFactor) * 0.5 * mdt, 0.0);
@@ -152,18 +165,21 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	//float3 relativeV2 = v2 - groundPos;
 
 	//gravity
-	float3 gravity = normalize(gravityVec.xyz) * gravityVec.w;
+	float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
 	float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
-	gravity += sign * bladeFront * height * gravityVec.w * 0.25f;
+	gravity += sign * bladeFront * height * GravityVec.w * 0.25f;
 	gravity = gravity * height * bendingFactor * mdt;
 
 	//wind
 	//TODO
     
     //Collisions
-    float depth = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, uvCollisionTexture, 0).x;
-    depth = max(0, depth - normalHeight.w);
-    float3 collision = float3(0, -depth, 0);
+    float4 cV0 = GetCollisionVolumePos(groundPos);
+    float4 cV2 = (GetCollisionVolumePos(groundPos + v2) + 1) / 2;
+    float cDepthAtV0 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV0.xy, 0).x;
+    float cDepthAtV2 = 1 - CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV2.xy, 0).x;
+    float cRelativeAtV2 = max(0, cV2.z - cDepthAtV2);
+    float3 collision = float3(0, -cRelativeAtV2 * CollisionVolumeSize.y, 0);
     
     
 	//stiffness //TODO: Rework temp max without collisionForce
@@ -206,7 +222,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	//float3 midPoint = 0.25 * groundPos + 0.5 * wV1 + 0.25 * wV2;
 
 	//Visibility Check
-	float3 camDir = groundPos - camPos;
+	float3 camDir = groundPos - CamPos;
 	//Project camdir on the local plane defined by the up-vector
 	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
 	float distance = length(camDir);

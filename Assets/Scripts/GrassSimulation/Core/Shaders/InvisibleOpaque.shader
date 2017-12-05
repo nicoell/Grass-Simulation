@@ -3,7 +3,7 @@
 	SubShader
 	{
 		Tags { "Queue"="Transparent" "RenderType"="Opaque" }
-        Cull Off
+        //Cull Off
         Blend SrcAlpha OneMinusSrcAlpha
 		Pass
 		{
