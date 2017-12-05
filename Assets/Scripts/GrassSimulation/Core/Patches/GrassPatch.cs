@@ -220,7 +220,6 @@ namespace GrassSimulation.Core.Patches
 			};
 			var textureData = new Color[Ctx.Settings.GetPerPatchTextureLength()];
 			var i = 0;
-			var bladePosition = new Vector2(0, 0);
 			var uvLocal = new Vector2(0, 0);
 			var uvGlobal = new Vector2(0, 0);
 			var uvStep = Ctx.Settings.GetPerPatchTextureUvStep();
@@ -229,17 +228,13 @@ namespace GrassSimulation.Core.Patches
 			for (var y = 0; y < Ctx.Settings.GetPerPatchTextureWidthHeight(); y++)
 			{
 				uvLocal.y = Mathf.Lerp(-uvNarrowed, 1+uvNarrowed, (y + 0.5f) * uvStep);
-				//uvLocal.y = (y + 0.5f) / Ctx.Settings.GetPerPatchTextureWidthHeight();
 
-				uvGlobal.y = Mathf.Clamp(Mathf.LerpUnclamped(_patchTexCoord.y, _patchTexCoord.y + _patchTexCoord.w, uvLocal.y), 0, 1f - uvStep);
+				uvGlobal.y = Mathf.Clamp(Mathf.LerpUnclamped(_patchTexCoord.y, _patchTexCoord.y + _patchTexCoord.w, uvLocal.y), 0, 1f);
 
-				bladePosition.y = Mathf.Clamp01(_patchTexCoord.y + _patchTexCoord.w * uvLocal.y);
 				for (var x = 0; x < Ctx.Settings.GetPerPatchTextureWidthHeight(); x++)
 				{
 					uvLocal.x = Mathf.Lerp(-uvNarrowed, 1+uvNarrowed, (x + 0.5f) * uvStep);
-					//uvLocal.x = (x + 0.5f) / Ctx.Settings.GetPerPatchTextureWidthHeight();
-					bladePosition.x = Mathf.Clamp01(_patchTexCoord.x + _patchTexCoord.z * uvLocal.x);
-					uvGlobal.x = Mathf.Clamp(Mathf.LerpUnclamped(_patchTexCoord.x, _patchTexCoord.x + _patchTexCoord.z, uvLocal.x), 0, 1f - uvStep);
+					uvGlobal.x = Mathf.Clamp(Mathf.LerpUnclamped(_patchTexCoord.x, _patchTexCoord.x + _patchTexCoord.z, uvLocal.x), 0, 1f);
 					
 					var posY = Ctx.HeightInput.GetHeight(uvGlobal.x, uvGlobal.y);
 					//var posY = MultiSampleHeight(bladePosition);
@@ -250,26 +245,7 @@ namespace GrassSimulation.Core.Patches
 					i++;
 				}
 			}
-			/*
-			for (var x = -1; x < Ctx.Settings.GetPerPatchTextureWidthHeight() - 1; x++)
-			{
-				uvLocal.y = (x + 0.5f) * uvStep;
-				bladePosition.y = Mathf.Clamp01(_patchTexCoord.y + _patchTexCoord.w * uvLocal.y);
-				for (var y = -1; y < Ctx.Settings.GetPerPatchTextureWidthHeight() - 1; y++)
-				{
-					uvLocal.x = (y + 0.5f) * uvStep;
-					bladePosition.x = Mathf.Clamp01(_patchTexCoord.x + _patchTexCoord.z * uvLocal.x);
 
-					var posY = Ctx.HeightInput.GetHeight(bladePosition.x, bladePosition.y);
-					//var posY = MultiSampleHeight(bladePosition);
-					var up = Ctx.NormalInput.GetNormal(bladePosition.x, bladePosition.y);
-					//var up = MultiSampleNormal(bladePosition);
-
-					textureData[i] = new Color(up.x, up.y, up.z, posY);
-					i++;
-				}
-			}
-			*/
 			_normalHeightTexture.SetPixels(textureData);
 			_normalHeightTexture.Apply();
 

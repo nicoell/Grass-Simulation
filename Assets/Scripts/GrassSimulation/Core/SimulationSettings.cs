@@ -99,7 +99,7 @@ namespace GrassSimulation.Core
 		public int GetPerPatchTextureWidthHeight() { return GrassDataResolution; }
 
 		public float GetPerPatchTextureUvStep() { return 1f / GetPerPatchTextureWidthHeight(); }
-		public float GetPerPatchTextureUvStepNarrowed() { return 1f / GetPerPatchTextureWidthHeight(); }
+		public float GetPerPatchTextureUvStepNarrowed() { return 0.5f / GetPerPatchTextureWidthHeight(); }
 	}
 	
 	[Serializable]
