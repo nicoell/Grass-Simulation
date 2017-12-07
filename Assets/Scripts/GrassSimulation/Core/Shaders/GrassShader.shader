@@ -16,29 +16,22 @@ Shader "GrassSimulation/GrassShader"
 			#pragma hull hull
 			#pragma domain domain
 			#pragma fragment frag
-			// Create two shader variants, one for geometry grass and one for billboard grass
+			// Create three shader variants for geometry grass, billboard crossed grass and billboard screen faced grass
 			#pragma multi_compile GRASS_BILLBOARD_CROSSED GRASS_BILLBOARD_SCREEN GRASS_GEOMETRY
 			
 			#include "GrassSimulation.cginc"
+			#include "GrassShaderStageAttributes.cginc"
 			#include "UnityCG.cginc"
 
-            struct UvData
-            {
-                float2 Position;
-            };
+            struct UvData { float2 Position; };
             
             //Once
-            uniform int VertexCount;
             uniform float BillboardSize;
-            
             uniform float BladeTextureMaxMipmapLevel;
-            
             uniform float LodTessellationMax;
-            
             uniform float LodInstancesGeometry;
             uniform float LodInstancesBillboardCrossed;
             uniform float LodInstancesBillboardScreen;
-            
             uniform float LodDistanceGeometryStart;
             uniform float LodDistanceGeometryPeak;
             uniform float LodDistanceGeometryEnd;
@@ -48,70 +41,33 @@ Shader "GrassSimulation/GrassShader"
             uniform float LodDistanceBillboardScreenStart;		
             uniform float LodDistanceBillboardScreenPeak;		
             uniform float LodDistanceBillboardScreenEnd;
-            
             uniform float4 NormalHeightUvCorrection;
+            uniform int VertexCount;
             
-            
-			StructuredBuffer<UvData> UvBuffer;	// pos.x 		pos.z
-            Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
-            SamplerState samplerParameterTexture;
-            Texture2D GrassMapTexture;
             Texture2DArray<float4> GrassBlades0;
             SamplerState samplerGrassBlades0;
             Texture2DArray<float4> GrassBlades1;
+            Texture2D GrassMapTexture;
+            Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
+            SamplerState samplerParameterTexture;
+			StructuredBuffer<UvData> UvBuffer;	// pos.x 		pos.z
             
             //PerFrame
             uniform float4 CamPos;
             uniform float4 CamUp;
 			
 			//PerPatch
-			uniform float StartIndex;
-			uniform float ParameterOffsetX;
-			uniform float ParameterOffsetY;
             uniform float4x4 PatchModelMatrix;
             uniform float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
-			Texture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
-			SamplerState samplerSimulationTexture;
+			uniform float ParameterOffsetX;
+			uniform float ParameterOffsetY;
+			uniform float StartIndex;
+			
 			Texture2D NormalHeightTexture; //up.xyz, pos.y
 			SamplerState samplerNormalHeightTexture;
+			Texture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
+			SamplerState samplerSimulationTexture;
 
-			struct VSOut 
-			{
-			    uint vertexID : VertexID;
-			    uint instanceID : InstanceID;
-			    float2 uvLocal : TEXCOORD0;
-			};
-			
-			struct HSConstOut
-			{
-			    float TessFactor[4] : SV_TessFactor;
-			    float InsideTessFactor[2] : SV_InsideTessFactor;
-			};
-			
-			struct HSOut
-			{
-				float3 pos : POS;
-				float transitionFactor : TEXCOORD0;
-			    float4 parameters : TEXCOORD1;
-			    float3 bladeUp : TEXCOORD2;
-			    float3 v1 : TEXCOORD3;
-			    float3 v2 : TEXCOORD4;
-			    float3 bladeDir : TEXCOORD5;
-			    float4 grassMapData : TEXCOORD6;
-			};
-			
-			struct DSOut
-			{
-			    float4 pos : SV_POSITION;
-			    float4 color : COLOR0;
-			};
-			
-			struct FSIn
-			{
-			    float4 pos : SV_POSITION;
-			    float4 color : COLOR0;
-			};
-			
 			float GetTessellationLevel(float distance, uint instanceID, float2 uv){
                 float transition = 0;
                 #ifdef GRASS_BILLBOARD_CROSSED

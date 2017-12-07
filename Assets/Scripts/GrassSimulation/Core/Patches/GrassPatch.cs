@@ -224,7 +224,7 @@ namespace GrassSimulation.Core.Patches
 			var uvGlobal = new Vector2(0, 0);
 			var uvStep = Ctx.Settings.GetPerPatchTextureUvStep();
 			var uvNarrowed = Ctx.Settings.GetPerPatchTextureUvStepNarrowed();
-			//TODO: Smooth the edges with neighbouring pixels for smooth transitions between patches.
+			//TODO: Something feels off here... why is it even necessary to work around like this..
 			for (var y = 0; y < Ctx.Settings.GetPerPatchTextureWidthHeight(); y++)
 			{
 				uvLocal.y = Mathf.Lerp(-uvNarrowed, 1+uvNarrowed, (y + 0.5f) * uvStep);

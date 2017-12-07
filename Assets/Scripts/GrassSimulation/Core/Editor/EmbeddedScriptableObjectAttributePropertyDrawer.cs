@@ -15,6 +15,12 @@ namespace GrassSimulation.Core.Editor
 		// Draw the property inside the given rect
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
+			
+			Target.Style = new GUIStyle(EditorStyles.foldout)
+			{
+				fontStyle = Target.OverlapTitle ? FontStyle.Normal : FontStyle.Bold
+			};
+			
 			if (property.objectReferenceValue == null)
 			{
 				EditorGUILayout.PropertyField(property, label);

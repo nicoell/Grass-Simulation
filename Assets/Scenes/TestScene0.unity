@@ -124,6 +124,80 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _terrain: {fileID: 1583463535}
+--- !u!21 &196239400
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_Name: InvisibleOpaque (Instance)
+  m_Shader: {fileID: 4800000, guid: 7ff01bab6c550424ebe446f1d66a318a, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _BumpScale: 1
+    - _Cutoff: 0.5
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _Metallic: 0
+    - _Mode: 0
+    - _OcclusionStrength: 1
+    - _Parallax: 0.02
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _UVSec: 0
+    - _ZWrite: 1
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 0}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &201734321
 GameObject:
   m_ObjectHideFlags: 0
@@ -166,37 +240,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!84 &332709295
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_ForcedFallbackFormat: 4
-  m_DownscaleFallback: 0
-  m_Width: 512
-  m_Height: 512
-  m_AntiAliasing: 1
-  m_DepthFormat: 2
-  m_ColorFormat: 1
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_BindMS: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 0
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
 --- !u!1 &420063491
 GameObject:
   m_ObjectHideFlags: 0
@@ -275,7 +318,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 420063491}
   m_LocalRotation: {x: 0.096571706, y: 0.38058707, z: -0.04000131, w: 0.9188185}
-  m_LocalPosition: {x: 10.39, y: 29.53, z: 3.5}
+  m_LocalPosition: {x: 10.39, y: 31.17, z: 3.5}
   m_LocalScale: {x: 10, y: 10, z: 10}
   m_Children: []
   m_Father: {fileID: 0}
@@ -419,102 +462,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
---- !u!114 &686697619
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1cdde0086d694b30a863c3abacc37ccc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Transform: {fileID: 1583463536}
-  Camera: {fileID: 420063494}
-  GrassSimulationComputeShader: {fileID: 7200000, guid: 93a2e5d79b32ac944aeb5020f6fcac78,
-    type: 3}
-  CollisionDepthShader: {fileID: 4800000, guid: fee7137b55be4ea3b8a04f29660d2d5b,
-    type: 3}
-  GrassGeometry: {fileID: 2100000, guid: 8ff4c177c22ae5247b425fcc6d509504, type: 2}
-  CollisionCamera: {fileID: 758020588}
-  BladeContainer: {fileID: 1751193939}
-  BladeTexture2DArray0: {fileID: 1286456975}
-  BladeTexture2DArray1: {fileID: 718587710}
-  PatchContainerType:
-    _classRef: GrassSimulation.StandardContainers.UniformGridHierarchyPatchContainer,
-      Assembly-CSharp
-  PatchContainer: {fileID: 701544236}
-  DimensionsInputType:
-    _classRef: GrassSimulation.StandardInputs.TerrainDimensionsInput, Assembly-CSharp
-  DimensionsInput: {fileID: 1261914089}
-  GrassMapInputType:
-    _classRef: GrassSimulation.StandardInputs.RandomGrassMapInput, Assembly-CSharp
-  GrassMapInput: {fileID: 1509623084}
-  HeightInputType:
-    _classRef: GrassSimulation.StandardInputs.TerrainHeightInput, Assembly-CSharp
-  HeightInput: {fileID: 2636558}
-  NormalInputType:
-    _classRef: GrassSimulation.StandardInputs.TerrainAdvancedNormalInput, Assembly-CSharp
-  NormalInput: {fileID: 2049119439}
-  PositionInputType:
-    _classRef: GrassSimulation.StandardInputs.SimplePositionInput, Assembly-CSharp
-  PositionInput: {fileID: 430014445}
-  IsReady: 1
-  KernelPhysics: 0
-  KernelSimulationSetup: 1
-  EditorSettings:
-    EnableLodDistanceGizmo: 0
-    EnableHierarchyGizmo: 0
-    EnablePatchGizmo: 0
-    EnableBladeUpGizmo: 0
-    EnableFullBladeGizmo: 0
-  Settings:
-    RandomSeed: 42
-    BillboardSize: 4
-    BladeMaxBend: 0.8
-    BladeMaxHeight: 0.2
-    BladeMaxWidth: 0.03
-    BladeMinBend: 0.4
-    BladeMinHeight: 0.2
-    BladeMinWidth: 0.01
-    BladeTextureMaxMipmapLevel: 5
-    Gravity: {x: 0, y: -1, z: 0, w: 0.4}
-    GrassMapResolution: 256
-    CollisionDepthResolution: 512
-    GrassDataResolution: 16
-    GrassDataTrilinearFiltering: 1
-    PatchSize: 8
-    InstancedGrassFactor: 4
-    LodTessellationMin: 3
-    LodTessellationMax: 32
-    LodDistanceTessellationMin: 0
-    LodDistanceTessellationMax: 100
-    LodInstancesGeometry: 512
-    LodInstancesBillboardCrossed: 1
-    LodInstancesBillboardScreen: 1
-    LodDistanceGeometryStart: 0
-    LodDistanceGeometryPeak: 1
-    LodDistanceGeometryEnd: 200
-    LodDistanceBillboardCrossedStart: 150
-    LodDistanceBillboardCrossedPeak: 200
-    LodDistanceBillboardCrossedEnd: 300
-    LodDistanceBillboardScreenStart: 250
-    LodDistanceBillboardScreenPeak: 300
-    LodDistanceBillboardScreenEnd: 400
-    EnableHeightTransition: 1
---- !u!114 &701544236
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2dbd30ce3baa15048b89e02d44af7578, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!187 &718587710
+--- !u!187 &614074617
 Texture2DArray:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
@@ -547,6 +495,101 @@ Texture2DArray:
     offset: 0
     size: 0
     path: 
+--- !u!114 &686697619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cdde0086d694b30a863c3abacc37ccc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Transform: {fileID: 1583463536}
+  Camera: {fileID: 420063494}
+  GrassSimulationComputeShader: {fileID: 7200000, guid: 93a2e5d79b32ac944aeb5020f6fcac78,
+    type: 3}
+  CollisionDepthShader: {fileID: 4800000, guid: fee7137b55be4ea3b8a04f29660d2d5b,
+    type: 3}
+  GrassGeometry: {fileID: 2100000, guid: 8ff4c177c22ae5247b425fcc6d509504, type: 2}
+  CollisionCamera: {fileID: 758020588}
+  BladeContainer: {fileID: 1751193939}
+  BladeTexture2DArray0: {fileID: 1935453674}
+  BladeTexture2DArray1: {fileID: 614074617}
+  PatchContainerType:
+    _classRef: GrassSimulation.StandardContainers.UniformGridHierarchyPatchContainer,
+      Assembly-CSharp
+  PatchContainer: {fileID: 701544236}
+  DimensionsInputType:
+    _classRef: GrassSimulation.StandardInputs.TerrainDimensionsInput, Assembly-CSharp
+  DimensionsInput: {fileID: 1261914089}
+  GrassMapInputType:
+    _classRef: GrassSimulation.StandardInputs.RandomGrassMapInput, Assembly-CSharp
+  GrassMapInput: {fileID: 1509623084}
+  HeightInputType:
+    _classRef: GrassSimulation.StandardInputs.TerrainHeightInput, Assembly-CSharp
+  HeightInput: {fileID: 2636558}
+  NormalInputType:
+    _classRef: GrassSimulation.StandardInputs.TerrainAdvancedNormalInput, Assembly-CSharp
+  NormalInput: {fileID: 2049119439}
+  PositionInputType:
+    _classRef: GrassSimulation.StandardInputs.SimplePositionInput, Assembly-CSharp
+  PositionInput: {fileID: 430014445}
+  IsReady: 1
+  KernelPhysics: 0
+  KernelSimulationSetup: 1
+  EditorSettings:
+    EnableLodDistanceGizmo: 0
+    EnableHierarchyGizmo: 0
+    EnablePatchGizmo: 0
+    EnableBladeUpGizmo: 0
+    EnableFullBladeGizmo: 0
+  Settings:
+    RandomSeed: 42
+    BillboardSize: 4
+    BladeMaxBend: 1
+    BladeMaxHeight: 2
+    BladeMaxWidth: 0.03
+    BladeMinBend: 0.7
+    BladeMinHeight: 2
+    BladeMinWidth: 0.01
+    BladeTextureMaxMipmapLevel: 5
+    Gravity: {x: 0, y: -1, z: -1, w: 0.4}
+    GrassMapResolution: 256
+    CollisionDepthResolution: 1024
+    GrassDataResolution: 32
+    GrassDataTrilinearFiltering: 1
+    PatchSize: 8
+    InstancedGrassFactor: 4
+    LodTessellationMin: 3
+    LodTessellationMax: 32
+    LodDistanceTessellationMin: 0
+    LodDistanceTessellationMax: 32
+    LodInstancesGeometry: 512
+    LodInstancesBillboardCrossed: 1
+    LodInstancesBillboardScreen: 1
+    LodDistanceGeometryStart: 0
+    LodDistanceGeometryPeak: 1
+    LodDistanceGeometryEnd: 200
+    LodDistanceBillboardCrossedStart: 150
+    LodDistanceBillboardCrossedPeak: 200
+    LodDistanceBillboardCrossedEnd: 300
+    LodDistanceBillboardScreenStart: 250
+    LodDistanceBillboardScreenPeak: 300
+    LodDistanceBillboardScreenEnd: 400
+    EnableHeightTransition: 1
+--- !u!114 &701544236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dbd30ce3baa15048b89e02d44af7578, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &758020587
 GameObject:
   m_ObjectHideFlags: 0
@@ -572,7 +615,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0.297}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
     x: 0
@@ -580,16 +623,16 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0
-  far clip plane: 23.311558
+  far clip plane: 26.911556
   field of view: 60
   orthographic: 1
-  orthographic size: 128.00002
+  orthographic size: 128
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 256
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 332709295}
+  m_TargetTexture: {fileID: 841120727}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -606,12 +649,43 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 758020587}
   m_LocalRotation: {x: -0, y: 0.7071068, z: 0.7071068, w: 0}
-  m_LocalPosition: {x: 128.00002, y: 12.193577, z: 128.00002}
+  m_LocalPosition: {x: 128, y: 10.393578, z: 128}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 201734323}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: -90.00001, y: 0, z: -180}
+--- !u!84 &841120727
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_ForcedFallbackFormat: 4
+  m_DownscaleFallback: 0
+  m_Width: 1024
+  m_Height: 1024
+  m_AntiAliasing: 1
+  m_DepthFormat: 0
+  m_ColorFormat: 11
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_BindMS: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
 --- !u!1 &1111654734
 GameObject:
   m_ObjectHideFlags: 0
@@ -835,39 +909,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _terrain: {fileID: 1583463535}
---- !u!187 &1286456975
-Texture2DArray:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_Name: BladeTextures
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_ForcedFallbackFormat: 4
-  m_DownscaleFallback: 0
-  m_Width: 2
-  m_Height: 64
-  m_Depth: 2
-  m_Format: 4
-  m_MipCount: 7
-  m_DataSize: 1528
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 2
-    m_Aniso: 0
-    m_MipBias: -0.5
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_ColorSpace: 0
-  m_IsReadable: 1
-  image data: 1528
-  _typelessdata: ff2f6026ff2f6026ff306127ff306127fe326228fe326228fd336429fd336429fc35652afc35652afb36662afb36662af937682bf937682bf739692cf739692cf43a6a2df43a6a2df13b6c2ef13b6c2eee3d6d2fee3d6d2feb3e6e30eb3e6e30e73f7031e73f7031e4417132e4417132e0427232e0427232dc437433dc437433d7457534d7457534d3467735d3467735ce487836ce487836c9497937c9497937c44a7b38c44a7b38bf4c7c39bf4c7c39b94d7d3ab94d7d3ab44e7f3ab44e7f3aae50803bae50803ba951813ca951813ca352833da352833d9d54843e9d54843e9755853f9755853f91568740915687408b5888418b5888418559894285598942805b8b42805b8b427a5c8c437a5c8c43745d8d44745d8d446e5f8f456e5f8f45686090466860904662619147626191475c6393485c63934856649449566494495165964a5165964a4b67974a4b67974a4668984b4668984b40699a4c40699a4c3b6b9b4d3b6b9b4d366c9c4e366c9c4e316e9e4f316e9e4f2c6f9f502c6f9f502870a0512870a0512372a2522372a2521f73a3521f73a3521b74a4531b74a4531876a6541876a6541477a7551477a7551178a8561178a8560e7aaa570e7aaa570b7bab580b7bab58087cac59087cac59067eae5a067eae5a047faf5a047faf5a0380b05b0380b05b0282b25c0282b25c0183b35d0183b35d0085b55e0085b55eff306026fe326228fc35652af937682bf53a6a2df03d6d2fea3f7031e3427232db457534d3487836ca4a7b38c14d7d3ab750803bad52833da255853f975888418d5b8b42825d8d44776090466d6393486365964a5968984b506b9b4d476e9e4f3e70a0513773a3523076a6542a78a856247bab58207eae5a1d80b05b1b83b35dff306127fd35652af83a6a2df03f7031e5457534d94a7b38cb50803bbc55853fac5b8b429d6090468e65964a806b9b4d7470a0516976a654617bab585c80b05bff326228fb3a6a2df1457534e350803bd25b8b42c265964ab370a051a97bab58ff35652afb457534f25b8b42e970a051ff3a6a2dff5b8b42ff457534ff899442ff899442ff8a9543ff8a9543fe8a9645fe8a9645fd8b9746fd8b9746fc8c9848fc8c9848fb8d994afb8d994af98e994bf98e994bf78f9a4df78f9a4df4909b4ff4909b4ff1909c50f1909c50ee919d52ee919d52eb929e54eb929e54e7939f55e7939f55e494a057e494a057e095a059e095a059dc96a15adc96a15ad796a25cd796a25cd397a35dd397a35dce98a45fce98a45fc999a561c999a561c49aa662c49aa662bf9ba764bf9ba764b99ca766b99ca766b49ca867b49ca867ae9da969ae9da969a99eaa6ba99eaa6ba39fab6ca39fab6c9da0ac6e9da0ac6e97a1ad7097a1ad7091a2ae7191a2ae718ba2ae738ba2ae7385a3af7585a3af7580a4b07680a4b0767aa5b1787aa5b17874a6b27a74a6b27a6ea7b37b6ea7b37b68a8b47d68a8b47d62a8b57f62a8b57f5ca9b6805ca9b68056aab68256aab68251abb78451abb7844bacb8854bacb88546adb98746adb98740aeba8940aeba893baebb8a3baebb8a36afbc8c36afbc8c31b0bd8e31b0bd8e2cb1bd8f2cb1bd8f28b2be9128b2be9123b3bf9223b3bf921fb4c0941fb4c0941bb4c1961bb4c19618b5c29718b5c29714b6c39914b6c39911b7c49b11b7c49b0eb8c49c0eb8c49c0bb9c59e0bb9c59e08bac6a008bac6a006bac7a106bac7a104bbc8a304bbc8a303bcc9a503bcc9a502bdcaa602bdcaa601becba801becba800bfcbaa00bfcbaaff899542fe8a9645fc8c9848f98e994bf5909b4ff0919d52ea939f55e395a059db96a25cd398a45fca9aa662c19ca766b79da969ad9fab6ca2a1ad7097a2ae738da4b07682a6b27a77a8b47d6da9b68063abb78459adb98750aebb8a47b0bd8e3eb2be9137b4c09430b5c2972ab7c49b24b9c59e20bac7a11dbcc9a51bbecba8ff8a9543fd8c9848f8909b4ff0939f55e596a25cd99aa662cb9da969bca1ad70aca4b0769da8b47d8eabb78480aebb8a74b2be9169b5c29761b9c59e5cbcc9a5ff8a9645fb909b4ff196a25ce39da969d2a4b076c2abb784b3b2be91a9b9c59eff8c9848fb96a25cf2a4b076e9b2be91ff909b4fffa4b076ff96a25c
-  m_StreamData:
-    offset: 0
-    size: 0
-    path: 
 --- !u!1 &1435152174
 GameObject:
   m_ObjectHideFlags: 0
@@ -879,6 +920,8 @@ GameObject:
   - component: {fileID: 1435152178}
   - component: {fileID: 1435152177}
   - component: {fileID: 1435152176}
+  - component: {fileID: 1435152175}
+  - component: {fileID: 1435152180}
   m_Layer: 8
   m_Name: Sphere
   m_TagString: Untagged
@@ -886,6 +929,21 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!54 &1435152175
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1435152174}
+  serializedVersion: 2
+  m_Mass: 6.58
+  m_Drag: 0.09
+  m_AngularDrag: 0.05
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!23 &1435152176
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -900,7 +958,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 2100000, guid: 95ae2fe406de63a468da3652eca34779, type: 2}
+  - {fileID: 196239400}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -946,12 +1004,23 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1435152174}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 52.57, z: 0}
+  m_LocalPosition: {x: 108.2, y: 31.63, z: 95.7}
   m_LocalScale: {x: 30, y: 30, z: 30}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1435152180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1435152174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01e1794296cd886429fd31447db8c00a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &1509623084
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1186,6 +1255,30 @@ MonoBehaviour:
         outSlope: 0
         tangentMode: 0
       - serializedVersion: 2
+        time: 0.1480071
+        value: 0.46586025
+        inSlope: -0.8973479
+        outSlope: -0.8973479
+        tangentMode: 0
+      - serializedVersion: 2
+        time: 0.28460133
+        value: 0.74718624
+        inSlope: -0.56922436
+        outSlope: -0.56922436
+        tangentMode: 0
+      - serializedVersion: 2
+        time: 0.57938135
+        value: 0.24655433
+        inSlope: -1.437217
+        outSlope: -1.437217
+        tangentMode: 0
+      - serializedVersion: 2
+        time: 0.7372567
+        value: 0.43987644
+        inSlope: -0.6017089
+        outSlope: -0.6017089
+        tangentMode: 0
+      - serializedVersion: 2
         time: 1
         value: 0
         inSlope: 0
@@ -1202,6 +1295,30 @@ MonoBehaviour:
         value: 1
         inSlope: 0
         outSlope: 0
+        tangentMode: 0
+      - serializedVersion: 2
+        time: 0.1480071
+        value: 0.46586025
+        inSlope: -0.8973479
+        outSlope: -0.8973479
+        tangentMode: 0
+      - serializedVersion: 2
+        time: 0.28460133
+        value: 0.74718624
+        inSlope: -0.56922436
+        outSlope: -0.56922436
+        tangentMode: 0
+      - serializedVersion: 2
+        time: 0.57938135
+        value: 0.24655433
+        inSlope: -1.437217
+        outSlope: -1.437217
+        tangentMode: 0
+      - serializedVersion: 2
+        time: 0.7372567
+        value: 0.43987644
+        inSlope: -0.6017089
+        outSlope: -0.6017089
         tangentMode: 0
       - serializedVersion: 2
         time: 1
@@ -1250,18 +1367,18 @@ MonoBehaviour:
       m_RotationOrder: 0
     LeftColorGradient:
       serializedVersion: 2
-      key0: {r: 0.53610843, g: 0.5808823, b: 0.2562716, a: 1}
-      key1: {r: 0.751399, g: 0.8014706, b: 0.67182094, a: 1}
-      key2: {r: 0, g: 0, b: 0, a: 0}
-      key3: {r: 0, g: 0, b: 0, a: 0}
+      key0: {r: 0.1847617, g: 0.375, b: 0.14889707, a: 1}
+      key1: {r: 0.29925847, g: 0.48876882, b: 0.22405794, a: 1}
+      key2: {r: 0.37198138, g: 0.5610294, b: 0.27179658, a: 0}
+      key3: {r: 0.4829027, g: 0.6712456, b: 0.34461042, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
       key5: {r: 0, g: 0, b: 0, a: 0}
       key6: {r: 0, g: 0, b: 0, a: 0}
       key7: {r: 0, g: 0, b: 0, a: 0}
       ctime0: 0
-      ctime1: 65535
-      ctime2: 0
-      ctime3: 0
+      ctime1: 12336
+      ctime2: 46646
+      ctime3: 65535
       ctime4: 0
       ctime5: 0
       ctime6: 0
@@ -1275,22 +1392,22 @@ MonoBehaviour:
       atime6: 0
       atime7: 0
       m_Mode: 0
-      m_NumColorKeys: 2
+      m_NumColorKeys: 4
       m_NumAlphaKeys: 2
     RightColorGradient:
       serializedVersion: 2
-      key0: {r: 0.53610843, g: 0.5808823, b: 0.2562716, a: 1}
-      key1: {r: 0.751399, g: 0.8014706, b: 0.67182094, a: 1}
-      key2: {r: 0, g: 0, b: 0, a: 0}
-      key3: {r: 0, g: 0, b: 0, a: 0}
+      key0: {r: 0.1847617, g: 0.375, b: 0.14889707, a: 1}
+      key1: {r: 0.29925847, g: 0.48876882, b: 0.22405794, a: 1}
+      key2: {r: 0.37198138, g: 0.5610294, b: 0.27179658, a: 0}
+      key3: {r: 0.4829027, g: 0.6712456, b: 0.34461042, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
       key5: {r: 0, g: 0, b: 0, a: 0}
       key6: {r: 0, g: 0, b: 0, a: 0}
       key7: {r: 0, g: 0, b: 0, a: 0}
       ctime0: 0
-      ctime1: 65535
-      ctime2: 0
-      ctime3: 0
+      ctime1: 12336
+      ctime2: 46646
+      ctime3: 65535
       ctime4: 0
       ctime5: 0
       ctime6: 0
@@ -1304,7 +1421,7 @@ MonoBehaviour:
       atime6: 0
       atime7: 0
       m_Mode: 0
-      m_NumColorKeys: 2
+      m_NumColorKeys: 4
       m_NumAlphaKeys: 2
 --- !u!1 &1804307593
 GameObject:
@@ -1400,7 +1517,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1804307593}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 160.7, y: 23.78, z: 84.1}
+  m_LocalPosition: {x: 160.7, y: 39.8, z: 84.1}
   m_LocalScale: {x: 3, y: 3, z: 3}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1417,7 +1534,7 @@ GameObject:
   - component: {fileID: 1870263205}
   - component: {fileID: 1870263204}
   - component: {fileID: 1870263203}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1484,12 +1601,45 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1870263202}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 65.94, y: 23.38, z: 15}
+  m_LocalPosition: {x: 69.95, y: 21.046, z: 0.152}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!187 &1935453674
+Texture2DArray:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_Name: BladeTextures
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_ForcedFallbackFormat: 4
+  m_DownscaleFallback: 0
+  m_Width: 2
+  m_Height: 64
+  m_Depth: 2
+  m_Format: 4
+  m_MipCount: 7
+  m_DataSize: 1528
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 2
+    m_Aniso: 0
+    m_MipBias: -0.5
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_ColorSpace: 0
+  m_IsReadable: 1
+  image data: 1528
+  _typelessdata: ff2f6026ff2f6026ff306127ff306127fe326228fe326228fd336429fd336429fc35652afc35652afb36662afb36662af937682bf937682bf739692cf739692cf43a6a2df43a6a2df13b6c2ef13b6c2eee3d6d2fee3d6d2feb3e6e30eb3e6e30e73f7031e73f7031e4417132e4417132e0427232e0427232dc437433dc437433d7457534d7457534d3467735d3467735ce487836ce487836c9497937c9497937c44a7b38c44a7b38bf4c7c39bf4c7c39b94d7d3ab94d7d3ab44e7f3ab44e7f3aae50803bae50803ba951813ca951813ca352833da352833d9d54843e9d54843e9755853f9755853f91568740915687408b5888418b5888418559894285598942805b8b42805b8b427a5c8c437a5c8c43745d8d44745d8d446e5f8f456e5f8f45686090466860904662619147626191475c6393485c63934856649449566494495165964a5165964a4b67974a4b67974a4668984b4668984b40699a4c40699a4c3b6b9b4d3b6b9b4d366c9c4e366c9c4e316e9e4f316e9e4f2c6f9f502c6f9f502870a0512870a0512372a2522372a2521f73a3521f73a3521b74a4531b74a4531876a6541876a6541477a7551477a7551178a8561178a8560e7aaa570e7aaa570b7bab580b7bab58087cac59087cac59067eae5a067eae5a047faf5a047faf5a0380b05b0380b05b0282b25c0282b25c0183b35d0183b35d0085b55e0085b55eff306026fe326228fc35652af937682bf53a6a2df03d6d2fea3f7031e3427232db457534d3487836ca4a7b38c14d7d3ab750803bad52833da255853f975888418d5b8b42825d8d44776090466d6393486365964a5968984b506b9b4d476e9e4f3e70a0513773a3523076a6542a78a856247bab58207eae5a1d80b05b1b83b35dff306127fd35652af83a6a2df03f7031e5457534d94a7b38cb50803bbc55853fac5b8b429d6090468e65964a806b9b4d7470a0516976a654617bab585c80b05bff326228fb3a6a2df1457534e350803bd25b8b42c265964ab370a051a97bab58ff35652afb457534f25b8b42e970a051ff3a6a2dff5b8b42ff457534ff306026ff306026fb326228fb326228f1346429f1346429e136672be136672bce39692cce39692cba3b6c2eba3b6c2ea53e6e30a53e6e309340703193407031834373338343733379457534794575347647783676477836794a7a37794a7a37824c7c39824c7c398e4d7d398e4d7d399b4d7e3a9b4d7e3aa94e7e3aa94e7e3ab44e7f3bb44e7f3bbc4f7f3bbc4f7f3bbf50803bbf50803bbc50803cbc50803cb951813cb951813cb451823cb451823caf52823daf52823da952833da952833da353833da353833d9c53843e9c53843e9454843e9454843e8c55853f8c55853f8455853f8455853f7c56863f7c56863f73568740735687406b5787406b57874063578840635788405b5888415b58884153588941535889414c5989414c598941455a8a42455a8a423f5a8a423f5a8a423c5b8b433c5b8b433d5b8b433d5b8b43425c8c43425c8c43495c8d44495c8d44525d8d44525d8d445b5d8e445b5d8e44645e8e45645e8e456b5f8f456b5f8f45706090467060904671619147716191476e6393486e63934869649449696494496366964a6366964a5c67974b5c67974b5469994c5469994c4b6a9a4d4b6a9a4d426c9c4e426c9c4e396d9d4f396d9d4f2f6f9f502f6f9f502670a1512670a1511d72a2521d72a2521573a4531573a4530e75a5540e75a5540877a7550877a7550478a8560478a856017aaa57017aaa57ff306127f2346429d339692caf3e6e3090437333844778368f4b7c38a64d7e3abc4e7f3bc650803bc051813cb752823dac53833d9f54843e9155853f825687407357884065588941595a8a42505b8b43565c8c43645d8d44745e8e457f6090467d6393487366964a6669994c566c9c4e456f9f503572a2522775a5541e78a856ff326228df39692caf437333ae4a7b38cf4e7f3bd251813cc353833daf55853f9a578840875a8a42845c8c439b5e8f45a16393489069994c786f9f506375a554ff346429d3427232e54e7e3ade53833dc8578840bc5c8c43cc649448b66f9f50ff38692cf74a7b38ef578840f065964aff3d6d2fff588841ff437433
+  m_StreamData:
+    offset: 0
+    size: 0
+    path: 
 --- !u!114 &2049119439
 MonoBehaviour:
   m_ObjectHideFlags: 0

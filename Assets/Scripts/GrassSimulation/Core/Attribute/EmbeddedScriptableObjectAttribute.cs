@@ -1,5 +1,4 @@
 ﻿using System;
-using UnityEditor;
 using UnityEngine;
 
 namespace GrassSimulation.Core.Attribute
@@ -14,10 +13,6 @@ namespace GrassSimulation.Core.Attribute
 		
 		public EmbeddedScriptableObjectAttribute()
 		{
-			Style = new GUIStyle(EditorStyles.foldout)
-			{
-				fontStyle = OverlapTitle ? FontStyle.Normal : FontStyle.Bold
-			};
 		}
 
 		public EmbeddedScriptableObjectAttribute(bool foldout) : this()

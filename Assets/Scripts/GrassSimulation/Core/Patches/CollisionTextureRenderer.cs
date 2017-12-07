@@ -13,10 +13,10 @@ namespace GrassSimulation.Core.Patches
 			//Init Collision Camera
 			CollisionDepthTexture = new RenderTexture(Ctx.Settings.CollisionDepthResolution,
 				Ctx.Settings.CollisionDepthResolution, 0,
-				RenderTextureFormat.Depth, RenderTextureReadWrite.Linear)
+				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
 			{
 				wrapMode = TextureWrapMode.Clamp,
-				depth = 32,
+				depth = 0,
 				filterMode = FilterMode.Bilinear
 			};
 			CollisionDepthTexture.Create();

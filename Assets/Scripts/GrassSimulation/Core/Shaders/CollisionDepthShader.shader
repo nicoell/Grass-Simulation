@@ -10,6 +10,8 @@
             #pragma fragment frag
             
             #include "UnityCG.cginc"
+            
+            uniform float3 collisionVelocity;
 
             struct VSOut
             {
@@ -25,7 +27,7 @@
             
             fixed4 frag (VSOut IN) : SV_Target
             {
-                return fixed4(1, 1, 1, 1);
+                return fixed4(collisionVelocity.xyz, IN.vertex.z);
             }
             ENDCG
         }
