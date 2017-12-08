@@ -11,7 +11,7 @@ public class GrassCollisionController : MonoBehaviour
 	private Rigidbody _rigidbody;
 	
 	// Use this for initialization
-	void Start()
+	void Awake()
 	{
 		_renderer = GetComponent<Renderer>();
 		_rigidbody = GetComponent<Rigidbody>();

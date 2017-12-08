@@ -195,7 +195,8 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (cPressureAtV2 < 0)
     {
         dataDirty = true;
-        v2.xz += cDataAtV2.xz;
+        float3 projVelocityAtV2 = cDataAtV2.xyz * bendingFactor * mdt;
+        v2.xz += projVelocityAtV2.xz;
         v2.y += cPressureAtV2 * CollisionVolumeSize.y;
     }
     //Test collision with beziers midPoint
@@ -205,7 +206,8 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (cPressureAtMidPoint < 0)
     {
         dataDirty = true;
-        v2.xz += cDataAtMidPoint.xz;
+        float3 projVelocityAtMidPoint = cDataAtMidPoint.xyz * bendingFactor * mdt;
+        v2.xz += projVelocityAtMidPoint.xz;
         v2.y += cPressureAtMidPoint * CollisionVolumeSize.y * 4.0;
     }
     
