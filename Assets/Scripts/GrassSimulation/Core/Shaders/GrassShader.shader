@@ -22,6 +22,9 @@ Shader "GrassSimulation/GrassShader"
 			#include "GrassSimulation.cginc"
 			#include "GrassShaderStageAttributes.cginc"
 			#include "UnityCG.cginc"
+			
+			static const float PI = 3.141592;
+			static const float PI_2_3 = 2.094394;
 
             struct UvData { float2 Position; };
             
@@ -104,10 +107,14 @@ Shader "GrassSimulation/GrassShader"
 			VSOut vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 			{
 				VSOut OUT;
+				
 				OUT.vertexID = vertexID;
 				OUT.instanceID = instanceID;
+				#ifdef GRASS_BILLBOARD_CROSSED
+				OUT.uvLocal = UvBuffer[StartIndex + VertexCount * instanceID + (vertexID % VertexCount)].Position;
+				#else
 				OUT.uvLocal = UvBuffer[StartIndex + VertexCount * instanceID + vertexID].Position;
-
+                #endif
 				return OUT;
 			}
 			
@@ -196,7 +203,13 @@ Shader "GrassSimulation/GrassShader"
         		float3 camDir = normalize(OUT.pos - CamPos);
         		float3 right = cross(camDir, CamUp.xyz);
         		OUT.bladeDir = normalize(cross(OUT.bladeUp, camDir));
-        		#else
+        		#elif GRASS_BILLBOARD_CROSSED
+        		float dirAlpha = OUT.parameters.w + PI_2_3 * floor(IN[0].vertexID / VertexCount);
+        		float sd = sin(dirAlpha);
+                float cd = cos(dirAlpha); 
+                float3 tmp = normalize(float3(sd, sd + cd, cd));
+               	OUT.bladeDir = normalize(cross(OUT.bladeUp, tmp));
+        		#elif GRASS_GEOMETRY
         		float dirAlpha = OUT.parameters.w;
         		float sd = sin(dirAlpha);
                 float cd = cos(dirAlpha); 

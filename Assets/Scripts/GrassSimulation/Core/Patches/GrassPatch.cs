@@ -39,6 +39,7 @@ namespace GrassSimulation.Core.Patches
 		private readonly int _startIndex;
 		private bool _applyTransition;
 		private Mesh _dummyMesh;
+		private Mesh _dummyMeshBillboardCrossed;
 		private Bounds _inputBounds;
 		private Texture2D _normalHeightTexture;
 
@@ -93,7 +94,7 @@ namespace GrassSimulation.Core.Patches
 
 			_argsBillboardCrossedBuffer =
 				new ComputeBuffer(1, _argsBillboardCrossed.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-			_argsBillboardCrossed[0] = Ctx.Settings.GetMinAmountBillboardsPerPatch(); //Vertex Count
+			_argsBillboardCrossed[0] = Ctx.Settings.GetMinAmountBillboardsPerPatch() * 3; //Vertex Count
 			_argsBillboardCrossed[1] = 1; //Instance Count
 			_argsBillboardCrossedBuffer.SetData(_argsBillboardCrossed);
 
@@ -106,6 +107,7 @@ namespace GrassSimulation.Core.Patches
 			
 			CreateGrassDataTexture();
 			CreateDummyMesh();
+			CreateDummyMeshBillboardCrossed();
 			SetupMaterialPropertyBlock();
 		}
 
@@ -130,7 +132,7 @@ namespace GrassSimulation.Core.Patches
 					_materialPropertyBlock);
 
 			if (_argsBillboardCrossed[1] > 0)
-				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBillboardCrossed, Bounds, _argsBillboardCrossedBuffer, 0,
+				Graphics.DrawMeshInstancedIndirect(_dummyMeshBillboardCrossed, 0, Ctx.GrassBillboardCrossed, Bounds, _argsBillboardCrossedBuffer, 0,
 					_materialPropertyBlock);
 
 			if (_argsBillboardScreen[1] > 0)
@@ -174,39 +176,6 @@ namespace GrassSimulation.Core.Patches
 			var t1 = Mathf.Clamp01((cur - peak) / (end - peak));
 			return value - (Mathf.LerpUnclamped(value, 0, t0) + Mathf.LerpUnclamped(0, value, t1));
 		}
-
-		private float MultiSampleHeight(Vector2 sampleLoc)
-		{
-			float output = 0;
-			var count = 0;
-
-			for (var y = 0f; y <= _sampleSize.y; y += _sampleStep.y)
-			for (var x = 0f; x <= _sampleSize.x; x += _sampleStep.x)
-			{
-				output += Ctx.HeightInput.GetHeight(Mathf.Clamp01(sampleLoc.x + x), Mathf.Clamp01(sampleLoc.y + y));
-				count++;
-			}
-			return output / count;
-		}
-
-		private Vector3 MultiSampleNormal(Vector2 sampleLoc)
-		{
-			var output = new Vector3(0, 0, 0);
-			var count = 0;
-
-			for (var y = Mathf.Clamp01(sampleLoc.y - _sampleSize.y);
-				y < Mathf.Clamp01(sampleLoc.y + _sampleSize.y);
-				y += _sampleStep.y)
-			for (var x = Mathf.Clamp01(sampleLoc.x - _sampleSize.x);
-				x < Mathf.Clamp01(sampleLoc.x + _sampleSize.x);
-				x += _sampleStep.x)
-			{
-				output += Ctx.NormalInput.GetNormal(x, y);
-				count++;
-			}
-			return output / count;
-		}
-
 		private void CreateGrassDataTexture()
 		{
 			_normalHeightTexture = new Texture2D(Ctx.Settings.GetPerPatchTextureWidthHeight(),
@@ -237,9 +206,7 @@ namespace GrassSimulation.Core.Patches
 					uvGlobal.x = Mathf.Clamp(Mathf.LerpUnclamped(_patchTexCoord.x, _patchTexCoord.x + _patchTexCoord.z, uvLocal.x), 0, 1f);
 					
 					var posY = Ctx.HeightInput.GetHeight(uvGlobal.x, uvGlobal.y);
-					//var posY = MultiSampleHeight(bladePosition);
 					var up = Ctx.NormalInput.GetNormal(uvGlobal.x, uvGlobal.y);
-					//var up = MultiSampleNormal(bladePosition);
 
 					textureData[i] = new Color(up.x, up.y, up.z, posY);
 					i++;
@@ -282,6 +249,23 @@ namespace GrassSimulation.Core.Patches
 			_dummyMesh = new Mesh {vertices = dummyVertices};
 			_dummyMesh.SetIndices(indices, MeshTopology.Points, 0);
 			_dummyMesh.RecalculateBounds();
+		}
+		
+		private void CreateDummyMeshBillboardCrossed()
+		{
+			var dummyMeshSize = Ctx.Settings.GetMinAmountBladesPerPatch() * 3;
+			var dummyVertices = new Vector3[dummyMeshSize];
+			var indices = new int[dummyMeshSize];
+
+			for (var i = 0; i < dummyMeshSize; i++)
+			{
+				dummyVertices[i] = Vector3.zero;
+				indices[i] = i;
+			}
+
+			_dummyMeshBillboardCrossed = new Mesh {vertices = dummyVertices};
+			_dummyMeshBillboardCrossed.SetIndices(indices, MeshTopology.Points, 0);
+			_dummyMeshBillboardCrossed.RecalculateBounds();
 		}
 
 		private void SetupMaterialPropertyBlock()
