@@ -25,7 +25,6 @@ namespace GrassSimulation.Core.Patches
 		private readonly uint[] _argsBillboardScreen = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsBillboardScreenBuffer;
 		private readonly uint[] _argsGeometry = {0, 0, 0, 0, 0};
-
 		private readonly ComputeBuffer _argsGeometryBuffer;
 
 		//private readonly Bounds.BoundsVertices _boundsVertices;
@@ -77,8 +76,8 @@ namespace GrassSimulation.Core.Patches
 			_startIndex = Ctx.Random.Next(0,
 				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.GetMaxAmountBladesPerPatch()));
 			_materialPropertyBlock = new MaterialPropertyBlock();
-			_parameterOffsetX = (float) Ctx.Random.NextDouble(); // * Ctx.Settings.InstancedGrassFactor);
-			_parameterOffsetY = (float) Ctx.Random.NextDouble(); // * Ctx.Settings.InstancedGrassFactor);
+			_parameterOffsetX = (float) Ctx.Random.NextDouble();
+			_parameterOffsetY = (float) Ctx.Random.NextDouble();
 
 			_patchModelMatrix = Matrix4x4.TRS(
 				new Vector3(bounds.center.x - bounds.extents.x, Ctx.Transform.position.y, bounds.center.z - bounds.extents.z),
@@ -129,7 +128,8 @@ namespace GrassSimulation.Core.Patches
 
 			if (_argsGeometry[1] > 0)
 				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0,
-					_materialPropertyBlock);
+					_materialPropertyBlock); /*TODO: Only draw with active camera ... not good for editor
+					, ShadowCastingMode.Off, false, 0, Ctx.Camera*/
 
 			if (_argsBillboardCrossed[1] > 0)
 				Graphics.DrawMeshInstancedIndirect(_dummyMeshBillboardCrossed, 0, Ctx.GrassBillboardCrossed, Bounds, _argsBillboardCrossedBuffer, 0,
@@ -253,7 +253,7 @@ namespace GrassSimulation.Core.Patches
 		
 		private void CreateDummyMeshBillboardCrossed()
 		{
-			var dummyMeshSize = Ctx.Settings.GetMinAmountBladesPerPatch() * 3;
+			var dummyMeshSize = Ctx.Settings.GetMinAmountBillboardsPerPatch() * 3;
 			var dummyVertices = new Vector3[dummyMeshSize];
 			var indices = new int[dummyMeshSize];
 

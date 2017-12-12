@@ -19,19 +19,20 @@ namespace GrassSimulation.Core
 		public float BladeMinWidth = 0.1f;
 		[Range(0, 6)]
 		public float BladeTextureMaxMipmapLevel = 5;
+
+		public uint BillboardTextureGrassCount = 64;
 		
 		[Header("Physics Settings")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
 
-		[Header("GrassMap Settings")]
+		[Header("Texture Resolutions")]
 		//TODO: Handle width and height seperately for non-quad containers
 		public int GrassMapResolution = 256;
 		public int CollisionDepthResolution = 512;
+		public int GrassDataResolution = 16;
 		
 		[Header("LOD Settings")]
-		public int GrassDataResolution = 16;
 		public bool GrassDataTrilinearFiltering = true;
-		//public int GrassDataMultisamplingLevel = 0;
 		[Tooltip("The width and depth of a patch.")]
 		public uint PatchSize = 8;
 
@@ -54,21 +55,6 @@ namespace GrassSimulation.Core
 		public float LodDistanceBillboardScreenStart = 250;		
 		public float LodDistanceBillboardScreenPeak = 300;		
 		public float LodDistanceBillboardScreenEnd = 400;
-
-		/*
-		[Tooltip("There are max (PatchSize * PatchSize * GrassDensity) Blades per Patch.")]
-		public uint LodDensityFullDetailDistance = 8;
-		public uint LodDensityBillboardDistance = 2;
-		public uint LodDensityMaxDistance = 1;
-		
-		[Tooltip("The max range grass will be rendered.")]
-		public float LodDistanceMax = 1000f;
-		[Tooltip("The distance billboard grass will be used over single blades. Up to this distance the density will be scaled down to 1.")]
-		public float LodDistanceBillboard = 500f;
-		public float LodDistanceMaxGeoemetry = 600f;
-		[Tooltip("The distance up to which grass will be rendered in full detail.")]
-		public float LodDistanceFullDetail = 50f;
-		*/
 
 		public bool EnableHeightTransition = true;
 

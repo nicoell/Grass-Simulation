@@ -54,10 +54,6 @@ Shader "GrassSimulation/GrassShader"
             Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
             SamplerState samplerParameterTexture;
 			StructuredBuffer<UvData> UvBuffer;	// pos.x 		pos.z
-            
-            //PerFrame
-            uniform float4 CamPos;
-            uniform float4 CamUp;
 			
 			//PerPatch
             uniform float4x4 PatchModelMatrix;
@@ -70,7 +66,11 @@ Shader "GrassSimulation/GrassShader"
 			SamplerState samplerNormalHeightTexture;
 			Texture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
 			SamplerState samplerSimulationTexture;
-
+            
+            //PerFrame
+            uniform float4 CamPos;
+            uniform float4 CamUp;
+            
 			float GetTessellationLevel(float distance, uint instanceID, float2 uv){
                 float transition = 0;
                 #ifdef GRASS_BILLBOARD_CROSSED
@@ -86,21 +86,16 @@ Shader "GrassSimulation/GrassShader"
                 
                 uint transitionInstanceID = floor(transition);
             
-                #ifdef GRASS_BILLBOARD_CROSSED
-                    if (instanceID > transitionInstanceID){
-                        return 0;
-                    }
-                    return 1.0;
-                #elif GRASS_BILLBOARD_SCREEN
-                    if (instanceID > transitionInstanceID){
-                        return 0;
-                    }
-                    return 1.0;
-                #elif GRASS_GEOMETRY
+                #ifdef GRASS_GEOMETRY
                     if (instanceID > transitionInstanceID){
                         return 0;
                     }
                     return SimulationTexture.SampleLevel(samplerSimulationTexture, float3(uv, 0), 0).w;
+                #else
+                    if (instanceID > transitionInstanceID){
+                        return 0;
+                    }
+                    return 1.0;
                 #endif
             }
 			

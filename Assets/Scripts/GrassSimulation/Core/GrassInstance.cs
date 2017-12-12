@@ -7,24 +7,13 @@ namespace GrassSimulation.Core
 		public Vector2 Position;
 	}
 
-	public class GrassInstance : ContextRequirement, IInitializable
+	public class GrassInstance : ContextRequirement
 	{
 		public Texture2D GrassMapTexture;
 		public Texture2D ParameterTexture;
 		public ComputeBuffer UvBuffer;
 
 		public GrassInstance(SimulationContext ctx) : base(ctx)
-		{
-		}
-
-		public UvData[] UvData { get; private set; }
-
-		public void Destroy()
-		{
-			UvBuffer.Release();
-		}
-
-		public bool Init()
 		{
 			//Create and fill UvData
 			UvData = new UvData[Ctx.Settings.GetSharedBufferLength()];
@@ -84,8 +73,13 @@ namespace GrassSimulation.Core
 			Ctx.GrassBillboardScreen.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);
+		}
 
-			return true;
+		public UvData[] UvData { get; private set; }
+
+		public void Destroy()
+		{
+			UvBuffer.Release();
 		}
 	}
 }

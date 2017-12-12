@@ -11,9 +11,6 @@ namespace GrassSimulation.Core
 	[Serializable]
 	public class SimulationContext : ScriptableObject
 	{
-		[NonSerialized]
-		public GameObject Parent;
-		
 		[Header("Requirements")]
 		public Transform Transform;
 		public Camera Camera;
@@ -21,6 +18,9 @@ namespace GrassSimulation.Core
 		public Shader CollisionDepthShader;
 		[HideInInspector]
 		public CollisionTextureRenderer CollisionTextureRenderer;
+
+		public Shader GrassSimulationShader;
+		[NonSerialized]
 		public Material GrassGeometry;
 		[NonSerialized]
 		public Material GrassBillboardCrossed;
@@ -117,9 +117,8 @@ namespace GrassSimulation.Core
 				PatchContainer = Activator.CreateInstance(PatchContainerType) as PatchContainer;
 		}
 
-		public bool Init(GameObject parent)
+		public bool Init()
 		{
-			Parent = parent;
 			if (Settings == null)
 			{
 				Settings = new SimulationSettings();
@@ -131,7 +130,7 @@ namespace GrassSimulation.Core
 			BladeContainer.Init(this);
 			BladeTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(0);
 			BladeTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(1);
-			if (!Transform || !Camera || !CollisionCamera || !GrassSimulationComputeShader || !CollisionDepthShader || !GrassGeometry || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
+			if (!Transform || !Camera || !CollisionCamera || !GrassSimulationComputeShader || !CollisionDepthShader || !GrassSimulationShader || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
 				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
@@ -139,7 +138,7 @@ namespace GrassSimulation.Core
 				if (!CollisionCamera) Debug.Log("GrassSimulation: Could not find Camera on GameObject with Tag GrassSimulationCollisionCamera");
 				if (!GrassSimulationComputeShader) Debug.Log("GrassSimulation: GrassSimulationComputeShader not set.");
 				if (!CollisionDepthShader) Debug.Log("GrassSimulation: CollisionDepthShader not set.");
-				if (!GrassGeometry) Debug.Log("GrassSimulation: Material not set.");
+				if (!GrassSimulationShader) Debug.Log("GrassSimulation: GrassSimulationShader not set.");
 				if (!DimensionsInput) Debug.Log("GrassSimulation: DimensionsInput not set.");
 				if (!GrassMapInput) Debug.Log("GrassSimulation: GrassMapInput not set.");
 				if (!HeightInput) Debug.Log("GrassSimulation: HeightInput not set.");
@@ -150,8 +149,6 @@ namespace GrassSimulation.Core
 				IsReady = false;
 				return false;
 			}
-
-			//BladeContainer = new BladeContainer();
 			
 			//Create a single random object
 			Random = new Random(Settings.RandomSeed);
@@ -160,6 +157,7 @@ namespace GrassSimulation.Core
 			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
 			KernelSimulationSetup =  GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
 			
+			GrassGeometry = new Material(GrassSimulationShader);
 			GrassBillboardCrossed = new Material(GrassGeometry);
 			GrassBillboardScreen = new Material(GrassGeometry);
 
@@ -200,20 +198,50 @@ namespace GrassSimulation.Core
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
 			GrassSimulationComputeShader.SetVector("NormalHeightUvCorrection", normalHeightUvCorrectionMinMax);
 			
-			Shader.SetGlobalFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
-			Shader.SetGlobalFloat("LodTessellationMax", Settings.LodTessellationMax);
-			Shader.SetGlobalFloat("LodInstancesGeometry", Settings.LodInstancesGeometry);
-			Shader.SetGlobalFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);
-			Shader.SetGlobalFloat("LodInstancesBillboardScreen", Settings.LodInstancesBillboardScreen);
-			Shader.SetGlobalFloat("LodDistanceGeometryStart", Settings.LodDistanceGeometryStart);
-			Shader.SetGlobalFloat("LodDistanceGeometryPeak", Settings.LodDistanceGeometryPeak);
-			Shader.SetGlobalFloat("LodDistanceGeometryEnd", Settings.LodDistanceGeometryEnd);
-			Shader.SetGlobalFloat("LodDistanceBillboardCrossedStart", Settings.LodDistanceBillboardCrossedStart);
-			Shader.SetGlobalFloat("LodDistanceBillboardCrossedPeak", Settings.LodDistanceBillboardCrossedPeak);
-			Shader.SetGlobalFloat("LodDistanceBillboardCrossedEnd", Settings.LodDistanceBillboardCrossedEnd);
-			Shader.SetGlobalFloat("LodDistanceBillboardScreenStart", Settings.LodDistanceBillboardScreenStart);
-			Shader.SetGlobalFloat("LodDistanceBillboardScreenPeak", Settings.LodDistanceBillboardScreenPeak);
-			Shader.SetGlobalFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
+			GrassGeometry.SetFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
+			GrassGeometry.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
+			GrassGeometry.SetFloat("LodInstancesGeometry", Settings.LodInstancesGeometry);
+			GrassGeometry.SetFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);
+			GrassGeometry.SetFloat("LodInstancesBillboardScreen", Settings.LodInstancesBillboardScreen);
+			GrassGeometry.SetFloat("LodDistanceGeometryStart", Settings.LodDistanceGeometryStart);
+			GrassGeometry.SetFloat("LodDistanceGeometryPeak", Settings.LodDistanceGeometryPeak);
+			GrassGeometry.SetFloat("LodDistanceGeometryEnd", Settings.LodDistanceGeometryEnd);
+			GrassGeometry.SetFloat("LodDistanceBillboardCrossedStart", Settings.LodDistanceBillboardCrossedStart);
+			GrassGeometry.SetFloat("LodDistanceBillboardCrossedPeak", Settings.LodDistanceBillboardCrossedPeak);
+			GrassGeometry.SetFloat("LodDistanceBillboardCrossedEnd", Settings.LodDistanceBillboardCrossedEnd);
+			GrassGeometry.SetFloat("LodDistanceBillboardScreenStart", Settings.LodDistanceBillboardScreenStart);
+			GrassGeometry.SetFloat("LodDistanceBillboardScreenPeak", Settings.LodDistanceBillboardScreenPeak);
+			GrassGeometry.SetFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
+			
+			GrassBillboardCrossed.SetFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
+			GrassBillboardCrossed.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
+			GrassBillboardCrossed.SetFloat("LodInstancesGeometry", Settings.LodInstancesGeometry);
+			GrassBillboardCrossed.SetFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);
+			GrassBillboardCrossed.SetFloat("LodInstancesBillboardScreen", Settings.LodInstancesBillboardScreen);
+			GrassBillboardCrossed.SetFloat("LodDistanceGeometryStart", Settings.LodDistanceGeometryStart);
+			GrassBillboardCrossed.SetFloat("LodDistanceGeometryPeak", Settings.LodDistanceGeometryPeak);
+			GrassBillboardCrossed.SetFloat("LodDistanceGeometryEnd", Settings.LodDistanceGeometryEnd);
+			GrassBillboardCrossed.SetFloat("LodDistanceBillboardCrossedStart", Settings.LodDistanceBillboardCrossedStart);
+			GrassBillboardCrossed.SetFloat("LodDistanceBillboardCrossedPeak", Settings.LodDistanceBillboardCrossedPeak);
+			GrassBillboardCrossed.SetFloat("LodDistanceBillboardCrossedEnd", Settings.LodDistanceBillboardCrossedEnd);
+			GrassBillboardCrossed.SetFloat("LodDistanceBillboardScreenStart", Settings.LodDistanceBillboardScreenStart);
+			GrassBillboardCrossed.SetFloat("LodDistanceBillboardScreenPeak", Settings.LodDistanceBillboardScreenPeak);
+			GrassBillboardCrossed.SetFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
+			
+			GrassBillboardScreen.SetFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
+			GrassBillboardScreen.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
+			GrassBillboardScreen.SetFloat("LodInstancesGeometry", Settings.LodInstancesGeometry);
+			GrassBillboardScreen.SetFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);
+			GrassBillboardScreen.SetFloat("LodInstancesBillboardScreen", Settings.LodInstancesBillboardScreen);
+			GrassBillboardScreen.SetFloat("LodDistanceGeometryStart", Settings.LodDistanceGeometryStart);
+			GrassBillboardScreen.SetFloat("LodDistanceGeometryPeak", Settings.LodDistanceGeometryPeak);
+			GrassBillboardScreen.SetFloat("LodDistanceGeometryEnd", Settings.LodDistanceGeometryEnd);
+			GrassBillboardScreen.SetFloat("LodDistanceBillboardCrossedStart", Settings.LodDistanceBillboardCrossedStart);
+			GrassBillboardScreen.SetFloat("LodDistanceBillboardCrossedPeak", Settings.LodDistanceBillboardCrossedPeak);
+			GrassBillboardScreen.SetFloat("LodDistanceBillboardCrossedEnd", Settings.LodDistanceBillboardCrossedEnd);
+			GrassBillboardScreen.SetFloat("LodDistanceBillboardScreenStart", Settings.LodDistanceBillboardScreenStart);
+			GrassBillboardScreen.SetFloat("LodDistanceBillboardScreenPeak", Settings.LodDistanceBillboardScreenPeak);
+			GrassBillboardScreen.SetFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
 			
 			//If possible initialize the Data Providers
 			if (DimensionsInput is IInitializableWithCtx) ((IInitializableWithCtx) DimensionsInput).Init(this);
@@ -230,14 +258,9 @@ namespace GrassSimulation.Core
 			
 			if (PositionInput is IInitializableWithCtx) ((IInitializableWithCtx) PositionInput).Init(this);
 			else if (PositionInput is IInitializable) ((IInitializable) PositionInput).Init();
-			
-			
 
 			//TODO: Use same setup pattern for all classes
-			
-			
 			GrassInstance = new GrassInstance(this);
-			GrassInstance.Init();
 			
 			PatchContainer.Init(this);
 			PatchContainer.SetupContainer();
