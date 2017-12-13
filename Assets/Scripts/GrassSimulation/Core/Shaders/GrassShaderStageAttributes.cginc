@@ -30,12 +30,14 @@ struct DSOut
 {
     float4 pos : SV_POSITION;
     float4 color : COLOR0;
+    float3 uvw : TEXCOORD0;
 };
 
 struct FSIn
 {
     float4 pos : SV_POSITION;
     float4 color : COLOR0;
+    float3 uvw : TEXCOORD0;
 };
 
 #endif //GRASS_SIMULATION_ATTRIBUTES_INCLUDED

@@ -1,5 +1,10 @@
 Shader "GrassSimulation/GrassShader"
 {
+    Properties{
+    [HideInInspector] _SrcBlend ("__src", Float) = 1.0
+    [HideInInspector] _DstBlend ("__dst", Float) = 0.0
+    [HideInInspector] _ZWrite ("__zw", Float) = 1.0
+    }
 	SubShader
 	{
 		Tags { "RenderType" = "GrassSimulation" }
@@ -7,6 +12,8 @@ Shader "GrassSimulation/GrassShader"
 		{
 		    Fog{Mode off}
 		    Cull Off
+		    Blend [_SrcBlend] [_DstBlend]
+            ZWrite [_ZWrite]
 			CGPROGRAM
 			
 			#pragma target 5.0
@@ -18,6 +25,7 @@ Shader "GrassSimulation/GrassShader"
 			#pragma fragment frag
 			// Create three shader variants for geometry grass, billboard crossed grass and billboard screen faced grass
 			#pragma multi_compile GRASS_BILLBOARD_CROSSED GRASS_BILLBOARD_SCREEN GRASS_GEOMETRY
+			#pragma multi_compile __ BILLBOARD_GENERATION
 			
 			#include "GrassSimulation.cginc"
 			#include "GrassShaderStageAttributes.cginc"
@@ -27,6 +35,9 @@ Shader "GrassSimulation/GrassShader"
 			static const float PI_2_3 = 2.094394;
 
             struct UvData { float2 Position; };
+            
+            //Billboard Generation
+            uniform float GrassType;
             
             //Once
             uniform float BillboardSize;
@@ -50,6 +61,8 @@ Shader "GrassSimulation/GrassShader"
             Texture2DArray<float4> GrassBlades0;
             SamplerState samplerGrassBlades0;
             Texture2DArray<float4> GrassBlades1;
+            Texture2DArray GrassBillboards;
+            SamplerState samplerGrassBillboards;
             Texture2D GrassMapTexture;
             Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
             SamplerState samplerParameterTexture;
@@ -213,9 +226,17 @@ Shader "GrassSimulation/GrassShader"
                	#endif
                	//We do not need dirAlpha in domainshader so we can use OUT.parameters for something else
                	//Calculate mipmaplevel for grass texture lookup based on tessellationfactor 
+               	#ifdef GRASS_GEOMETRY
                	OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, clamp(SimulationData0.w / LodTessellationMax, 0, 1));
+               	#else
+               	OUT.parameters.w = 0;
+               	#endif
                	
+               	#ifdef BILLBOARD_GENERATION
+               	OUT.grassMapData.x = GrassType;
+               	#else
                	OUT.grassMapData.x = grassMapData.x * 255;
+               	#endif
                	OUT.grassMapData.yzw = grassMapData.yzw;
                   
         		return OUT;
@@ -281,17 +302,25 @@ Shader "GrassSimulation/GrassShader"
             
                 //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
                 //float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
+            #ifdef GRASS_BILLBOARD_CROSSED
+                //float4 texSample0 = GrassBillboards.SampleLevel(samplerGrassBillboards, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
+                OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
+                OUT.color = float4(0, 0, 0, 0);
+                OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
+            #elif GRASS_BILLBOARD_SCREEN
+                OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
+                OUT.color = float4(0, 0, 0, 0);
+                OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
+            #elif GRASS_GEOMETRY
                 float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                 float4 texSample1 = GrassBlades1.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
-                #ifdef GRASS_BILLBOARD_CROSSED
-                float3 outpos = lerp(i1, i2, u);
-                #elif GRASS_BILLBOARD_SCREEN
-                float3 outpos = lerp(i1, i2, u);
-                #elif GRASS_GEOMETRY
                 float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample1.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
                 float t = u + ((texSample0.r*u) + ((1.0-texSample0.r)*omu));
                 float3 outpos = lerp(i1, i2, t) + translation;
-                #endif
+                OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
+                OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
+                OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
+            #endif
                 /*if(dot(lightDirection, teNormal) > 0.0)
                     teNormal = -teNormal;
             
@@ -314,9 +343,9 @@ Shader "GrassSimulation/GrassShader"
         		    OUT.color = float4(lerp(float3(1,0,0), float3(0,0,1), debugInterpolant), 1);
         		}*/
       
-                OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
+                //OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
+                //OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
                 //#ifdef GRASS_GEOMETRY
-                OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
                 //OUT.color = float4(float3(pos.y / 40, pos.y / 40, pos.y / 40), 1);
                 //#else
                 //OUT.color = float4(lerp(float3(0.44, 0.61, 0.2), float3(0.12, 0.18, 0.055), 1-v), 1);
@@ -325,10 +354,15 @@ Shader "GrassSimulation/GrassShader"
         		return OUT;
 }
 			
-			fixed4 frag (FSIn IN) : SV_TARGET
+			float4 frag (FSIn IN) : SV_TARGET
 			{
-				fixed4 col = IN.color;
-				return col;
+			    #ifdef GRASS_GEOMETRY
+			    return IN.color;
+			    #else
+			    //float4 billboardSample = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN.uvw.xy, 0), 0);
+                float4 billboardSample = GrassBillboards.SampleLevel(samplerGrassBillboards, IN.uvw, 0);
+                return billboardSample;
+                #endif
 			}
 			ENDCG
 		}

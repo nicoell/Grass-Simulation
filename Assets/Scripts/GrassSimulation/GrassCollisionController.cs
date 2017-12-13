@@ -1,25 +1,26 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-[ExecuteInEditMode]
-[RequireComponent(typeof(Renderer))]
-[RequireComponent(typeof(Rigidbody))]
-public class GrassCollisionController : MonoBehaviour
+namespace GrassSimulation
 {
-	private Renderer _renderer;
-	private Rigidbody _rigidbody;
-	
-	// Use this for initialization
-	void Awake()
+	[ExecuteInEditMode]
+	[RequireComponent(typeof(Renderer))]
+	[RequireComponent(typeof(Rigidbody))]
+	public class GrassCollisionController : MonoBehaviour
 	{
-		_renderer = GetComponent<Renderer>();
-		_rigidbody = GetComponent<Rigidbody>();
-	}
+		private Renderer _renderer;
+		private Rigidbody _rigidbody;
 	
-	// Update is called once per frame
-	void Update () {
-		_renderer.sharedMaterial.SetVector("collisionVelocity", _rigidbody.velocity);
-		//Shader.SetGlobalVector("customColor", new Vector4(1, 1, 1, 1) );
+		// Use this for initialization
+		void Awake()
+		{
+			_renderer = GetComponent<Renderer>();
+			_rigidbody = GetComponent<Rigidbody>();
+		}
+	
+		// Update is called once per frame
+		void Update () {
+			_renderer.sharedMaterial.SetVector("collisionVelocity", _rigidbody.velocity);
+			//Shader.SetGlobalVector("customColor", new Vector4(1, 1, 1, 1) );
+		}
 	}
 }

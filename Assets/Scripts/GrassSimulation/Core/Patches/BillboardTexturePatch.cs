@@ -10,23 +10,25 @@ namespace GrassSimulation.Core.Patches
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 		private readonly float _parameterOffsetX;
 		private readonly float _parameterOffsetY;
+		private readonly Matrix4x4 _patchModelMatrix;
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
 		private readonly int _startIndex;
 		private Mesh _dummyMesh;
 		private Texture2D _normalHeightTexture;
-		private readonly Matrix4x4 _patchModelMatrix;
 		private RenderTexture _simulationTexture;
 
 		public BillboardTexturePatch(SimulationContext ctx) : base(ctx)
 		{
 			_patchTexCoord = new Vector4(0, 0, 1, 1);
-			Bounds = new Bounds(Vector3.zero, new Vector3(Ctx.Settings.PatchSize, 0, Ctx.Settings.PatchSize));
+			Bounds = new Bounds(Vector3.zero,
+				new Vector3(1 + 2 * Ctx.Settings.BladeMaxHeight, Ctx.Settings.BladeMaxHeight, 1 + 2 * Ctx.Settings.BladeMaxHeight));
 			_startIndex = Ctx.Random.Next(0,
 				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.GetMaxAmountBladesPerPatch()));
 			_materialPropertyBlock = new MaterialPropertyBlock();
 			_parameterOffsetX = (float) Ctx.Random.NextDouble();
 			_parameterOffsetY = (float) Ctx.Random.NextDouble();
-			_patchModelMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one);
+			_patchModelMatrix = Matrix4x4.TRS(new Vector3(-0.5f, -0.5f - (0.1f * Ctx.Settings.BladeMaxHeight) / 2f, -0.5f), Quaternion.identity,
+				Vector3.one);
 
 			_argsGeometryBuffer =
 				new ComputeBuffer(1, _argsGeometry.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
@@ -43,7 +45,7 @@ namespace GrassSimulation.Core.Patches
 		{
 			get { return true; }
 		}
-		
+
 		public void Destroy()
 		{
 			//TODO: Clean up buffers and textures
@@ -54,8 +56,9 @@ namespace GrassSimulation.Core.Patches
 		{
 			RunSimulationComputeShader();
 			if (_argsGeometry[1] > 0)
-				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0,
-					_materialPropertyBlock);
+				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBillboardGeneration, Bounds, _argsGeometryBuffer, 0,
+					_materialPropertyBlock, ShadowCastingMode.Off, false, 0,
+					Ctx.BillboardTextureCamera);
 		}
 
 		private void SetupMaterialPropertyBlock()

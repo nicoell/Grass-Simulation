@@ -47,7 +47,7 @@ namespace GrassSimulation.Core.Patches
 
 		public abstract void OnGUI();
 
-		protected void UpdatePerFrameData()
+		protected virtual void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
 			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);

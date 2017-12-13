@@ -30,6 +30,7 @@ namespace GrassSimulation.Core
 		public int GrassMapResolution = 256;
 		public int CollisionDepthResolution = 512;
 		public int GrassDataResolution = 16;
+		public int BillboardTextureResolution = 64;
 		
 		[Header("LOD Settings")]
 		public bool GrassDataTrilinearFiltering = true;

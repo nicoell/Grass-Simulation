@@ -65,6 +65,9 @@ namespace GrassSimulation.Core
 			Ctx.GrassGeometry.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassGeometry.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassGeometry.SetTexture("GrassMapTexture", GrassMapTexture);
+			Ctx.GrassBillboardGeneration.SetBuffer("UvBuffer", UvBuffer);
+			Ctx.GrassBillboardGeneration.SetTexture("ParameterTexture", ParameterTexture);
+			Ctx.GrassBillboardGeneration.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassBillboardCrossed.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardCrossed.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassBillboardCrossed.SetTexture("GrassMapTexture", GrassMapTexture);
