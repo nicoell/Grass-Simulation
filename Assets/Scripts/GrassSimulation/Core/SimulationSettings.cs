@@ -10,7 +10,8 @@ namespace GrassSimulation.Core
 		public int RandomSeed = 42;
 
 		[Header("Grass Settings")]
-		public float BillboardSize = 10f;
+		[Range(0,1)]
+		public float BillboardAlphaCutoff = 0.4f;
 		public float BladeMaxBend = 2f;
 		public float BladeMaxHeight = 1f;
 		public float BladeMaxWidth = 0.5f;

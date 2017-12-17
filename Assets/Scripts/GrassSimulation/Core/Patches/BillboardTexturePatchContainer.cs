@@ -6,8 +6,9 @@ namespace GrassSimulation.Core.Patches
 	public sealed class BillboardTexturePatchContainer : PatchContainer
 	{
 		private BillboardTexturePatch _billboardTexturePatch;
-		public RenderTexture BillboardTexture;
+		private RenderTexture _billboardTexture;
 		public Texture2DArray BillboardTextures;
+		public float BillboardAspect;
 
 		public override void Destroy()
 		{
@@ -21,38 +22,44 @@ namespace GrassSimulation.Core.Patches
 
 		protected override void DrawImpl()
 		{
-			/*Ctx.BillboardTextureCamera.enabled = true;
-			CommandBuffer cb = new CommandBuffer();
-			cb.SetRenderTarget(_texture, _depth, 0, CubemapFace.Unknown, i); //i as depthSlice: element index in array
-			cb.ClearRenderTarget(true, true, c[i], depth[i]);
- 
-			_cam.AddCommandBuffer(CameraEvent.BeforeForwardAlpha, cb);
-			_cam.cullingMask = 0;    //not actually drawing anything. just use the CommandBuffer to draw.
-			_cam.targetTexture = ms_DummyTexture;
-			_cam.Render();
-			_cam.RemoveAllCommandBuffers();*/
+			//TODO: Calculate boundingbox/orthographic frustum in computeshader, save it to a buffer and read it on the cpu, set the camera accordingly.
+			//Evoila, we have a perfect fitting texture.
+			_billboardTexturePatch.RunSimulationComputeShader();
+
+			SetupBounding();
 			
-			/*var dummyTexture = new RenderTexture(Ctx.Settings.BillboardTextureResolution,
-				Ctx.Settings.BillboardTextureResolution, 0, RenderTextureFormat.ARGB32);
-			Ctx.BillboardTextureCamera.targetTexture = dummyTexture;*/
 			for (var i = 0; i < Ctx.BladeContainer.GetTypeCount(); i++)
 			{
-				//Graphics.SetRenderTarget(BillboardTexture, 0, CubemapFace.Unknown, i);
 				Ctx.GrassBillboardGeneration.SetFloat("GrassType", i);
 				_billboardTexturePatch.Draw();
 				
 				Ctx.BillboardTextureCamera.Render();
-				Graphics.CopyTexture(BillboardTexture, 0, 0, BillboardTextures, i, 0);
+				Graphics.CopyTexture(_billboardTexture, 0, 0, BillboardTextures, i, 0);
 			}
 			
 		}
 
-		public override void SetupContainer()
+		private void SetupBounding()
 		{
-			_billboardTexturePatch = new BillboardTexturePatch(Ctx);
+			var bounds = _billboardTexturePatch.GetBillboardBounding();
 
+			Ctx.BillboardTextureCamera.orthographic = true; 
+			Ctx.BillboardTextureCamera.nearClipPlane = 0;
+			Ctx.BillboardTextureCamera.farClipPlane = bounds.size.z;
+			Ctx.BillboardTextureCamera.useOcclusionCulling = false;
+			Ctx.BillboardTextureCamera.forceIntoRenderTexture = true;
+			Ctx.BillboardTextureCamera.enabled = false;
+			Ctx.BillboardTextureCamera.aspect = bounds.extents.x / bounds.extents.y;
+			Ctx.BillboardTextureCamera.orthographicSize = bounds.extents.y;
+			
+			var position = bounds.center - new Vector3(0, 0, bounds.extents.z);
+			var rotation = Quaternion.LookRotation(Ctx.Transform.forward, Ctx.Transform.up);
+			Ctx.BillboardTextureCamera.transform.SetPositionAndRotation(position, rotation);
+
+			BillboardAspect = Ctx.BillboardTextureCamera.aspect;
+			
 			BillboardTextures = new Texture2DArray(Ctx.Settings.BillboardTextureResolution,
-				Ctx.Settings.BillboardTextureResolution, Ctx.BladeContainer.GetTypeCount(),
+				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f), Ctx.BladeContainer.GetTypeCount(),
 				TextureFormat.RGBA32, true, true)
 			{
 				name = "BillboardTextures",
@@ -61,41 +68,22 @@ namespace GrassSimulation.Core.Patches
 				anisoLevel = 16
 			};
 
-			BillboardTexture = new RenderTexture(Ctx.Settings.BillboardTextureResolution,
-				Ctx.Settings.BillboardTextureResolution, 0,
+			_billboardTexture = new RenderTexture(Ctx.Settings.BillboardTextureResolution,
+				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f), 0,
 				RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
 			{
 				filterMode = FilterMode.Trilinear,
-				dimension = TextureDimension.Tex2DArray,
 				wrapMode = TextureWrapMode.Clamp,
 				antiAliasing = 8
 			};
-			/*BillboardTexture = new RenderTexture(Ctx.Settings.BillboardTextureResolution,
-				Ctx.Settings.BillboardTextureResolution, 0,
-				RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
-			{
-				depth = 0,
-				filterMode = FilterMode.Trilinear,
-				dimension = TextureDimension.Tex2DArray,
-				volumeDepth = Ctx.BladeContainer.GetTypeCount(),
-				enableRandomWrite = true,
-				wrapMode = TextureWrapMode.Clamp
-			};*/
-			BillboardTexture.Create();
+			_billboardTexture.Create();
+			
+			Ctx.BillboardTextureCamera.targetTexture = _billboardTexture;
+		}
 
-			Ctx.BillboardTextureCamera.aspect = 1;
-			Ctx.BillboardTextureCamera.orthographic = true;
-			Ctx.BillboardTextureCamera.orthographicSize = 0.5f + (0.1f * Ctx.Settings.BladeMaxHeight) / 2f;
-			Ctx.BillboardTextureCamera.nearClipPlane = 0;
-			Ctx.BillboardTextureCamera.farClipPlane = 1 + 2 * Ctx.Settings.BladeMaxHeight;
-			Ctx.BillboardTextureCamera.useOcclusionCulling = false;
-			Ctx.BillboardTextureCamera.targetTexture = BillboardTexture;
-			Ctx.BillboardTextureCamera.forceIntoRenderTexture = true;
-			Ctx.BillboardTextureCamera.enabled = false;
-
-			var position = _billboardTexturePatch.Bounds.center - new Vector3(0, 0, _billboardTexturePatch.Bounds.extents.z);
-			var rotation = Quaternion.LookRotation(Ctx.Transform.forward, Ctx.Transform.up);
-			Ctx.BillboardTextureCamera.transform.SetPositionAndRotation(position, rotation);
+		public override void SetupContainer()
+		{
+			_billboardTexturePatch = new BillboardTexturePatch(Ctx);
 		}
 
 		protected override void DrawGizmoImpl()
@@ -111,7 +99,7 @@ namespace GrassSimulation.Core.Patches
 		{
 			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);
 			Ctx.GrassBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
-			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 1);
+			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 0.5f);
 			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.BillboardTextureCamera.projectionMatrix * Ctx.BillboardTextureCamera.worldToCameraMatrix);

@@ -4,6 +4,7 @@ Shader "GrassSimulation/GrassShader"
     [HideInInspector] _SrcBlend ("__src", Float) = 1.0
     [HideInInspector] _DstBlend ("__dst", Float) = 0.0
     [HideInInspector] _ZWrite ("__zw", Float) = 1.0
+    [HideInInspector] _AlphaToMask ("__atm", Float) = 0.0
     }
 	SubShader
 	{
@@ -13,7 +14,8 @@ Shader "GrassSimulation/GrassShader"
 		    Fog{Mode off}
 		    Cull Off
 		    Blend [_SrcBlend] [_DstBlend]
-            ZWrite [_ZWrite]
+            ZWrite On //[_ZWrite]
+            AlphaToMask [_AlphaToMask]
 			CGPROGRAM
 			
 			#pragma target 5.0
@@ -38,9 +40,10 @@ Shader "GrassSimulation/GrassShader"
             
             //Billboard Generation
             uniform float GrassType;
+            uniform float BillboardAspect;
             
             //Once
-            uniform float BillboardSize;
+            uniform float BillboardAlphaCutoff;
             uniform float BladeTextureMaxMipmapLevel;
             uniform float LodTessellationMax;
             uniform float LodInstancesGeometry;
@@ -123,6 +126,9 @@ Shader "GrassSimulation/GrassShader"
 				#else
 				OUT.uvLocal = UvBuffer[StartIndex + VertexCount * instanceID + vertexID].Position;
                 #endif
+                //#ifdef BILLBOARD_GENERATION
+                //OUT.uvLocal = lerp(float3(0.25, 0.25, 0.25), float3(0.75, 0.75, 0.75), OUT.uvLocal);
+                //#endif
 				return OUT;
 			}
 			
@@ -258,9 +264,9 @@ Shader "GrassSimulation/GrassShader"
         		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
         		float width = IN[0].parameters.x;
         		#else
-        		float3 v1 = pos + IN[0].v1 * BillboardSize * IN[0].transitionFactor;
-        		float3 v2 = pos + IN[0].v2 * BillboardSize * IN[0].transitionFactor;
-        		float width = length(IN[0].v2) * BillboardSize * IN[0].transitionFactor;
+        		float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
+        		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
+        		float width = length(IN[0].v2) * BillboardAspect * IN[0].transitionFactor;
         		#endif
         		float bend = IN[0].parameters.y;
         		float height = IN[0].parameters.z;
@@ -361,6 +367,7 @@ Shader "GrassSimulation/GrassShader"
 			    #else
 			    //float4 billboardSample = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN.uvw.xy, 0), 0);
                 float4 billboardSample = GrassBillboards.SampleLevel(samplerGrassBillboards, IN.uvw, 0);
+                clip(billboardSample.a - BillboardAlphaCutoff);
                 return billboardSample;
                 #endif
 			}

@@ -149,7 +149,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 bladeDir;
 	float3 bladeFront;
 	CalculateBladeDirAndFront(bladeUp, dirAlpha, bladeDir, bladeFront);
-	float mdt = min(DeltaTime, 1.0);
+	float mdt = DeltaTime;//min(DeltaTime, 1.0);
 	float3 idleV2 = bladeUp * height;
 	float3 v2 = simulationData1.xyz;
 

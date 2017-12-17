@@ -1,0 +1,23 @@
+#pragma kernel Tex2DArray
+#pragma kernel Tex3D
+
+#define numThreadsX 8
+#define numThreadsY 8
+#define numThreadsZ 1
+
+RWTexture2DArray<float4> Source2DArray;
+RWTexture3D<float4> Source3D;
+RWTexture2D<float4> Target;
+int element;
+
+[numthreads(numThreadsX, numThreadsY, numThreadsZ)]
+void Tex2DArray (uint3 id : SV_DispatchThreadID)
+{
+    Target[id.xy] = Source2DArray.Load(uint3(id.xy, element));
+}
+
+[numthreads(numThreadsX, numThreadsY, numThreadsZ)]
+void Tex3D (uint3 id : SV_DispatchThreadID)
+{
+    Target[id.xy] = Source3D.Load(uint3(id.xy, element));
+}

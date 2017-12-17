@@ -29,12 +29,17 @@ namespace GrassSimulation
 			{
 				Context.CollisionTextureRenderer.UpdateDepthTexture();
 				Context.PatchContainer.Draw();
+				//Context.BillboardTexturePatchContainer.Draw();
 			}
 		}
 
 		private void OnDrawGizmos()
 		{
-			if (Context.IsReady) Context.PatchContainer.DrawGizmo();
+			if (Context.IsReady)
+			{
+				Context.PatchContainer.DrawGizmo();
+				Context.BillboardTexturePatchContainer.DrawGizmo();
+			}
 		}
 
 		//TODO: Need to revisit the correct way to destroy/dispose/release ComputeBuffers so the warnings go away
