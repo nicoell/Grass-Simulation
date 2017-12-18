@@ -1,0 +1,36 @@
+#pragma kernel UpdateField
+#pragma kernel UpdateDensity
+
+#define fluidNumThreadsX 16
+#define fluidNumThreadsY 16
+#define fluidNumThreadsZ 1
+#define fluidThreadCount fluidNumThreadsX * fluidNumThreadsY * fluidNumThreadsZ
+
+float WindDensityResolution;
+float WindFieldResolution;
+float DensityStep;
+float FieldStep;
+
+RWTexture2D<float4> WindFieldRenderTexture;
+Texture2D<float4> WindFieldTexture;
+SamplerState samplerWindFieldTexture;
+
+RWTexture2D<float4> WindDensityRenderTexture;
+Texture2D<float4> WindDensityTexture;
+SamplerState samplerWindDensityTexture;
+
+[numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
+void UpdateField (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+{
+    float2 uvField = float2(id.x/WindFieldResolution, id.y/WindFieldResolution);
+    float2 uvDensity = float2(id.x/WindDensityResolution, id.y/WindDensityResolution);
+    WindFieldRenderTexture[id.xy] = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvField, 0) + float4(uvField.xy, 0, 1);
+}
+
+[numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
+void UpdateDensity (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+{
+    float2 uvField = float2(id.x/WindFieldResolution, id.y/WindFieldResolution);
+    float2 uvDensity = float2(id.x/WindDensityResolution, id.y/WindDensityResolution);
+    WindFieldRenderTexture[id.xy] = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvField, 0) + float4(0.1, 0.1, 0.1, 0.1);
+}

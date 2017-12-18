@@ -100,11 +100,19 @@ namespace GrassSimulation.Core.Patches
 			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);
 			Ctx.GrassBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
 			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 0.5f);
-			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
+			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.BillboardTextureCamera.projectionMatrix * Ctx.BillboardTextureCamera.worldToCameraMatrix);
 			Ctx.GrassSimulationComputeShader.SetFloats("CamPos", Ctx.BillboardTextureCamera.transform.position.x,
 				Ctx.BillboardTextureCamera.transform.position.y, Ctx.BillboardTextureCamera.transform.position.z);
+			
+			Ctx.GrassSimulationComputeShader.SetFloat("WindDirectionX", Ctx.Settings.WindDirectionX);
+			Ctx.GrassSimulationComputeShader.SetFloat("WindDirectionZ", Ctx.Settings.WindDirectionZ);
+			Ctx.GrassSimulationComputeShader.SetFloat("WindPhase", Ctx.Settings.WindPhase);
+			Ctx.GrassSimulationComputeShader.SetFloat("WindSpeed", Ctx.Settings.WindSpeed);
+			Ctx.GrassSimulationComputeShader.SetFloat("WindFrequency", Ctx.Settings.WindFrequency);
+			Ctx.GrassSimulationComputeShader.SetFloat("WindAmplitude", Ctx.Settings.WindAmplitude);
+			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
 		}
 	}
 }

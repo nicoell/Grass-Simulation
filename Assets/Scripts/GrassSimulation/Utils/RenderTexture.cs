@@ -56,5 +56,18 @@ namespace GrassSimulation.Utils
 			UnityEngine.RenderTexture.active = restoreRt;
 			return output;
 		}
+
+		public static Texture2D GetRenderTextureAsTexture2D(UnityEngine.RenderTexture source,
+			TextureFormat outpuTextureFormat = TextureFormat.ARGB32,
+			bool mipmap = true, bool linear = false)
+		{
+			var output = new Texture2D(source.width, source.height, outpuTextureFormat, mipmap, linear);
+			var restoreRt = UnityEngine.RenderTexture.active;
+			UnityEngine.RenderTexture.active = source;
+			output.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, mipmap);
+			output.Apply();
+			UnityEngine.RenderTexture.active = restoreRt;
+			return output;
+		}
 	}
 }

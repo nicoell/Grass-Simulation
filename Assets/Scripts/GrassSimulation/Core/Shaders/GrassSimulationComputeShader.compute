@@ -40,8 +40,15 @@ RWTexture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transit
 //Per Frame
 float3 CamPos;
 float DeltaTime;
-float4 GravityVec;
+float Time;
 float4x4 ViewProjMatrix;
+float WindDirectionX;
+float WindDirectionZ;
+float WindPhase;
+float WindSpeed;
+float WindFrequency;
+float WindAmplitude;
+float4 GravityVec;
 
 float4 LocalToWorldPos(float4 pos){ return mul(PatchModelMatrix, pos); }
 float4 LocalToWorldPos(float3 pos){ return mul(PatchModelMatrix, float4(pos, 1.0)); }
@@ -161,18 +168,26 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 
 	//Wind
 	//TODO
-	float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
+	/*float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
 	float3 windVecTemp = float3(sin(dirAlpha), 0.4, cos(dirAlpha));
 	float windageDir = 1.0f - abs(dot(normalize(windVecTemp), normalize(v2)));
 	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f) + sin((v0.x + v0.y) * 0.5f) + sin((v0.y + v0.z) * 0.25f)) / 3.0f, 0.0f);
-	float3 wind = windVecTemp * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
+	float3 wind = windVecTemp * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;*/
+	//Wind Crysis
+	float bladePhase = dot(v0, WindPhase);
+    float waveIn = Time + bladePhase;
+    float4 waves = (frac(waveIn.xxxx * float4(1.975, 0.793, 0.375, 0.193)) * 2.0 - 1.0) * WindSpeed * WindFrequency;
+    waves = SmoothTriangleWave(waves);
+    float2 wavesSum = waves.xz + waves.yw;
+    float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
+    float3 wind = WindAmplitude * float3(wavesSum.x * WindDirectionX, 0, wavesSum.y * WindDirectionZ) * mdt * windageHeight * bendingFactor;
     
 	//Stiffness 
 	//TODO: Rework temp max without collisionForce
 	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0, 0.1) * mdt;
 
 	//apply new forces
-	v2 += gravity + stiffness;
+	v2 += gravity + wind + stiffness;
 
 	ValidateV2(v2, bladeUp);
     float3 v1 = GetV1(v2, bladeUp, height, invHeight);

@@ -104,11 +104,6 @@ namespace GrassSimulation.Core
 			return tex2DArray;
 		}
 
-		public Texture2DArray GetBillboardTexture2DArray()
-		{
-			return null;
-		}
-
 		public byte GetTypeCount()
 		{
 			return (byte) Blades.Length;

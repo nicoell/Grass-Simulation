@@ -16,9 +16,13 @@ namespace GrassSimulation.Core
 		public Camera Camera;
 		public ComputeShader GrassSimulationComputeShader;
 		public ComputeShader RenderTextureVolumeToSlice;
+		public ComputeShader WindFluidSimulation;
 		public Shader CollisionDepthShader;
 		[HideInInspector]
 		public CollisionTextureRenderer CollisionTextureRenderer;
+		[HideInInspector]
+		public WindFieldRenderer WindFieldRenderer;
+		public RenderTexture DEBUGONLY;
 
 		public Shader GrassSimulationShader;
 		[NonSerialized]
@@ -81,6 +85,10 @@ namespace GrassSimulation.Core
 		public int KernelPhysics;
 		[HideInInspector] 
 		public int KernelSimulationSetup;
+		[HideInInspector] 
+		public int KernelUpdateField;
+		[HideInInspector] 
+		public int KernelUpdateDensity;
 		[NonSerialized] 
 		public Random Random;
 		public GrassInstance GrassInstance;
@@ -165,6 +173,8 @@ namespace GrassSimulation.Core
 			//Find kernels for ComputeShaders
 			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
 			KernelSimulationSetup =  GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
+			KernelUpdateField =  WindFluidSimulation.FindKernel("UpdateField"); 
+			KernelUpdateDensity =  WindFluidSimulation.FindKernel("UpdateDensity"); 
 			
 			GrassGeometry = new Material(GrassSimulationShader);
 			GrassBillboardGeneration = new Material(GrassGeometry);
@@ -312,6 +322,7 @@ namespace GrassSimulation.Core
 			PatchContainer.SetupContainer();
 			
 			CollisionTextureRenderer = new CollisionTextureRenderer(this, PatchContainer.GetBounds());
+			WindFieldRenderer = new WindFieldRenderer(this, PatchContainer.GetBounds());
 
 			//Create Billboard Textures
 			BillboardTexturePatchContainer.Init(this);
@@ -331,7 +342,9 @@ namespace GrassSimulation.Core
 
 		public void OnGUI()
 		{
-			BillboardTexturePatchContainer.OnGUI();
+			DEBUGONLY = WindFieldRenderer.WindFieldTexture[0];
+			WindFieldRenderer.OnGUI();
+			//BillboardTexturePatchContainer.OnGUI();
 			PatchContainer.OnGUI();
 		}
 	}

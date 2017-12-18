@@ -19,6 +19,21 @@ float DoubleLerp(float value, float cur, float start, float peak, float end)
     return value - (lerp(value, 0, t0) + lerp(0, value, t1));
 }
 
+float4 SmoothCurve( float4 x ) 
+{
+    return x * x *( 3.0 - 2.0 * x );
+}
+
+float4 TriangleWave( float4 x ) 
+{
+    return abs( frac( x + 0.5 ) * 2.0 - 1.0 );
+}
+
+float4 SmoothTriangleWave( float4 x ) 
+{
+    return SmoothCurve( TriangleWave( x ) );
+}
+
 //YUV->RGB Colorspace conversion
 //from https://www.fourcc.org/fccyvrgb.php
 
