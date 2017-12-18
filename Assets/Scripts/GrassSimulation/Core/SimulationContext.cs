@@ -23,6 +23,7 @@ namespace GrassSimulation.Core
 		[HideInInspector]
 		public WindFieldRenderer WindFieldRenderer;
 		public RenderTexture DEBUGONLY;
+		public RenderTexture DEBUGONLY2;
 
 		public Shader GrassSimulationShader;
 		[NonSerialized]
@@ -86,9 +87,13 @@ namespace GrassSimulation.Core
 		[HideInInspector] 
 		public int KernelSimulationSetup;
 		[HideInInspector] 
-		public int KernelUpdateField;
+		public int KernelSetupField;
 		[HideInInspector] 
-		public int KernelUpdateDensity;
+		public int KernelUpdateField;
+		/*[HideInInspector] 
+		public int KernelSetupDensity;
+		[HideInInspector] 
+		public int KernelUpdateDensity;*/
 		[NonSerialized] 
 		public Random Random;
 		public GrassInstance GrassInstance;
@@ -172,9 +177,12 @@ namespace GrassSimulation.Core
 
 			//Find kernels for ComputeShaders
 			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
-			KernelSimulationSetup =  GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
-			KernelUpdateField =  WindFluidSimulation.FindKernel("UpdateField"); 
-			KernelUpdateDensity =  WindFluidSimulation.FindKernel("UpdateDensity"); 
+			KernelSimulationSetup = GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
+			KernelSetupField = WindFluidSimulation.FindKernel("SetupField"); 
+			KernelUpdateField = WindFluidSimulation.FindKernel("UpdateField"); 
+			
+			//KernelSetupDensity = WindFluidSimulation.FindKernel("SetupDensity"); 
+			//KernelUpdateDensity = WindFluidSimulation.FindKernel("UpdateDensity"); 
 			
 			GrassGeometry = new Material(GrassSimulationShader);
 			GrassBillboardGeneration = new Material(GrassGeometry);

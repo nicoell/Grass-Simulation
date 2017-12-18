@@ -30,7 +30,12 @@ namespace GrassSimulation.Core
 		public float WindSpeed = 1f;
 		public float WindFrequency = 1f;
 		public float WindAmplitude = 1f;
-		public int WindFluidIterationSteps = 10;
+		
+		[Header("Wind Fluid Settings")]
+		public int FluidIterationSteps = 10;
+		public float FluidViscosity = 0.03f;
+		public float FluidPressureScale = 0.15f;
+		public float FluidDensityViscosity = 0.04f;
 
 		[Header("Texture Resolutions")]
 		//TODO: Handle width and height seperately for non-quad containers

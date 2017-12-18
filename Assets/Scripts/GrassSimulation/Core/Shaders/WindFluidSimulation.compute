@@ -1,36 +1,141 @@
+#pragma kernel SetupField
 #pragma kernel UpdateField
-#pragma kernel UpdateDensity
 
 #define fluidNumThreadsX 16
 #define fluidNumThreadsY 16
 #define fluidNumThreadsZ 1
 #define fluidThreadCount fluidNumThreadsX * fluidNumThreadsY * fluidNumThreadsZ
 
-float WindDensityResolution;
+float Viscosity;
+float PressureScale;
+//float DensityViscosity;
+float DeltaTime;
+
+float input;
+
+//float WindDensityResolution;
 float WindFieldResolution;
-float DensityStep;
+//float DensityStep;
 float FieldStep;
+
+static const float CentralScale = 1.0f/2.0f;
+static const float2 Directions[4] = 
+{
+	float2(1, 0),
+	float2(0, 1),
+	float2(-1, 0),
+	float2(0, -1)
+};
+
+Texture2D<float4> CollisionDepthTexture; //up.xyz, pos.y
+SamplerState samplerCollisionDepthTexture;
 
 RWTexture2D<float4> WindFieldRenderTexture;
 Texture2D<float4> WindFieldTexture;
 SamplerState samplerWindFieldTexture;
 
-RWTexture2D<float4> WindDensityRenderTexture;
+/*RWTexture2D<float4> WindDensityRenderTexture;
 Texture2D<float4> WindDensityTexture;
-SamplerState samplerWindDensityTexture;
+SamplerState samplerWindDensityTexture;*/
 
-[numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
-void UpdateField (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+SamplerState samplerPointClamp;
+SamplerState samplerLinearClamp;
+
+bool IsBoundary(float2 UV)
 {
-    float2 uvField = float2(id.x/WindFieldResolution, id.y/WindFieldResolution);
-    float2 uvDensity = float2(id.x/WindDensityResolution, id.y/WindDensityResolution);
-    WindFieldRenderTexture[id.xy] = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvField, 0) + float4(uvField.xy, 0, 1);
+	return (UV.x<=FieldStep || UV.x>(1.0f-FieldStep) || UV.y<=FieldStep || UV.y>(1.0f-FieldStep));
 }
 
 [numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
-void UpdateDensity (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+void SetupField (uint3 id : SV_DispatchThreadID)
 {
-    float2 uvField = float2(id.x/WindFieldResolution, id.y/WindFieldResolution);
-    float2 uvDensity = float2(id.x/WindDensityResolution, id.y/WindDensityResolution);
-    WindFieldRenderTexture[id.xy] = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvField, 0) + float4(0.1, 0.1, 0.1, 0.1);
+    //float2 uv = float2(id.x/WindFieldResolution, id.y/WindFieldResolution);
+    WindFieldRenderTexture[id.xy] = float4(0, 0, 0, 0);
 }
+
+[numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
+void UpdateField (uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = float2(id.x/WindFieldResolution, id.y/WindFieldResolution);
+    float2 uvCollisionTexture = uv;
+    uvCollisionTexture.x = 1 - uvCollisionTexture.x;
+    
+    float4 fieldCenter = WindFieldTexture.SampleLevel(samplerPointClamp, uv, 0);
+    
+    float3 fieldRight = WindFieldTexture.SampleLevel(samplerPointClamp, uv + float2(FieldStep, 0), 0).xyz;
+    float3 fieldLeft = WindFieldTexture.SampleLevel(samplerPointClamp, uv - float2(FieldStep, 0), 0).xyz;
+    float3 fieldTop = WindFieldTexture.SampleLevel(samplerPointClamp, uv + float2(0, FieldStep), 0).xyz;
+    float3 fieldBottom = WindFieldTexture.SampleLevel(samplerPointClamp, uv - float2(0, FieldStep), 0).xyz;
+    float4x3 fieldMat = {fieldRight, fieldLeft, fieldTop, fieldBottom};
+    
+    
+    float3 UdX = float3(fieldMat[0] - fieldMat[1]) * CentralScale;
+    float3 UdY = float3(fieldMat[2] - fieldMat[3]) * CentralScale;
+
+    float2 DdX = float2(UdX.z, UdY.z);
+    float3 Temp = float3(DdX, UdX.x + UdY.y);
+    fieldCenter.z = clamp(fieldCenter.z - DeltaTime * dot(Temp, fieldCenter.xyz), 0.3, 1.7);
+    
+	float2 PdX = (PressureScale / DeltaTime) * DdX;
+    float2 laplacian = mul(float4(1,1,1,1), (float4x2) fieldMat) - 4.0 * fieldCenter.xy;
+    float2 viscosityForce = Viscosity * laplacian;
+    
+    ///< Semi-Langrangian.
+	float2 Was = uv - DeltaTime * fieldCenter.xy * float2(FieldStep, FieldStep);
+	fieldCenter.xy 	= WindFieldTexture.SampleLevel(samplerLinearClamp, Was, 0).xy;	
+	
+	float4 cDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, uvCollisionTexture, 0);
+	
+	float2 externalForces = 0;
+    //if (WindDensityTexture.SampleLevel(samplerPointClamp, uv, 0).x > 0.1)
+    /*if (1 - cDataAtV2.a > 0.5)
+    {
+        externalForces = float2(0, 1 - cDataAtV2.a);
+    }*/
+    externalForces.xy = 0.1 * (cDataAtV2.xz * cDataAtV2.a) * input;
+        
+	fieldCenter.xy += DeltaTime * (viscosityForce - PdX + externalForces);
+	
+	for (int i = 0; i < 4; ++i)
+	{
+		if (IsBoundary(uv + float2(FieldStep, FieldStep) * Directions[i])) 
+		{	
+			float2 SetToZero=(1 - abs(Directions[i]));
+			fieldCenter.xy *= SetToZero;
+		}
+	}
+    
+    WindFieldRenderTexture[id.xy] = fieldCenter;
+}
+/*
+[numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
+void SetupDensity (uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = float2(id.x/WindDensityResolution, id.y/WindDensityResolution);
+    WindDensityRenderTexture[id.xy] = float4(uv.xxx * 5, 1);
+}
+
+[numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
+void UpdateDensity (uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = float2(id.x/WindDensityResolution, id.y/WindDensityResolution);
+    
+    float2 Density = WindDensityTexture.SampleLevel(samplerPointClamp, uv, 0).xy;
+    
+    float4 Neighbours = float4(
+        WindDensityTexture.SampleLevel(samplerPointClamp, uv + float2(DensityStep, 0), 0).x,
+        WindDensityTexture.SampleLevel(samplerPointClamp, uv - float2(DensityStep, 0), 0).x,
+        WindDensityTexture.SampleLevel(samplerPointClamp, uv + float2(0, DensityStep), 0).x,
+        WindDensityTexture.SampleLevel(samplerPointClamp, uv - float2(0, DensityStep), 0).x
+    );
+    
+    float4 visualDensityGradient = float4(-CentralScale * (Neighbours.xz - Neighbours.yw), DensityViscosity.xx);
+    float4 visualDensityLaplacian = float4(WindFieldTexture.SampleLevel(samplerLinearClamp, uv, 0).xy, Neighbours.xz + Neighbours.yw - 2 * Density.xx);
+    
+    float3 forces = float3(dot(visualDensityGradient, visualDensityLaplacian), Density.y * 0.02, -0.004);
+    
+    Density.x = clamp(Density.x + DeltaTime * dot(forces, float3(1, 1, 1)), 0.0, 2.0);
+    
+    WindDensityRenderTexture[id.xy] = float4(Density, 0, 1);
+}
+*/

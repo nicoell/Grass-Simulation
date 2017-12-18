@@ -37,6 +37,7 @@ namespace GrassSimulation.Core.Patches
 			Ctx.CollisionCamera.transform.SetPositionAndRotation(position, rotation);
 			
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "CollisionDepthTexture", CollisionDepthTexture);
+			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelUpdateField, "CollisionDepthTexture", CollisionDepthTexture);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeSize", bounds.size.x, bounds.size.y, bounds.size.z);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMin", bounds.min.x, bounds.min.y, bounds.min.z);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMax", bounds.max.x, bounds.max.y, bounds.max.z);
@@ -50,7 +51,7 @@ namespace GrassSimulation.Core.Patches
 
 		public void OnGUI()
 		{
-			GUI.DrawTexture(new Rect(0, 0, 256, 256), CollisionDepthTexture);
+			
 		}
 	}
 }
