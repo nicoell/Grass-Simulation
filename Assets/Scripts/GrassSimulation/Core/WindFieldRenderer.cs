@@ -63,12 +63,16 @@ namespace GrassSimulation.Core
 			{
 				Ctx.WindFluidSimulation.SetFloat("input", 0);
 			}
-			Ctx.WindFluidSimulation.SetFloat("DeltaTime", Time.deltaTime);
+			Ctx.WindFluidSimulation.SetFloat("DeltaTime", 0.01f);
 			for (var i = 0; i < Ctx.Settings.FluidIterationSteps; i++)
 			{
 				UpdateWindField(_textureIndex, (_textureIndex + 1) % 2);
 				//UpdateWindField(0, 1);
 				_textureIndex = (_textureIndex + 1) % 2;
+			}
+			if (Ctx.DisplayRenderTexture)
+			{
+				Ctx.DisplayRenderTexture.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("MainTex", WindFieldTexture[0]);
 			}
 		}
 
@@ -100,9 +104,16 @@ namespace GrassSimulation.Core
 
 		private void SetupWindField()
 		{
-			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelSetupField, "WindFieldRenderTexture", WindFieldTexture[1]);
+			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelSetupField, "WindFieldRenderTexture", WindFieldTexture[0]);
 			
 			uint threadGroupX, threadGroupY, threadGroupZ;
+			Ctx.WindFluidSimulation.GetKernelThreadGroupSizes(Ctx.KernelSetupField, out threadGroupX, out threadGroupY,
+				out threadGroupZ);
+			Ctx.WindFluidSimulation.Dispatch(Ctx.KernelSetupField, (int) (Ctx.Settings.WindFieldResolution / threadGroupX),
+				(int) (Ctx.Settings.WindFieldResolution / threadGroupY), 1);
+			
+			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelSetupField, "WindFieldRenderTexture", WindFieldTexture[1]);
+			
 			Ctx.WindFluidSimulation.GetKernelThreadGroupSizes(Ctx.KernelSetupField, out threadGroupX, out threadGroupY,
 				out threadGroupZ);
 			Ctx.WindFluidSimulation.Dispatch(Ctx.KernelSetupField, (int) (Ctx.Settings.WindFieldResolution / threadGroupX),
@@ -119,10 +130,8 @@ namespace GrassSimulation.Core
 
 		public void OnGUI()
 		{
-			/*GUI.DrawTexture(new Rect(0, 0, 256, 256),
-				Utils.RenderTexture.GetRenderTextureAsTexture2D(WindFieldTexture[0], TextureFormat.RGBAFloat, false, true));
-			GUI.DrawTexture(new Rect(0, 257, 256, 256),
-				Utils.RenderTexture.GetRenderTextureAsTexture2D(WindDensityTexture[0], TextureFormat.RGBAFloat, false, true));*/
+			
+			
 		}
 	}
 }

@@ -18,6 +18,7 @@ namespace GrassSimulation.Core
 		public ComputeShader RenderTextureVolumeToSlice;
 		public ComputeShader WindFluidSimulation;
 		public Shader CollisionDepthShader;
+		public GameObject DisplayRenderTexture;
 		[HideInInspector]
 		public CollisionTextureRenderer CollisionTextureRenderer;
 		[HideInInspector]

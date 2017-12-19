@@ -366,7 +366,7 @@ Shader "GrassSimulation/GrassShader"
 			    return IN.color;
 			    #else
 			    //float4 billboardSample = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN.uvw.xy, 0), 0);
-                float4 billboardSample = GrassBillboards.SampleLevel(samplerGrassBillboards, IN.uvw, 0);
+                float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvw);
                 clip(billboardSample.a - BillboardAlphaCutoff);
                 return billboardSample;
                 #endif

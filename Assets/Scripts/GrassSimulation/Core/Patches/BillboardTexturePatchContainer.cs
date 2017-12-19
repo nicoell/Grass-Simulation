@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace GrassSimulation.Core.Patches
@@ -27,14 +28,17 @@ namespace GrassSimulation.Core.Patches
 			_billboardTexturePatch.RunSimulationComputeShader();
 
 			SetupBounding();
-			
+			var mipMapCount = 1 + Mathf.FloorToInt(Mathf.Log(Mathf.Max(_billboardTexture.width, _billboardTexture.height), 2));
 			for (var i = 0; i < Ctx.BladeContainer.GetTypeCount(); i++)
 			{
 				Ctx.GrassBillboardGeneration.SetFloat("GrassType", i);
 				_billboardTexturePatch.Draw();
 				
 				Ctx.BillboardTextureCamera.Render();
-				Graphics.CopyTexture(_billboardTexture, 0, 0, BillboardTextures, i, 0);
+				_billboardTexture.GenerateMips();
+				//TODO Custom mipmapping and antialiasing
+				for (int m = 0; m < mipMapCount; m++)
+					Graphics.CopyTexture(_billboardTexture, 0, m, BillboardTextures, i, m);
 			}
 			
 		}
@@ -74,7 +78,9 @@ namespace GrassSimulation.Core.Patches
 			{
 				filterMode = FilterMode.Trilinear,
 				wrapMode = TextureWrapMode.Clamp,
-				antiAliasing = 8
+				//antiAliasing = 8,
+				useMipMap = true,
+				autoGenerateMips = false
 			};
 			_billboardTexture.Create();
 			

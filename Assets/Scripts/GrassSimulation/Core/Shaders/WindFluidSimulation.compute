@@ -18,7 +18,10 @@ float WindFieldResolution;
 //float DensityStep;
 float FieldStep;
 
-static const float CentralScale = 1.0f/2.0f;
+static const float CentralScale = 1.0/2.0;
+#define DX 1.0
+#define DIFF (1.0 / (2.0 * DX))
+#define DDIFF (1.0 / (DX * DX))
 static const float2 Directions[4] = 
 {
 	float2(1, 0),
@@ -50,7 +53,7 @@ bool IsBoundary(float2 UV)
 void SetupField (uint3 id : SV_DispatchThreadID)
 {
     //float2 uv = float2(id.x/WindFieldResolution, id.y/WindFieldResolution);
-    WindFieldRenderTexture[id.xy] = float4(0, 0, 0, 0);
+    WindFieldRenderTexture[id.xy] = float4(0, 0, 1, 0);
 }
 
 [numthreads(fluidNumThreadsX,fluidNumThreadsY,fluidNumThreadsZ)]
@@ -68,13 +71,12 @@ void UpdateField (uint3 id : SV_DispatchThreadID)
     float3 fieldBottom = WindFieldTexture.SampleLevel(samplerPointClamp, uv - float2(0, FieldStep), 0).xyz;
     float4x3 fieldMat = {fieldRight, fieldLeft, fieldTop, fieldBottom};
     
-    
     float3 UdX = float3(fieldMat[0] - fieldMat[1]) * CentralScale;
     float3 UdY = float3(fieldMat[2] - fieldMat[3]) * CentralScale;
 
     float2 DdX = float2(UdX.z, UdY.z);
     float3 Temp = float3(DdX, UdX.x + UdY.y);
-    fieldCenter.z = clamp(fieldCenter.z - DeltaTime * dot(Temp, fieldCenter.xyz), 0.3, 1.7);
+    fieldCenter.z = clamp(fieldCenter.z - DeltaTime * dot(Temp, fieldCenter.xyz), 0.2, 3.0);
     
 	float2 PdX = (PressureScale / DeltaTime) * DdX;
     float2 laplacian = mul(float4(1,1,1,1), (float4x2) fieldMat) - 4.0 * fieldCenter.xy;
@@ -82,17 +84,27 @@ void UpdateField (uint3 id : SV_DispatchThreadID)
     
     ///< Semi-Langrangian.
 	float2 Was = uv - DeltaTime * fieldCenter.xy * float2(FieldStep, FieldStep);
-	fieldCenter.xy 	= WindFieldTexture.SampleLevel(samplerLinearClamp, Was, 0).xy;	
+	fieldCenter.xy = WindFieldTexture.SampleLevel(samplerLinearClamp, Was, 0).xy;	
 	
 	float4 cDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, uvCollisionTexture, 0);
 	
-	float2 externalForces = 0;
+	float2 externalForces = float2(0, 0);
     //if (WindDensityTexture.SampleLevel(samplerPointClamp, uv, 0).x > 0.1)
     /*if (1 - cDataAtV2.a > 0.5)
     {
         externalForces = float2(0, 1 - cDataAtV2.a);
     }*/
-    externalForces.xy = 0.1 * (cDataAtV2.xz * cDataAtV2.a) * input;
+    /*if (id.x == 30) externalForces.x = -0.05 * input;
+    if (id.y == 30) externalForces.y = 0.05 * input;
+    if (id.x == 50 && id.y == 50) externalForces.x = 0.1 * input;*/
+    if (input == 1){
+        externalForces.x += sin(uv.x * 3.14) * cDataAtV2.a;
+        externalForces.y += cos(uv.y * 3.14) * cDataAtV2.a;
+        
+        
+    }
+    
+    //externalForces.xy -= 0.1 * (cDataAtV2.xy) * input;
         
 	fieldCenter.xy += DeltaTime * (viscosityForce - PdX + externalForces);
 	
