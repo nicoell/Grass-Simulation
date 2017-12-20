@@ -44,12 +44,6 @@ float3 CamPos;
 float DeltaTime;
 float Time;
 float4x4 ViewProjMatrix;
-float WindDirectionX;
-float WindDirectionZ;
-float WindPhase;
-float WindSpeed;
-float WindFrequency;
-float WindAmplitude;
 float4 GravityVec;
 
 float4 LocalToWorldPos(float4 pos){ return mul(PatchModelMatrix, pos); }
@@ -87,7 +81,7 @@ void AdjustBezierArcLength(inout float3 v1, inout float3 v2, in float height)
 void ValidateV2(inout float3 v2, in float3 bladeUp)
 {
     //Ensure valid v2 position (not under ground plane)
-	v2 += bladeUp * -min(dot(bladeUp, v2),0.0);
+	v2 += bladeUp * -min(dot(bladeUp, v2),0);
 }
 
 void CalculateBladeDirAndFront(in float3 bladeUp, in float dirAlpha, out float3 bladeDir, out float3 bladeFront)
@@ -166,14 +160,12 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	//Gravity
 	float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
 	float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
-	gravity += sign * bladeFront * height * GravityVec.w * 0.25f;
+	gravity += sign * bladeFront * height * GravityVec.w * 0.25;
 	gravity = gravity * height * bendingFactor * mdt;
 
 	//Wind
 	//TODO
-	/*float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
-	float3 windVecTemp = float3(sin(dirAlpha), 0.4, cos(dirAlpha));
-	float windageDir = 1.0f - abs(dot(normalize(windVecTemp), normalize(v2)));
+	/*
 	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f) + sin((v0.x + v0.y) * 0.5f) + sin((v0.y + v0.z) * 0.25f)) / 3.0f, 0.0f);
 	float3 wind = windVecTemp * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;*/
 	//Wind Crysis
@@ -185,14 +177,29 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
     float3 wind = WindAmplitude * float3(wavesSum.x * WindDirectionX, 0, wavesSum.y * WindDirectionZ) * mdt * windageHeight * bendingFactor;
     */
-    float2 wind = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvGlobal, 0).xy;
+	float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
+    float4 windfluidSample = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvGlobal, 0);
+    float windDensity = windfluidSample.w;
+    float2 windVelocity = windfluidSample.xy;
+    float areaThrustSurface = 1.0 - 
+    abs(
+     dot(
+      normalize(float3( windVelocity.x, 0, windVelocity.y ) ),
+      normalize(v2) 
+      ) 
+     ) * windageHeight;
+    float2 windMass = windVelocity * windDensity * windageHeight;
+    float2 windForce = windVelocity * windMass *  bendingFactor;
+    
+    //windForce = float2(0, 0);
+    //float2 wind = windageHeight * .xy;
     
 	//Stiffness 
 	//TODO: Rework temp max without collisionForce
 	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0, 0.1) * mdt;
 
 	//apply new forces
-	v2 += gravity + float3(wind.x, 0, wind.y) + stiffness;
+	v2 += gravity + float3(windForce.x, -length(windForce) * 0.25, windForce.y) + stiffness;
 
 	ValidateV2(v2, bladeUp);
     float3 v1 = GetV1(v2, bladeUp, height, invHeight);

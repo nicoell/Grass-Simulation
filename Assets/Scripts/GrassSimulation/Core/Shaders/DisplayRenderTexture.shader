@@ -2,7 +2,7 @@
 {
     SubShader
     {
-        Cull Off ZWrite Off
+        Cull Off
         Pass
         {
             Tags { "RenderType"="Opaque" }
@@ -28,7 +28,7 @@
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = v.vertex;
+                o.vertex = UnityObjectToClipPos(v.vertex);
                 //o.vertex.xy *= 2;
                 o.uv = v.uv;
                 return o;
@@ -36,11 +36,14 @@
             
             Texture2D<float4> MainTex; // width, bend, height, dirAlpha
             SamplerState samplerMainTex;
+            float4x4 ColorMatrix;
 
             fixed4 frag (v2f i) : SV_Target
             {
                 fixed4 col = MainTex.SampleLevel(samplerMainTex, i.uv, 0);
-                return fixed4(col.r * 100, col.g * 100, col.b, 1);
+                col = mul(ColorMatrix, col);
+                col = col.w * float4(1- col.xyz, 1);
+                return lerp(float4(0, 1, 0, 1), col, col.w);
             }
             ENDCG
         }

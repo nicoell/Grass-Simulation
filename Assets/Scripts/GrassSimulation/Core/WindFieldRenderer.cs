@@ -8,6 +8,7 @@ namespace GrassSimulation.Core
 		//public readonly RenderTexture[] WindDensityTexture;
 		public readonly RenderTexture[] WindFieldTexture;
 		private int _textureIndex;
+		private Matrix4x4 _colorMatrix;
 
 		public WindFieldRenderer(SimulationContext ctx, Bounds bounds) : base(ctx)
 		{
@@ -42,11 +43,8 @@ namespace GrassSimulation.Core
 			
 			Ctx.WindFluidSimulation.SetFloat("Viscosity", Ctx.Settings.FluidViscosity);
 			Ctx.WindFluidSimulation.SetFloat("PressureScale", Ctx.Settings.FluidPressureScale);
-			//Ctx.WindFluidSimulation.SetFloat("DensityViscosity", Ctx.Settings.FluidDensityViscosity);
 			
-			//Ctx.WindFluidSimulation.SetFloat("WindDensityResolution", Ctx.Settings.WindDensityResolution);
 			Ctx.WindFluidSimulation.SetFloat("WindFieldResolution", Ctx.Settings.WindFieldResolution);
-			//Ctx.WindFluidSimulation.SetFloat("DensityStep", 1f / Ctx.Settings.WindDensityResolution);
 			Ctx.WindFluidSimulation.SetFloat("FieldStep", 1f / Ctx.Settings.WindFieldResolution);
 
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "WindFieldTexture", WindFieldTexture[1]);
@@ -63,7 +61,7 @@ namespace GrassSimulation.Core
 			{
 				Ctx.WindFluidSimulation.SetFloat("input", 0);
 			}
-			Ctx.WindFluidSimulation.SetFloat("DeltaTime", 0.01f);
+			Ctx.WindFluidSimulation.SetFloat("DeltaTime", Time.deltaTime * Ctx.Settings.FluidTimeFactor);
 			for (var i = 0; i < Ctx.Settings.FluidIterationSteps; i++)
 			{
 				UpdateWindField(_textureIndex, (_textureIndex + 1) % 2);
@@ -72,10 +70,23 @@ namespace GrassSimulation.Core
 			}
 			if (Ctx.DisplayRenderTexture)
 			{
-				Ctx.DisplayRenderTexture.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("MainTex", WindFieldTexture[0]);
+				var sharedMat = Ctx.DisplayRenderTexture.GetComponent<MeshRenderer>().sharedMaterial;
+				sharedMat.SetTexture("MainTex", WindFieldTexture[0]);
+				sharedMat.SetMatrix("ColorMatrix", GenerateMatrix());
 			}
 		}
+		
+		
+		private Matrix4x4 GenerateMatrix() {
+			var m = Matrix4x4.identity;
 
+			var alpha = new Vector4 (0f, 0f, 0f, 1f);
+			for (var i = 0; i < 4; i++)
+				m.SetRow (i, alpha);
+
+			return m;
+		}
+		
 		private void UpdateWindField(int first, int second)
 		{
 			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelUpdateField, "WindFieldRenderTexture", WindFieldTexture[second]);
