@@ -18,7 +18,6 @@ float WindFieldResolution;
 //float DensityStep;
 float FieldStep;
 
-static const float CentralScale = 1.0/2.0;
 #define DX 1.0
 #define DIFF (1.0 / (2.0 * DX))
 #define DDIFF (1.0 / (DX * DX))
@@ -92,27 +91,8 @@ void UpdateField (uint3 id : SV_DispatchThreadID)
     ///< Semi-Langrangian.
 	
 	float4 cDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, uvCollisionTexture, 0);
-	
-	if (cDataAtV2.a > 0.3 && cDataAtV2.a < 0.5){ 
-        u.xy *= 0;
-        return;
-	}
 	float2 externalForces = float2(0, 0);
-    //if (WindDensityTexture.SampleLevel(samplerPointClamp, uv, 0).x > 0.1)
-    /*if (1 - cDataAtV2.a > 0.5)
-    {
-        externalForces = float2(0, 1 - cDataAtV2.a);
-    }*/
-    /*if (id.x == 30) externalForces.x = -0.5 * input;
-    if (id.y == 30) externalForces.y = 0.5 * input;
-    if (id.x == 50 && id.y == 50) externalForces.x = 1.0 * input;*/
-    /*if (input == 1){
-        externalForces.x = sin(uv.x * 3.14) * cDataAtV2.a;
-        externalForces.y = cos(uv.y * 3.14) * cDataAtV2.a;
-    }*/
-    
-    //externalForces.xy = float2(0.1, 0.1);
-    externalForces.xy += 0.1 * (cDataAtV2.xy);
+    externalForces.xy += (length(cDataAtV2.xy) > 1) ? normalize(cDataAtV2.xy) : cDataAtV2.xy;
         
 	u.xy += DeltaTime * (- PdX + viscosityForce + externalForces);
 	
