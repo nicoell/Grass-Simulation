@@ -1,6 +1,6 @@
 ﻿using System;
 using GrassSimulation.Core;
-using GrassSimulation.Core.Patches;
+using GrassSimulation.Core.Lod;
 using UnityEngine;
 
 namespace GrassSimulation.StandardContainers

@@ -12,11 +12,10 @@ namespace GrassSimulation.StandardInputs
 		private Terrain _terrain;
 		private Vector3 _upVector;
 
-		public bool Init(SimulationContext context)
+		public void Init(SimulationContext context)
 		{
 			_random = context.Random;
 			_upVector = context.Transform.up;
-			return true;
 		}
 
 		public override Vector3 GetNormal(float x, float y)

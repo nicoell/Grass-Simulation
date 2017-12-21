@@ -21,14 +21,16 @@ namespace GrassSimulation.Core
 		[Range(0, 6)]
 		public float BladeTextureMaxMipmapLevel = 5;
 		public uint BillboardTextureGrassCount = 64;
-		
+
+		[Header("Lighting Settings")]
+		[Range(0, 1)]
+		public float Specular;
+		public float Gloss;
+
 		[Header("Physics Settings")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
-		public float WindDirectionX = 1f;
-		public float WindDirectionZ = 0.6f;
-		public float WindPhase = 1f;
-		public float WindSpeed = 1f;
-		public float WindFrequency = 1f;
+
+		[Range(0, 1)]
 		public float WindAmplitude = 1f;
 
 		[Header("Wind Fluid Settings")]
@@ -41,7 +43,6 @@ namespace GrassSimulation.Core
 		//TODO: Handle width and height seperately for non-quad containers
 		public int GrassMapResolution = 256;
 		public int CollisionDepthResolution = 512;
-		public int WindDensityResolution = 256;
 		public int WindFieldResolution = 128;
 		public int GrassDataResolution = 16;
 		public int BillboardTextureResolution = 64;

@@ -1,8 +1,11 @@
 ﻿using System;
-using GrassSimulation.Core.Attribute;
-using GrassSimulation.Core.ClassTypeReference;
+using GrassSimulation.Core.Billboard;
+using GrassSimulation.Core.Collision;
+using GrassSimulation.Core.GrassBlade;
 using GrassSimulation.Core.Inputs;
-using GrassSimulation.Core.Patches;
+using GrassSimulation.Core.Lod;
+using GrassSimulation.Core.Utils;
+using GrassSimulation.Core.Wind;
 using UnityEngine;
 using Random = System.Random;
 
@@ -14,6 +17,7 @@ namespace GrassSimulation.Core
 		[Header("Requirements")]
 		public Transform Transform;
 		public Camera Camera;
+		public Light Light;
 		public ComputeShader GrassSimulationComputeShader;
 		public ComputeShader RenderTextureVolumeToSlice;
 		public ComputeShader WindFluidSimulation;
@@ -23,8 +27,6 @@ namespace GrassSimulation.Core
 		public CollisionTextureRenderer CollisionTextureRenderer;
 		[HideInInspector]
 		public WindFieldRenderer WindFieldRenderer;
-		//public RenderTexture DEBUGONLY;
-		//public RenderTexture DEBUGONLY2;
 
 		public Shader GrassSimulationShader;
 		[NonSerialized]
@@ -37,7 +39,7 @@ namespace GrassSimulation.Core
 		public Material GrassBillboardScreen;
 		[NonSerialized]
 		public Camera CollisionCamera;
-		
+		[NonSerialized]
 		public Camera BillboardTextureCamera;
 		[HideInInspector]
 		public BillboardTexturePatchContainer BillboardTexturePatchContainer;
@@ -50,34 +52,34 @@ namespace GrassSimulation.Core
 		[Header("PatchContainer")]
 		
 		[ClassExtends(typeof(PatchContainer), " ")]
-		public ClassTypeReference.ClassTypeReference PatchContainerType;
+		public ClassTypeReference PatchContainerType;
 		[EmbeddedScriptableObject(false, true)]
 		public PatchContainer PatchContainer;
 		
 		[Header("Inputs")]
 		
 		[ClassExtends(typeof(DimensionsInput), " ")]
-		public ClassTypeReference.ClassTypeReference DimensionsInputType;
+		public ClassTypeReference DimensionsInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public DimensionsInput DimensionsInput;
 
 		[ClassExtends(typeof(GrassMapInput), " ")]
-		public ClassTypeReference.ClassTypeReference GrassMapInputType;
+		public ClassTypeReference GrassMapInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public GrassMapInput GrassMapInput;
 		
 		[ClassExtends(typeof(HeightInput), " ")]
-		public ClassTypeReference.ClassTypeReference HeightInputType;
+		public ClassTypeReference HeightInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public HeightInput HeightInput;
 		
 		[ClassExtends(typeof(NormalInput), " ")]
-		public ClassTypeReference.ClassTypeReference NormalInputType;
+		public ClassTypeReference NormalInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public NormalInput NormalInput;
 		
 		[ClassExtends(typeof(PositionInput), " ")]
-		public ClassTypeReference.ClassTypeReference PositionInputType;
+		public ClassTypeReference PositionInputType;
 		[EmbeddedScriptableObject(false, true)]
 		public PositionInput PositionInput;
 		
@@ -98,7 +100,7 @@ namespace GrassSimulation.Core
 		[NonSerialized] 
 		public Random Random;
 		public GrassInstance GrassInstance;
-		//public Terrain Terrain;
+
 		//Settings
 		public EditorSettings EditorSettings;
 		public SimulationSettings Settings;
@@ -136,7 +138,7 @@ namespace GrassSimulation.Core
 				PatchContainer = Activator.CreateInstance(PatchContainerType) as PatchContainer;
 		}
 
-		public bool Init()
+		public void Init()
 		{
 			if (Settings == null)
 			{
@@ -170,7 +172,7 @@ namespace GrassSimulation.Core
 				if (!PatchContainer) Debug.Log("GrassSimulation: PatchContainer not set.");
 				if (BladeTexture2DArray0 == null || BladeTexture2DArray1 == null) Debug.Log("GrassSimulation: No Grass Blades set. Cannot create Textures.");
 				IsReady = false;
-				return false;
+				return;
 			}
 			
 			//Create a single random object
@@ -347,7 +349,6 @@ namespace GrassSimulation.Core
 			
 			//Everything is ready.
 			IsReady = true;
-			return true;
 		}
 
 		public void OnGUI()

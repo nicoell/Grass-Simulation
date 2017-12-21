@@ -9,11 +9,10 @@ namespace GrassSimulation.StandardInputs
 		private Random _random;
 		private int _typeCount;
 
-		public bool Init(SimulationContext context)
+		public void Init(SimulationContext context)
 		{
 			_random = context.Random;
 			_typeCount = context.BladeContainer.GetTypeCount();
-			return true;
 		}
 
 		public override byte GetGrassType(float x, float y, float z)

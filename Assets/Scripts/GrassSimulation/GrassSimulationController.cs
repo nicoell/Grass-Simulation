@@ -1,5 +1,5 @@
 ﻿using GrassSimulation.Core;
-using GrassSimulation.Core.Attribute;
+using GrassSimulation.Core.Utils;
 using UnityEngine;
 
 namespace GrassSimulation

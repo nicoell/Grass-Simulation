@@ -2,6 +2,6 @@
 {
 	public interface IInitializableWithCtx
 	{
-		bool Init(SimulationContext context);
+		void Init(SimulationContext context);
 	}
 }

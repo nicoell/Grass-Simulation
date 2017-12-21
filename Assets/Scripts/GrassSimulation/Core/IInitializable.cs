@@ -2,6 +2,6 @@
 {
 	public interface IInitializable
 	{
-		bool Init();
+		void Init();
 	}
 }

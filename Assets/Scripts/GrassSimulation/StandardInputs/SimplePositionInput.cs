@@ -9,10 +9,9 @@ namespace GrassSimulation.StandardInputs
 	{
 		private Random _random;
 
-		public bool Init(SimulationContext context)
+		public void Init(SimulationContext context)
 		{
 			_random = context.Random;
-			return true;
 		}
 
 		public override Vector2 GetPosition(int id)
