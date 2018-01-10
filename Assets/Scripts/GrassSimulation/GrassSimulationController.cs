@@ -2,6 +2,17 @@
 using GrassSimulation.Core.Utils;
 using UnityEngine;
 
+/* TODO:
+ Dynamic Tessellation Level
+Wind
+Collision
+Blade Texture
+Blade Width Correction Minimal-width shape
+
+Statistics
+Blades drawn
+*/
+
 namespace GrassSimulation
 {
 	[ExecuteInEditMode]

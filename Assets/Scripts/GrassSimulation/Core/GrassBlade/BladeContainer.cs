@@ -31,7 +31,7 @@ namespace GrassSimulation.Core.GrassBlade
 		public Texture2DArray GetGeoemetryTexture2DArray(int id)
 		{
 			if (Blades == null || Blades.Length <= 0) return null;
-			var tex2DArray = new Texture2DArray(2, TextureHeight, Blades.Length,
+			var tex2DArray = new Texture2DArray(1, TextureHeight, Blades.Length,
 				TextureFormat.RGBA32, true, true)
 			{
 				name = "BladeTextures",
@@ -54,44 +54,32 @@ namespace GrassSimulation.Core.GrassBlade
 					for (var y = 0; y < mipHeight; y++)
 					{
 						//TODO: Add multisampling of animationcurve
-						float r0 = 0, r1 = 0, g0 = 0, g1 = 0, b0 = 0, b1 = 0, a0 = 0, a1 = 0;
+						float r = 0, g = 0, b = 0, a = 0;
 						if (id == 0)
 						{
-							var leftEdgeCurve = blade.LeftEdgeCurve.Evaluate((float) y / mipHeight);
-							leftEdgeCurve = Mathf.SmoothStep(leftEdgeCurve, 1.0f,
+							var edgeCurve = blade.EdgeCurve.Evaluate((float) y / mipHeight);
+							edgeCurve = Mathf.SmoothStep(edgeCurve, 1.0f,
 								miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-							var rightEdgeCurve = blade.RightEdgeCurve.Evaluate((float) y / mipHeight);
-							rightEdgeCurve = Mathf.SmoothStep(rightEdgeCurve, 1.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-							//var leftColor = blade.LeftColorGradient.Evaluate((float) y / mipHeight);
-							var leftColor = MultiSampleGradient(blade.LeftColorGradient, (float) y / mipHeight, samplingInterval);
-							//TODO: Reenable maybe
-							//var rightColor = blade.RightColorGradient.Evaluate((float) y / tex2DArray.height);
-							var rightColor = leftColor;
 
-							r0 = leftEdgeCurve;
-							r1 = rightEdgeCurve;
-							g0 = leftColor.r;
-							g1 = rightColor.r;
-							b0 = leftColor.g;
-							b1 = rightColor.g;
-							a0 = leftColor.b;
-							a1 = rightColor.b;
+							var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
+
+							r = edgeCurve;
+							g = color.r;
+							b = color.g;
+							a = color.b;
 						}
 						else if (id == 1)
 						{
-							var leftEdgeRotation = blade.LeftEdgeRotation.Evaluate((float) y / mipHeight);
-							leftEdgeRotation = Mathf.SmoothStep(leftEdgeRotation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-							var rightEdgeRotation = blade.RightEdgeRotation.Evaluate((float) y / mipHeight);
-							rightEdgeRotation =
-								Mathf.SmoothStep(rightEdgeRotation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+							var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight);
+							midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
-							r0 = leftEdgeRotation;
-							r1 = rightEdgeRotation;
+							r = midTranslation;
+							g = blade.Height;
+							b = blade.Width;
 						}
 
-						var index = mipWidth == 2 ? 2 * y : y;
-						colors[index] = new Color(r0, g0, b0, a0);
-						if (mipWidth == 2) colors[index + 1] = new Color(r1, g1, b1, a1);
+						var index = y;
+						colors[index] = new Color(r, g, b, a);
 					}
 					tex2DArray.SetPixels(colors, i, miplevel);
 
