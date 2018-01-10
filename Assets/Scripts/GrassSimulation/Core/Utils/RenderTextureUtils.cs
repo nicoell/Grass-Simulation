@@ -7,10 +7,10 @@ namespace GrassSimulation.Core.Utils
 	public static class RenderTextureUtils
 	{
 		public static Texture2D GetRenderTextureVolumeElementAsTexture2D(ComputeShader renderTextureVolumeToSlice,
-			UnityEngine.RenderTexture source, int element, TextureFormat outpuTextureFormat = TextureFormat.ARGB32,
+			RenderTexture source, int element, TextureFormat outpuTextureFormat = TextureFormat.ARGB32,
 			bool mipmap = true, bool linear = false)
 		{
-			var target = new UnityEngine.RenderTexture(source.width, source.height, 0, source.format)
+			var target = new RenderTexture(source.width, source.height, 0, source.format)
 			{
 				dimension = TextureDimension.Tex2D,
 				enableRandomWrite = true,
@@ -49,24 +49,24 @@ namespace GrassSimulation.Core.Utils
 				(int) (source.height / threadGroupY), 1);
 
 			var output = new Texture2D(source.width, source.height, outpuTextureFormat, mipmap, linear);
-			var restoreRt = UnityEngine.RenderTexture.active;
-			UnityEngine.RenderTexture.active = target;
+			var restoreRt = RenderTexture.active;
+			RenderTexture.active = target;
 			output.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, mipmap);
 			output.Apply();
-			UnityEngine.RenderTexture.active = restoreRt;
+			RenderTexture.active = restoreRt;
 			return output;
 		}
 
-		public static Texture2D GetRenderTextureAsTexture2D(UnityEngine.RenderTexture source,
+		public static Texture2D GetRenderTextureAsTexture2D(RenderTexture source,
 			TextureFormat outpuTextureFormat = TextureFormat.ARGB32,
 			bool mipmap = true, bool linear = false)
 		{
 			var output = new Texture2D(source.width, source.height, outpuTextureFormat, mipmap, linear);
-			var restoreRt = UnityEngine.RenderTexture.active;
-			UnityEngine.RenderTexture.active = source;
+			var restoreRt = RenderTexture.active;
+			RenderTexture.active = source;
 			output.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, mipmap);
 			output.Apply();
-			UnityEngine.RenderTexture.active = restoreRt;
+			RenderTexture.active = restoreRt;
 			return output;
 		}
 	}

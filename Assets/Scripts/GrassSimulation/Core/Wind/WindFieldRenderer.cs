@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace GrassSimulation.Core.Wind
 {
@@ -6,15 +7,22 @@ namespace GrassSimulation.Core.Wind
 	{
 		//public readonly RenderTexture[] WindDensityTexture;
 		public readonly RenderTexture[] WindFieldTexture;
-		private int _textureIndex;
 		private Matrix4x4 _colorMatrix;
+		private int _textureIndex;
+		public ComputeBuffer WindForceBuffer;
+		public WindForce[] WindForces;
+		private int _windForceIndex;
 
 		public WindFieldRenderer(SimulationContext ctx, Bounds bounds) : base(ctx)
 		{
 			//WindDensityTexture = new RenderTexture[2];
 			WindFieldTexture = new RenderTexture[2];
 			_textureIndex = 0;
-			
+			WindForces = new WindForce[Ctx.Settings.MaxAmountWindForces];
+			_windForceIndex = 0;
+			WindForceBuffer = new ComputeBuffer((int) Ctx.Settings.MaxAmountWindForces, WindForce.GetSize(),
+				ComputeBufferType.Default);
+
 			for (var i = 0; i < 2; i++)
 			{
 				/*WindDensityTexture[i] = new RenderTexture(Ctx.Settings.WindDensityResolution,
@@ -39,27 +47,26 @@ namespace GrassSimulation.Core.Wind
 				};
 				WindFieldTexture[i].Create();
 			}
-			
+
 			Ctx.WindFluidSimulation.SetFloat("Viscosity", Ctx.Settings.FluidViscosity);
 			Ctx.WindFluidSimulation.SetFloat("PressureScale", Ctx.Settings.FluidPressureScale);
-			
+
 			Ctx.WindFluidSimulation.SetFloat("WindFieldResolution", Ctx.Settings.WindFieldResolution);
 			Ctx.WindFluidSimulation.SetFloat("FieldStep", 1f / Ctx.Settings.WindFieldResolution);
 
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "WindFieldTexture", WindFieldTexture[1]);
-			
+
 			SetupWindField();
 		}
 
 		public void Update()
 		{
-			if (Input.GetMouseButton(0))
-			{
-				Ctx.WindFluidSimulation.SetFloat("input", 1);
-			} else
-			{
-				Ctx.WindFluidSimulation.SetFloat("input", 0);
-			}
+			WindForceBuffer.SetData(WindForces);
+			Ctx.WindFluidSimulation.SetBuffer(Ctx.KernelUpdateField, "ExternalForcesBuffer", WindForceBuffer);
+			Ctx.WindFluidSimulation.SetFloat("AmountExternalForces", _windForceIndex);
+			
+			if (Input.GetMouseButton(0)) Ctx.WindFluidSimulation.SetFloat("input", 1);
+			else Ctx.WindFluidSimulation.SetFloat("input", 0);
 			Ctx.WindFluidSimulation.SetFloat("DeltaTime", Time.deltaTime * Ctx.Settings.FluidTimeFactor);
 			for (var i = 0; i < Ctx.Settings.FluidIterationSteps; i++)
 			{
@@ -73,19 +80,20 @@ namespace GrassSimulation.Core.Wind
 				sharedMat.SetTexture("MainTex", WindFieldTexture[0]);
 				sharedMat.SetMatrix("ColorMatrix", GenerateMatrix());
 			}
+			
+			_windForceIndex = 0;
 		}
-		
-		
-		private Matrix4x4 GenerateMatrix() {
+
+		private Matrix4x4 GenerateMatrix()
+		{
 			var m = Matrix4x4.identity;
 
-			var alpha = new Vector4 (0f, 0f, 0f, 1f);
-			for (var i = 0; i < 4; i++)
-				m.SetRow (i, alpha);
+			var alpha = new Vector4(0f, 0f, 0f, 1f);
+			for (var i = 0; i < 4; i++) m.SetRow(i, alpha);
 
 			return m;
 		}
-		
+
 		private void UpdateWindField(int first, int second)
 		{
 			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelUpdateField, "WindFieldRenderTexture", WindFieldTexture[second]);
@@ -99,7 +107,7 @@ namespace GrassSimulation.Core.Wind
 
 			Ctx.WindFluidSimulation.Dispatch(Ctx.KernelUpdateField, (int) (Ctx.Settings.WindFieldResolution / threadGroupX),
 				(int) (Ctx.Settings.WindFieldResolution / threadGroupY), 1);
-			
+
 			/*//Ctx.WindFluidSimulation.SetTexture(Ctx.KernelUpdateDensity, "WindFieldRenderTexture", WindFieldTexture[write]);
 			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelUpdateDensity, "WindFieldTexture", WindFieldTexture[second]);
 			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelUpdateDensity, "WindDensityRenderTexture", WindDensityTexture[second]);
@@ -115,20 +123,20 @@ namespace GrassSimulation.Core.Wind
 		private void SetupWindField()
 		{
 			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelSetupField, "WindFieldRenderTexture", WindFieldTexture[0]);
-			
+
 			uint threadGroupX, threadGroupY, threadGroupZ;
 			Ctx.WindFluidSimulation.GetKernelThreadGroupSizes(Ctx.KernelSetupField, out threadGroupX, out threadGroupY,
 				out threadGroupZ);
 			Ctx.WindFluidSimulation.Dispatch(Ctx.KernelSetupField, (int) (Ctx.Settings.WindFieldResolution / threadGroupX),
 				(int) (Ctx.Settings.WindFieldResolution / threadGroupY), 1);
-			
+
 			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelSetupField, "WindFieldRenderTexture", WindFieldTexture[1]);
-			
+
 			Ctx.WindFluidSimulation.GetKernelThreadGroupSizes(Ctx.KernelSetupField, out threadGroupX, out threadGroupY,
 				out threadGroupZ);
 			Ctx.WindFluidSimulation.Dispatch(Ctx.KernelSetupField, (int) (Ctx.Settings.WindFieldResolution / threadGroupX),
 				(int) (Ctx.Settings.WindFieldResolution / threadGroupY), 1);
-			
+
 			/*Ctx.WindFluidSimulation.SetTexture(Ctx.KernelSetupDensity, "WindDensityRenderTexture", WindDensityTexture[1]);
 			
 			Ctx.WindFluidSimulation.GetKernelThreadGroupSizes(Ctx.KernelSetupDensity, out threadGroupX, out threadGroupY,
@@ -138,10 +146,13 @@ namespace GrassSimulation.Core.Wind
 				(int) (Ctx.Settings.WindDensityResolution / threadGroupY), 1);*/
 		}
 
-		public void OnGUI()
+		public void RegisterWindForce(WindForce windForce)
 		{
-			
-			
+			if (_windForceIndex >= Ctx.Settings.MaxAmountWindForces) return;
+			WindForces[_windForceIndex] = windForce;
+			_windForceIndex++;
 		}
+
+		public void OnGUI() { }
 	}
 }

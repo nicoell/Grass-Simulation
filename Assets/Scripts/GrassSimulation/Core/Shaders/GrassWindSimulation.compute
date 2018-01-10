@@ -6,6 +6,21 @@
 #define fluidNumThreadsZ 1
 #define fluidThreadCount fluidNumThreadsX * fluidNumThreadsY * fluidNumThreadsZ
 
+//forces
+struct WindForce
+{
+    float Radius;
+    float3 Position;
+    int Type;
+    float Strength;
+};
+
+StructuredBuffer<WindForce> ExternalForcesBuffer;
+float AmountExternalForces;
+
+float4x4 CollisionViewProj;
+float4 GetCollisionVolumePos(float3 worldpos){ return mul(CollisionViewProj, float4(worldpos, 1.0)); }
+
 float Viscosity;
 float PressureScale;
 //float DensityViscosity;
@@ -88,11 +103,21 @@ void UpdateField (uint3 id : SV_DispatchThreadID)
 	float2 PdX = (PressureScale / DeltaTime) * rGrad;
     float2 viscosityForce = Viscosity * laplacian;
     
-    ///< Semi-Langrangian.
-	
+    // Semi-Langrangian
 	float4 cDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, uvCollisionTexture, 0);
 	float2 externalForces = float2(0, 0);
-    externalForces.xy += (length(cDataAtV2.xy) > 1) ? normalize(cDataAtV2.xy) : cDataAtV2.xy;
+	
+	for (int forceIndex = 0; forceIndex < AmountExternalForces; forceIndex++)
+	{
+	    float radius = ExternalForcesBuffer[forceIndex].Radius;
+	    float3 relativePosition = (GetCollisionVolumePos(ExternalForcesBuffer[forceIndex].Position).xyz + 1)/2;
+	    float d = distance(uv, relativePosition.xz);
+	    if (d < radius){
+	        externalForces += float2((radius - d) / radius, (radius - d) / radius) * ExternalForcesBuffer[forceIndex].Strength;
+	    }    
+    }
+	
+    //externalForces.xy += (length(cDataAtV2.xy) > 1) ? normalize(cDataAtV2.xy) : cDataAtV2.xy;
         
 	u.xy += DeltaTime * (- PdX + viscosityForce + externalForces);
 	

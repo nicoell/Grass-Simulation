@@ -30,6 +30,12 @@ namespace GrassSimulation.Core
 		[Header("Physics Settings")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
 
+		[Header("Procedural Wind")]
+		public float WindFrequencyDirMin = 5f;
+		public float WindFrequencyDirMax = 8f;
+		public float WindFrequencyMagMin = 1f;
+		public float WindFrequencyMagMax = 2f;
+		public float WindMagnitudeMax = 8f;
 		[Range(0, 1)]
 		public float WindAmplitude = 1f;
 
@@ -38,6 +44,7 @@ namespace GrassSimulation.Core
 		public int FluidIterationSteps = 10;
 		public float FluidViscosity = 0.03f;
 		public float FluidPressureScale = 0.15f;
+		public int MaxAmountWindForces = 32;
 
 		[Header("Texture Resolutions")]
 		//TODO: Handle width and height seperately for non-quad containers

@@ -26,8 +26,10 @@ namespace GrassSimulation.Core
 		[HideInInspector]
 		public CollisionTextureRenderer CollisionTextureRenderer;
 		[HideInInspector]
-		public WindFieldRenderer WindFieldRenderer;
-
+		public ProceduralWind ProceduralWind;
+		/*[HideInInspector]
+		public WindFieldRenderer WindFieldRenderer;*/
+				
 		public Shader GrassSimulationShader;
 		[NonSerialized]
 		public Material GrassGeometry;
@@ -39,7 +41,6 @@ namespace GrassSimulation.Core
 		public Material GrassBillboardScreen;
 		[NonSerialized]
 		public Camera CollisionCamera;
-		[NonSerialized]
 		public Camera BillboardTextureCamera;
 		[HideInInspector]
 		public BillboardTexturePatchContainer BillboardTexturePatchContainer;
@@ -333,7 +334,9 @@ namespace GrassSimulation.Core
 			PatchContainer.SetupContainer();
 			
 			CollisionTextureRenderer = new CollisionTextureRenderer(this, PatchContainer.GetBounds());
-			WindFieldRenderer = new WindFieldRenderer(this, PatchContainer.GetBounds());
+			//WindFieldRenderer = new WindFieldRenderer(this, PatchContainer.GetBounds());
+			ProceduralWind = new ProceduralWind(this);
+			ProceduralWind.Update();
 			//WindFieldRenderer.Update();
 
 			//Create Billboard Textures
@@ -354,7 +357,7 @@ namespace GrassSimulation.Core
 		public void OnGUI()
 		{
 			//DEBUGONLY = WindFieldRenderer.WindFieldTexture[0];
-			WindFieldRenderer.OnGUI();
+			//WindFieldRenderer.OnGUI();
 			//BillboardTexturePatchContainer.OnGUI();
 			PatchContainer.OnGUI();
 		}

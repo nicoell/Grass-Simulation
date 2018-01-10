@@ -45,7 +45,7 @@ namespace GrassSimulation.Core.Billboard
 		private void SetupBounding()
 		{
 			var bounds = _billboardTexturePatch.GetBillboardBounding();
-
+			
 			Ctx.BillboardTextureCamera.orthographic = true; 
 			Ctx.BillboardTextureCamera.nearClipPlane = 0;
 			Ctx.BillboardTextureCamera.farClipPlane = bounds.size.z;
@@ -111,7 +111,7 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassBillboardGeneration.SetVector("lightDir", Ctx.Light.transform.forward);
 			Ctx.GrassBillboardGeneration.SetVector("lightColor", Ctx.Light.color);
 			
-			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 0.5f);
+			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 1f);
 			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.BillboardTextureCamera.projectionMatrix * Ctx.BillboardTextureCamera.worldToCameraMatrix);

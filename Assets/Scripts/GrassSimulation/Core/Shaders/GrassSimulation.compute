@@ -31,8 +31,10 @@ float4x4 PatchModelMatrix;
 float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
 int StartIndex;
 
-Texture2D<float4> WindFieldTexture;
-SamplerState samplerWindFieldTexture;
+//Deactivated
+//Texture2D<float4> WindFieldTexture;
+//SamplerState samplerWindFieldTexture;
+
 Texture2D<float4> CollisionDepthTexture; //up.xyz, pos.y
 SamplerState samplerCollisionDepthTexture;
 Texture2D<float4> NormalHeightTexture; //up.xyz, pos.y
@@ -46,6 +48,7 @@ float Time;
 float4x4 ViewProjMatrix;
 float4 GravityVec;
 float WindAmplitude;
+float4 WindData;
 
 float4 LocalToWorldPos(float4 pos){ return mul(PatchModelMatrix, pos); }
 float4 LocalToWorldPos(float3 pos){ return mul(PatchModelMatrix, float4(pos, 1.0)); }
@@ -165,6 +168,11 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	gravity = gravity * height * bendingFactor * mdt;
 
 	//Wind
+	float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
+	float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2)));
+	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
+	float3 wind = WindData.xyz * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
+	
 	//TODO
 	/*
 	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f) + sin((v0.x + v0.y) * 0.5f) + sin((v0.y + v0.z) * 0.25f)) / 3.0f, 0.0f);
@@ -178,7 +186,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
     float3 wind = WindAmplitude * float3(wavesSum.x * WindDirectionX, 0, wavesSum.y * WindDirectionZ) * mdt * windageHeight * bendingFactor;
     */
-	float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
+	/*float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
     float4 windfluidSample = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvGlobal, 0);
     float windDensity = windfluidSample.w;
     float2 windVelocity = windfluidSample.xy;
@@ -197,13 +205,14 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     
     //windForce = float2(0, 0);
     //float2 wind = windageHeight * .xy;
+    */
     
 	//Stiffness 
 	//TODO: Rework temp max without collisionForce
 	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0, 0.1) * mdt;
 
 	//apply new forces
-	v2 += gravity + windProjected + stiffness;
+	v2 += gravity + wind + stiffness;
 
 	ValidateV2(v2, bladeUp);
     float3 v1 = GetV1(v2, bladeUp, height, invHeight);
