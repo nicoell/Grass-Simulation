@@ -10,8 +10,6 @@ namespace GrassSimulation.Core.GrassBlade
 		public AnimationCurve MidTranslation = AnimationCurve.Linear(0, 1, 1, 0);
 		public Gradient ColorGradient;
 		[Range(0, 1)]
-		public float Height;
-		[Range(0, 1)]
-		public float Width;
+		public float WidthModifier = 1;
 	}
 }

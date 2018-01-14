@@ -6,9 +6,9 @@ float SingleLerpMinMax(float min, float max, float cur, float start, float end){
     return lerp(max, min, t1);
 }
 
-float SingleLerp(float value, float cur, float start, float end)
+float SingleLerp(float value, float cur, float peak, float end)
 {
-    float t1 = clamp((cur - start) / (end - start), 0, 1);
+    float t1 = clamp((cur - peak) / (end - peak), 0, 1);
     return lerp(value, 0, t1);
 }
 

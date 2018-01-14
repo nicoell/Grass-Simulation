@@ -222,7 +222,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     bool dataDirty = false;
     float3 midPoint = 0.5f * v1 + 0.25f * v2;
     
-    float3 cV0 = (GetCollisionVolumePos(v0).xyz + 1)/2;
+    //float3 cV0 = (GetCollisionVolumePos(v0).xyz + 1)/2;
     float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz + 1)/2;
     float3 cMidPoint = (GetCollisionVolumePos(v0 + midPoint).xyz + 1)/2;
     //float cDepthAtV0 = 1 - CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV0.xy, 0).x;

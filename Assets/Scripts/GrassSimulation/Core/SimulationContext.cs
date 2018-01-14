@@ -20,16 +20,13 @@ namespace GrassSimulation.Core
 		public Light Light;
 		public ComputeShader GrassSimulationComputeShader;
 		public ComputeShader RenderTextureVolumeToSlice;
-		public ComputeShader WindFluidSimulation;
 		public Shader CollisionDepthShader;
 		public GameObject DisplayRenderTexture;
 		[HideInInspector]
 		public CollisionTextureRenderer CollisionTextureRenderer;
 		[HideInInspector]
 		public ProceduralWind ProceduralWind;
-		/*[HideInInspector]
-		public WindFieldRenderer WindFieldRenderer;*/
-				
+
 		public Shader GrassSimulationShader;
 		[NonSerialized]
 		public Material GrassGeometry;
@@ -90,14 +87,6 @@ namespace GrassSimulation.Core
 		public int KernelPhysics;
 		[HideInInspector] 
 		public int KernelSimulationSetup;
-		[HideInInspector] 
-		public int KernelSetupField;
-		[HideInInspector] 
-		public int KernelUpdateField;
-		/*[HideInInspector] 
-		public int KernelSetupDensity;
-		[HideInInspector] 
-		public int KernelUpdateDensity;*/
 		[NonSerialized] 
 		public Random Random;
 		public GrassInstance GrassInstance;
@@ -141,14 +130,10 @@ namespace GrassSimulation.Core
 
 		public void Init()
 		{
-			if (Settings == null)
-			{
-				Settings = new SimulationSettings();
-			}
+			if (Settings == null) Settings = new SimulationSettings();
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
 			if (CollisionCamera == null) CollisionCamera = GameObject.FindWithTag("GrassSimulationCollisionCamera").GetComponent<Camera>();
 			if (BillboardTextureCamera == null) BillboardTextureCamera = GameObject.FindWithTag("BillboardTextureCamera").GetComponent<Camera>();
-			
 			if (BillboardTexturePatchContainer == null) BillboardTexturePatchContainer = CreateInstance<BillboardTexturePatchContainer>();
 			
 			if (BladeContainer == null) BladeContainer = CreateInstance<BladeContainer>();
@@ -182,12 +167,8 @@ namespace GrassSimulation.Core
 			//Find kernels for ComputeShaders
 			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
 			KernelSimulationSetup = GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
-			KernelSetupField = WindFluidSimulation.FindKernel("SetupField"); 
-			KernelUpdateField = WindFluidSimulation.FindKernel("UpdateField"); 
 			
-			//KernelSetupDensity = WindFluidSimulation.FindKernel("SetupDensity"); 
-			//KernelUpdateDensity = WindFluidSimulation.FindKernel("UpdateDensity"); 
-			
+			//Create Material Variants
 			GrassGeometry = new Material(GrassSimulationShader);
 			GrassBillboardGeneration = new Material(GrassGeometry);
 			GrassBillboardCrossed = new Material(GrassGeometry);
@@ -309,9 +290,9 @@ namespace GrassSimulation.Core
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
 			GrassSimulationComputeShader.SetVector("NormalHeightUvCorrection", normalHeightUvCorrectionMinMax);
-			
 	
 			//If possible initialize the Data Providers
+			// ReSharper disable SuspiciousTypeConversion.Global
 			if (DimensionsInput is IInitializableWithCtx) ((IInitializableWithCtx) DimensionsInput).Init(this);
 			else if (DimensionsInput is IInitializable) ((IInitializable) DimensionsInput).Init();
 			
@@ -327,23 +308,21 @@ namespace GrassSimulation.Core
 			if (PositionInput is IInitializableWithCtx) ((IInitializableWithCtx) PositionInput).Init(this);
 			else if (PositionInput is IInitializable) ((IInitializable) PositionInput).Init();
 
-			//TODO: Use same setup pattern for all classes
+
 			GrassInstance = new GrassInstance(this);
 			
 			PatchContainer.Init(this);
 			PatchContainer.SetupContainer();
 			
 			CollisionTextureRenderer = new CollisionTextureRenderer(this, PatchContainer.GetBounds());
-			//WindFieldRenderer = new WindFieldRenderer(this, PatchContainer.GetBounds());
 			ProceduralWind = new ProceduralWind(this);
 			ProceduralWind.Update();
-			//WindFieldRenderer.Update();
 
 			//Create Billboard Textures
 			BillboardTexturePatchContainer.Init(this);
 			BillboardTexturePatchContainer.SetupContainer();
 			BillboardTexturePatchContainer.Draw();
-			//BillboardTextures = BillboardTexturePatchContainer.BillboardTextures;
+			
 			
 			GrassBillboardCrossed.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
 			GrassBillboardCrossed.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
@@ -356,9 +335,6 @@ namespace GrassSimulation.Core
 
 		public void OnGUI()
 		{
-			//DEBUGONLY = WindFieldRenderer.WindFieldTexture[0];
-			//WindFieldRenderer.OnGUI();
-			//BillboardTexturePatchContainer.OnGUI();
 			PatchContainer.OnGUI();
 		}
 	}

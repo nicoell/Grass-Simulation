@@ -86,6 +86,7 @@ Shader "GrassSimulation/Grass"
             //PerFrame
             uniform float4 CamPos;
             uniform float4 CamUp;
+            uniform float4x4 ViewProjMatrix;
             
             uniform float3 viewDir;
             uniform float3 lightColor;
@@ -108,6 +109,11 @@ Shader "GrassSimulation/Grass"
                 #endif
                 
                 uint transitionInstanceID = floor(transition);
+                
+                if (instanceID == transitionInstanceID)
+                {
+                    //if (transition < 0.01) return 0;
+                }
             
                 #ifdef GRASS_GEOMETRY
                     if (instanceID > transitionInstanceID){
@@ -262,19 +268,18 @@ Shader "GrassSimulation/Grass"
     		{
         		DSOut OUT = (DSOut)0;
                 
-                //TODO: Is this an overhead to create local variables here?
 				float3 pos = IN[0].pos;
         		float3 up = IN[0].bladeUp;
         		float3 bladeDir = IN[0].bladeDir;
-        		#ifdef GRASS_GEOMETRY
+            #ifdef GRASS_GEOMETRY
         		float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
         		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
         		float width = IN[0].parameters.x;
-        		#else
+        	#else
         		float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
         		float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
         		float width = length(IN[0].v2) * BillboardAspect * IN[0].transitionFactor;
-        		#endif
+        	#endif
         		float bend = IN[0].parameters.y;
         		float height = IN[0].parameters.z;
 
@@ -294,6 +299,20 @@ Shader "GrassSimulation/Grass"
                 float3 h2 = p1 + v * (p2 - p1);
                 float3 i1 = h1 + v * (h2 - h1);
                 float3 i2 = i1 + off;
+                
+            #ifdef GRASS_GEOMETRY
+                //Width Correction
+                float4 i1V = mul(ViewProjMatrix, float4(i1, 1));
+                i1V = i1V / i1V.w;
+                float4 i2V = mul(ViewProjMatrix, float4(i2, 1));
+                i2V = i2V / i2V.w;
+                float4 widthV = i2V - i1V;
+                widthV.x = widthV.x * (_ScreenParams.x / 2);
+                widthV.y = widthV.y * (_ScreenParams.y / 2);
+                float screenWidth = length(widthV.xy);
+                float widthFactor = 1.0f - min(max((screenWidth - 1.0) / 2.0, 0.0), 1.0);
+                widthFactor *= u;
+            #endif
             
                 float3 bitangent = bladeDir;
                 float3 tangent;
@@ -310,13 +329,8 @@ Shader "GrassSimulation/Grass"
                 
                 float3 normal = normalize(cross(tangent, bitangent));
 	            OUT.normal = normal;
-                //teUV = vec2(u,v);
-                //teNormal = normalize(cross(tangent, bitangent));
-            
-                //vec3 position = Form(i1, i2, u, v, teNormal, tcV2.w);
-                //float3 outpos = lerp(i1, i2, u - pow(v, 2)*u) + translation;
+
             #ifdef GRASS_BILLBOARD_CROSSED
-                //float4 texSample0 = GrassBillboards.SampleLevel(samplerGrassBillboards, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                 OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
                 OUT.color = float4(0, 0, 0, 0);
                 OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
@@ -329,85 +343,23 @@ Shader "GrassSimulation/Grass"
                 float4 texSample1 = GrassBlades1.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                 float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample1.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
                 float t = u + ((texSample0.r*u) + ((1.0-texSample0.r)*omu));
-                float3 outpos = lerp(i1, i2, t) + translation;
+                float3 outpos = lerp(i1, i2, max(t, widthFactor)) + translation;
                 OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
                 OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
                 OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
             #endif
-                /*if(dot(lightDirection, teNormal) > 0.0)
-                    teNormal = -teNormal;
-            
-                teDebug = tcDebug;
-                gl_Position = vpMatrix * vec4(position, 1.0);
-                tePosition = vec4(position, 1.5 * abs(sin(shapeConstant * tcV1.w)));
-       
-        		float3 pos = float3(IN[0].pos.x + (uv.x - 0.5)*0.1, IN[0].pos.y + uv.y, IN[0].pos.z);*/
-      
-                //DEBUG COLORING
-                /*float distance = length(pos - CamPos);
-        		float debugT = (distance - LodDistanceFullDetail) / (LodDistanceBillboard - LodDistanceFullDetail);
-        		float debugInterpolant = frac(lerp(LodDensityBillboardDistance, LodDensityFullDetailDistance, debugT));
 
-        		if (debugT < 0){
-        		    OUT.color = float4(1,1,1,1);
-        		} else if (debugT > 1){
-        		    OUT.color = float4(0,1,0,1);
-        		} else {
-        		    OUT.color = float4(lerp(float3(1,0,0), float3(0,0,1), debugInterpolant), 1);
-        		}*/
-      
-                //OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
-                //OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
-                //#ifdef GRASS_GEOMETRY
-                //OUT.color = float4(float3(pos.y / 40, pos.y / 40, pos.y / 40), 1);
-                //#else
-                //OUT.color = float4(lerp(float3(0.44, 0.61, 0.2), float3(0.12, 0.18, 0.055), 1-v), 1);
-                //#endif
-           
         		return OUT;
-}
-    /*
-    uniform float3 viewDir;
-            uniform float3 lightColor;
-            uniform float3 lightDir;
-            uniform float specular;
-            uniform float3 specularColor
-            uniform float gloss;
-    */		
-    
-            float3 Phong(float2 uv, float3 vNormal, float3 vColor)
-            {
-                float3 h = normalize(lightDir + viewDir);
-                float diff = dot(vNormal, lightDir);
-                float nh = saturate(dot(vNormal, h));
-                float spec = pow(nh, specular*128) * gloss;
-                vColor = vColor * lightColor * abs(diff) + lightColor * pow(vColor, 2) * spec;
-                //if (diff > 0) vColor *= abs((uv.y * 2) - 1);
-                return vColor;
             }
-    
+
 			float4 frag (FSIn IN) : SV_TARGET
 			{
-			    #ifdef BILLBOARD_GENERATION
+			#ifdef GRASS_GEOMETRY
 			    return IN.color;
-			    #endif
-			    #ifdef GRASS_GEOMETRY
-			    
-			    float3 frontColor = Phong(IN.uvw.xy, IN.normal, IN.color.xyz);
-			    //float3 backColor = Phong(IN.uvw.xy, -IN.normal, IN.color.xyz);
-			    //return float4(frontColor + backColor, IN.color.a);
-			    return 0.8 * IN.color * float4(lightColor, 1) + 0.2 * float4(frontColor, IN.color.a);
-			    //return IN.color;
-			    #else
-			    //float4 billboardSample = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN.uvw.xy, 0), 0);
+			#else
                 float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvw);
-                clip(billboardSample.a - BillboardAlphaCutoff);
-                float3 frontColor = Phong(IN.uvw.xy, IN.normal, billboardSample.xyz);
-			    //float3 backColor = Phong(IN.uvw.xy, -IN.normal, IN.color.xyz);
-			    //return float4(frontColor + backColor, IN.color.a);
-			    return 0.8 * billboardSample * float4(lightColor, 1) + 0.2 * float4(frontColor, billboardSample.a);
-                //return billboardSample;
-                #endif
+                return billboardSample;
+            #endif
 			}
 			ENDCG
 		}

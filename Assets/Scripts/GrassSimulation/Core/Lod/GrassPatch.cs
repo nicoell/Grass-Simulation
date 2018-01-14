@@ -144,6 +144,7 @@ namespace GrassSimulation.Core.Lod
 		{
 			//Distance between Camera and closest Point on BoundingBox from Camera
 			var distance = Vector3.Distance(Ctx.Camera.transform.position, Bounds.ClosestPoint(Ctx.Camera.transform.position));
+			var distance2 = Vector3.Distance(Ctx.Camera.transform.position, Bounds.ClosestPoint(Bounds.center + (Bounds.center - Ctx.Camera.transform.position)));
 
 			//Calculate InstanceCounts of different LODs (Geometry, BillboardsCrossed, BillboardsScreen)
 			var geometryInstanceCount = (uint) Mathf.Ceil(SingleLerp(Ctx.Settings.LodInstancesGeometry, distance,
@@ -151,9 +152,17 @@ namespace GrassSimulation.Core.Lod
 			var billboardCrossedInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardCrossed, distance,
 				Ctx.Settings.LodDistanceBillboardCrossedStart, Ctx.Settings.LodDistanceBillboardCrossedPeak,
 				Ctx.Settings.LodDistanceBillboardCrossedEnd));
+			var billboardCrossedInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardCrossed, distance2,
+				Ctx.Settings.LodDistanceBillboardCrossedStart, Ctx.Settings.LodDistanceBillboardCrossedPeak,
+				Ctx.Settings.LodDistanceBillboardCrossedEnd));
+			billboardCrossedInstanceCount = (uint) Mathf.Max(billboardCrossedInstanceCount, billboardCrossedInstanceCount2);
 			var billboardScreenInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardScreen, distance,
 				Ctx.Settings.LodDistanceBillboardScreenStart, Ctx.Settings.LodDistanceBillboardScreenPeak,
 				Ctx.Settings.LodDistanceBillboardScreenEnd));
+			var billboardScreenInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardScreen, distance2,
+				Ctx.Settings.LodDistanceBillboardScreenStart, Ctx.Settings.LodDistanceBillboardScreenPeak,
+				Ctx.Settings.LodDistanceBillboardScreenEnd));
+			billboardScreenInstanceCount = (uint) Mathf.Max(billboardScreenInstanceCount, billboardScreenInstanceCount2);
 
 			_argsGeometry[1] = geometryInstanceCount;
 			_argsBillboardCrossed[1] = billboardCrossedInstanceCount;
@@ -167,7 +176,7 @@ namespace GrassSimulation.Core.Lod
 		private static float SingleLerp(uint value, float cur, float peak, float end)
 		{
 			var t1 = Mathf.Clamp01((cur - peak) / (end - peak));
-			return value - Mathf.LerpUnclamped(0, value, t1);
+			return Mathf.LerpUnclamped(value, 0, t1);
 		}
 
 		private static float DoubleLerp(uint value, float cur, float start, float peak, float end)
@@ -176,6 +185,7 @@ namespace GrassSimulation.Core.Lod
 			var t1 = Mathf.Clamp01((cur - peak) / (end - peak));
 			return value - (Mathf.LerpUnclamped(value, 0, t0) + Mathf.LerpUnclamped(0, value, t1));
 		}
+		
 		private void CreateGrassDataTexture()
 		{
 			_normalHeightTexture = new Texture2D(Ctx.Settings.GetPerPatchTextureWidthHeight(),

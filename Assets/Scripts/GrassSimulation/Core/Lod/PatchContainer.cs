@@ -56,6 +56,9 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassGeometry.SetVector("viewDir", Ctx.Camera.transform.forward);
 			Ctx.GrassGeometry.SetVector("lightDir", Ctx.Light.transform.forward);
 			Ctx.GrassGeometry.SetVector("lightColor", Ctx.Light.color);
+			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix",
+				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			
 
 			Ctx.GrassBillboardCrossed.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassBillboardCrossed.SetFloat("specular", Ctx.Settings.Specular);

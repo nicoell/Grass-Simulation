@@ -110,6 +110,8 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassBillboardGeneration.SetVector("viewDir", Ctx.Camera.transform.forward);
 			Ctx.GrassBillboardGeneration.SetVector("lightDir", Ctx.Light.transform.forward);
 			Ctx.GrassBillboardGeneration.SetVector("lightColor", Ctx.Light.color);
+			Ctx.GrassBillboardGeneration.SetMatrix("ViewProjMatrix",
+				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 			
 			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 1f);
 			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
