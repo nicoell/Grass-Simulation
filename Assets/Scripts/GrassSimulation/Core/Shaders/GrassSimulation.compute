@@ -20,6 +20,7 @@ float LodDistanceTessellationMin;
 float LodDistanceTessellationMax;
 float4 NormalHeightUvCorrection;
 
+Texture2D GrassMapTexture;
 Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
 SamplerState samplerParameterTexture;
             
@@ -30,10 +31,6 @@ float ParameterOffsetY;
 float4x4 PatchModelMatrix;
 float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
 int StartIndex;
-
-//Deactivated
-//Texture2D<float4> WindFieldTexture;
-//SamplerState samplerWindFieldTexture;
 
 Texture2D<float4> CollisionDepthTexture; //up.xyz, pos.y
 SamplerState samplerCollisionDepthTexture;
@@ -47,7 +44,6 @@ float DeltaTime;
 float Time;
 float4x4 ViewProjMatrix;
 float4 GravityVec;
-float WindAmplitude;
 float4 WindData;
 
 float4 LocalToWorldPos(float4 pos){ return mul(PatchModelMatrix, pos); }
@@ -121,10 +117,10 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     
     AdjustBezierArcLength(v1, v2, height);
 
-    float tessLevel = 12.0;
+    float collisionForce = 0;
     float transition = 1.0;
     
-    SimulationTexture[uint3(id.xy, 0)] = float4(v1, tessLevel);
+    SimulationTexture[uint3(id.xy, 0)] = float4(v1, collisionForce);
     SimulationTexture[uint3(id.xy, 1)] = float4(v2, transition);
 }
 
@@ -142,13 +138,14 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     //Read all the textures -°O°/
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvNormalHeight, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
+    float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
     float4 simulationData0 = SimulationTexture.Load(uint3(id.xy, 0));
     float4 simulationData1 = SimulationTexture.Load(uint3(id.xy, 1));
     
     //Create and name all needed variables
 	float width = parameters.x;
 	float bendingFactor = parameters.y;
-	float height = parameters.z;
+	float height = parameters.z * grassMapData.z;
 	float invHeight = 1.0 / height;
 	float dirAlpha = parameters.w;
 	float3 localV0 = float3(uvLocal.x, normalHeight.w, uvLocal.y);
@@ -160,6 +157,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float mdt = DeltaTime;//min(DeltaTime, 1.0);
 	float3 idleV2 = bladeUp * height;
 	float3 v2 = simulationData1.xyz;
+	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * mdt, 0.0);
 
 	//Gravity
 	float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
@@ -173,43 +171,9 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
 	float3 wind = WindData.xyz * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
 	
-	//TODO
-	/*
-	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f) + sin((v0.x + v0.y) * 0.5f) + sin((v0.y + v0.z) * 0.25f)) / 3.0f, 0.0f);
-	float3 wind = windVecTemp * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;*/
-	//Wind Crysis
-	/*float bladePhase = dot(v0, WindPhase);
-    float waveIn = Time + bladePhase;
-    float4 waves = (frac(waveIn.xxxx * float4(1.975, 0.793, 0.375, 0.193)) * 2.0 - 1.0) * WindSpeed * WindFrequency;
-    waves = SmoothTriangleWave(waves);
-    float2 wavesSum = waves.xz + waves.yw;
-    float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
-    float3 wind = WindAmplitude * float3(wavesSum.x * WindDirectionX, 0, wavesSum.y * WindDirectionZ) * mdt * windageHeight * bendingFactor;
-    */
-	/*float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
-    float4 windfluidSample = WindFieldTexture.SampleLevel(samplerWindFieldTexture, uvGlobal, 0);
-    float windDensity = windfluidSample.w;
-    float2 windVelocity = windfluidSample.xy;
-    float areaThrustSurface = 1.0 - 
-    abs(
-     dot(
-      float3( windVelocity.x, 0, windVelocity.y  ),
-      normalize(v2) 
-      ) 
-     ) * windageHeight;
-    float2 windMass = windVelocity * windDensity * areaThrustSurface;
-    float2 windForce = windVelocity * windMass;
-    float3 wind = float3(windForce.x, 0, windForce.y);
-    float3 windProjected = wind - dot(wind, bladeUp) * bladeUp;
-    windProjected = windProjected * bendingFactor * WindAmplitude;
-    
-    //windForce = float2(0, 0);
-    //float2 wind = windageHeight * .xy;
-    */
-    
 	//Stiffness 
 	//TODO: Rework temp max without collisionForce
-	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0, 0.1) * mdt;
+	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0 - collisionForce, 0.1) * mdt;
 
 	//apply new forces
 	v2 += gravity + wind + stiffness;
@@ -220,82 +184,47 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     
     //Collisions
     bool dataDirty = false;
-    float3 midPoint = 0.5f * v1 + 0.25f * v2;
-    
-    //float3 cV0 = (GetCollisionVolumePos(v0).xyz + 1)/2;
-    float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz + 1)/2;
-    float3 cMidPoint = (GetCollisionVolumePos(v0 + midPoint).xyz + 1)/2;
-    //float cDepthAtV0 = 1 - CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV0.xy, 0).x;
+    float3 cV0 = (GetCollisionVolumePos(v0).xyz + 1)/2;
+
     //Test collision with v2
+    float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz + 1)/2;
     float4 cDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV2.xy, 0);
     float cDepthAtV2 = 1 - cDataAtV2.a;
-    //v2.y += min(0, (cDepthAtV2 - cV2.z)) * CollisionVolumeSize.y;
-    //dataDirty = true;
-    float cPressureAtV2 = min(0, cDepthAtV2 - cV2.z);
+    float cPressureAtV2 = min(0, max(-cV0.z, cDepthAtV2 - cV2.z));
     if (cPressureAtV2 < 0)
     {
         dataDirty = true;
         float3 projVelocityAtV2 = cDataAtV2.xyz * bendingFactor * mdt;
         v2.xz += projVelocityAtV2.xz;
         v2.y += cPressureAtV2 * CollisionVolumeSize.y;
+        collisionForce = max(collisionForce, length(cDataAtV2.xyz));
     }
+    
     //Test collision with beziers midPoint
+    float3 midPoint = 0.5f * v1 + 0.25f * v2;
+    float3 cMidPoint = (GetCollisionVolumePos(v0 + midPoint).xyz + 1)/2;
     float4 cDataAtMidPoint = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cMidPoint.xy, 0);
     float cDepthAtMidPoint = 1 - cDataAtMidPoint.a;
-    float cPressureAtMidPoint = min(0, cDepthAtMidPoint - cMidPoint.z);
+    float cPressureAtMidPoint = min(0, max(-cV0.z, cDepthAtMidPoint - cMidPoint.z));
     if (cPressureAtMidPoint < 0)
     {
         dataDirty = true;
         float3 projVelocityAtMidPoint = cDataAtMidPoint.xyz * bendingFactor * mdt;
         v2.xz += projVelocityAtMidPoint.xz;
         v2.y += cPressureAtMidPoint * CollisionVolumeSize.y * 4.0;
+        collisionForce = max(collisionForce, length(cDataAtMidPoint.xyz));
     }
-    
-    
+
     if (dataDirty)
     {
         ValidateV2(v2, bladeUp);
         v1 = GetV1(v2, bladeUp, height, invHeight);
         AdjustBezierArcLength(v1, v2, height);
     }
-    //float3 collision = float3(0, -cPressureAtV2 * CollisionVolumeSize.y, 0);
-	
-	//float3 wV1 = LocalToWorldPos(localV0 + v1).xyz;
-	//float3 wV2 = LocalToWorldPos(localV0 + v2).xyz;
-	
-	//float3 midPoint = 0.25 * v0 + 0.5 * wV1 + 0.25 * wV2;
-
-	//Visibility Check
-	float3 camDir = v0 - CamPos;
-	//Project camdir on the local plane defined by the up-vector
-	float3 camDirProj = camDir - dot(camDir, bladeUp) * bladeUp;
+    
+    float3 camDir = v0 - CamPos;
 	float distance = length(camDir);
-	float projDistance = length(camDirProj);
-	float3 camDirNorm = normalize(camDir);
-    float tesslevel = SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
 
-    /*if (distance > 400.0) //distance >= 200.0
-	{
-		tessDataBuffer[i].x = 0.0;
-        return;
-	}*/
-
-	//Orientation Culling
-    /*if(abs(dot(camDirNorm, bladeFront)) < 0.1)
-    {
-        tessDataBuffer[i].x = 0;
-        return;
-    }*/
-
-    //Depth Culling
-    /*projDistance = length(camDirProj);
-    uint value = ceil(max((1.0 - projDistance / 200.0),0.0) * 32.0);
-
-    if(fmod(i,32) >= value)
-    {
-    	tesslevel = 0;
-    }*/
-
-    SimulationTexture[uint3(id.xy, 0)] = float4(v1, tesslevel);
+    SimulationTexture[uint3(id.xy, 0)] = float4(v1, collisionForce);
     SimulationTexture[uint3(id.xy, 1)] = float4(v2, distance);
 }

@@ -22,8 +22,6 @@ namespace GrassSimulation.Core.Billboard
 
 		protected override void DrawImpl()
 		{
-			//TODO: Calculate boundingbox/orthographic frustum in computeshader, save it to a buffer and read it on the cpu, set the camera accordingly.
-			//Evoila, we have a perfect fitting texture.
 			_billboardTexturePatch.RunSimulationComputeShader();
 
 			SetupBounding();
@@ -35,7 +33,7 @@ namespace GrassSimulation.Core.Billboard
 				
 				Ctx.BillboardTextureCamera.Render();
 				_billboardTexture.GenerateMips();
-				//TODO Custom mipmapping and antialiasing
+				//TODO: Custom mipmapping and antialiasing
 				for (int m = 0; m < mipMapCount; m++)
 					Graphics.CopyTexture(_billboardTexture, 0, m, BillboardTextures, i, m);
 			}
@@ -104,12 +102,7 @@ namespace GrassSimulation.Core.Billboard
 		{
 			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);
 			Ctx.GrassBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
-			
-			Ctx.GrassBillboardGeneration.SetFloat("specular", Ctx.Settings.Specular);
-			Ctx.GrassBillboardGeneration.SetFloat("gloss", Ctx.Settings.Gloss);
-			Ctx.GrassBillboardGeneration.SetVector("viewDir", Ctx.Camera.transform.forward);
-			Ctx.GrassBillboardGeneration.SetVector("lightDir", Ctx.Light.transform.forward);
-			Ctx.GrassBillboardGeneration.SetVector("lightColor", Ctx.Light.color);
+
 			Ctx.GrassBillboardGeneration.SetMatrix("ViewProjMatrix",
 				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 			
@@ -120,7 +113,6 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassSimulationComputeShader.SetFloats("CamPos", Ctx.BillboardTextureCamera.transform.position.x,
 				Ctx.BillboardTextureCamera.transform.position.y, Ctx.BillboardTextureCamera.transform.position.z);
 
-			Ctx.GrassSimulationComputeShader.SetFloat("WindAmplitude", Ctx.Settings.WindAmplitude);
 			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
 		}
 	}

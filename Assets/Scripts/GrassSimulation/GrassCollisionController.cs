@@ -19,7 +19,7 @@ namespace GrassSimulation
 	
 		// Update is called once per frame
 		void Update () {
-			_renderer.sharedMaterial.SetVector("collisionVelocity", _rigidbody.velocity);
+			_renderer.sharedMaterial.SetVector("collisionVelocity", _rigidbody.velocity * _rigidbody.mass);
 			//Shader.SetGlobalVector("customColor", new Vector4(1, 1, 1, 1) );
 		}
 	}

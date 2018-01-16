@@ -55,25 +55,25 @@ namespace GrassSimulation.Core.GrassBlade
 					{
 						//TODO: Add multisampling of animationcurve
 						float r = 0, g = 0, b = 0, a = 0;
-						if (id == 0)
-						{
-							var edgeCurve = blade.EdgeCurve.Evaluate((float) y / mipHeight) * blade.WidthModifier;
-							/*edgeCurve = Mathf.SmoothStep(edgeCurve, 1.0f,
+						switch (id) {
+							case 0:
+								var edgeCurve = blade.EdgeCurve.Evaluate((float) y / mipHeight) * blade.WidthModifier;
+								/*edgeCurve = Mathf.SmoothStep(edgeCurve, 1.0f,
 								miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);*/
 
-							var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
+								var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
 
-							r = edgeCurve;
-							g = color.r;
-							b = color.g;
-							a = color.b;
-						}
-						else if (id == 1)
-						{
-							var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight);
-							//midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								r = edgeCurve;
+								g = color.r;
+								b = color.g;
+								a = color.b;
+								break;
+							case 1:
+								var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight);
+								//midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
-							r = midTranslation;
+								r = midTranslation;
+								break;
 						}
 
 						var index = y;

@@ -158,10 +158,9 @@ namespace GrassSimulation.Core.Billboard
 				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
 				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
 			{
-				//TODO: Remove if mipmaps not used or use mipmaps
-				filterMode = Ctx.Settings.GrassDataTrilinearFiltering ? FilterMode.Trilinear : FilterMode.Bilinear,
-				autoGenerateMips = Ctx.Settings.GrassDataTrilinearFiltering,
-				useMipMap = Ctx.Settings.GrassDataTrilinearFiltering,
+				filterMode = FilterMode.Bilinear,
+				autoGenerateMips = false,
+				useMipMap = false,
 				dimension = TextureDimension.Tex2DArray,
 				volumeDepth = 2,
 				enableRandomWrite = true,

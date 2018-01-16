@@ -12,71 +12,81 @@ namespace GrassSimulation.Core
 		[Header("Grass Settings")]
 		[Range(0,1)]
 		public float BillboardAlphaCutoff = 0.4f;
-		public float BladeMaxBend = 2f;
-		public float BladeMaxHeight = 1f;
-		public float BladeMaxWidth = 0.5f;
+		[Range(0,1)]
 		public float BladeMinBend = 0.5f;
+		[Range(0,1)]
+		public float BladeMaxBend = 1f;
+		[Range(0,5)]
 		public float BladeMinHeight = 0.5f;
+		[Range(0,5)]
+		public float BladeMaxHeight = 1f;
+		[Range(0,3)]
 		public float BladeMinWidth = 0.1f;
+		[Range(0,3)]
+		public float BladeMaxWidth = 0.5f;
 		[Range(0, 6)]
 		public float BladeTextureMaxMipmapLevel = 5;
 		public uint BillboardTextureGrassCount = 64;
+		[Range(0,1)]
+		public float BladeHeightCullingThreshold = 0.01f;
 
-		[Header("Lighting Settings")]
-		[Range(0, 1)]
-		public float Specular;
-		public float Gloss;
-
-		[Header("Physics Settings")]
+		[Header("Gravity")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
 
 		[Header("Procedural Wind")]
+		[Range(0, 32)]
 		public float WindFrequencyDirMin = 5f;
+		[Range(0, 32)]
 		public float WindFrequencyDirMax = 8f;
+		[Range(0, 32)]
 		public float WindFrequencyMagMin = 1f;
+		[Range(0, 32)]
 		public float WindFrequencyMagMax = 2f;
+		[Range(0, 1024)]
 		public float WindMagnitudeMax = 8f;
-		[Range(0, 1)]
-		public float WindAmplitude = 1f;
-
-		[Header("Wind Fluid Settings")]
-		public float FluidTimeFactor = 1;
-		public int FluidIterationSteps = 10;
-		public float FluidViscosity = 0.03f;
-		public float FluidPressureScale = 0.15f;
-		public int MaxAmountWindForces = 32;
 
 		[Header("Texture Resolutions")]
 		//TODO: Handle width and height seperately for non-quad containers
 		public int GrassMapResolution = 256;
 		public int CollisionDepthResolution = 512;
-		public int WindFieldResolution = 128;
 		public int GrassDataResolution = 16;
 		public int BillboardTextureResolution = 64;
 		
 		[Header("LOD Settings")]
-		public bool GrassDataTrilinearFiltering = true;
 		[Tooltip("The width and depth of a patch.")]
 		public uint PatchSize = 8;
-
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
+		[Range(1,32)]
 		public uint InstancedGrassFactor = 4;
-
+		[Range(0,64)]
 		public float LodTessellationMin = 1;
+		[Range(0,64)]
 		public float LodTessellationMax = 64;
+		[Range(0,128)]
 		public float LodDistanceTessellationMin = 0;
+		[Range(0,128)]
 		public float LodDistanceTessellationMax = 20;
+		[Range(1,1023)]
 		public uint LodInstancesGeometry = 64;
+		[Range(1,1023)]
 		public uint LodInstancesBillboardCrossed = 1;
+		[Range(1,1023)]
 		public uint LodInstancesBillboardScreen = 1;
-		public float LodDistanceGeometryStart = 0;
-		public float LodDistanceGeometryPeak = 1;
+		[Range(0,1024)]
+		public float LodDistanceGeometryStart = 1;
+		[Range(0,1024)]
 		public float LodDistanceGeometryEnd = 200;
+		[Range(0,2048)]
 		public float LodDistanceBillboardCrossedStart = 150;		
+		[Range(0,2048)]
 		public float LodDistanceBillboardCrossedPeak = 200;		
+		[Range(0,2048)]
 		public float LodDistanceBillboardCrossedEnd = 300;		
+		[Range(0,2048)]
 		public float LodDistanceBillboardScreenStart = 250;		
+		[Range(0,2048)]
 		public float LodDistanceBillboardScreenPeak = 300;		
+		[Range(0,2048)]
 		public float LodDistanceBillboardScreenEnd = 400;
 
 		public bool EnableHeightTransition = true;

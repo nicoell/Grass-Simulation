@@ -7,7 +7,7 @@ namespace GrassSimulation.StandardInputs
 	public class RandomGrassMapInput : GrassMapInput, IInitializableWithCtx
 	{
 		private Random _random;
-		private int _typeCount;
+		private byte _typeCount;
 
 		public void Init(SimulationContext context)
 		{
@@ -15,9 +15,10 @@ namespace GrassSimulation.StandardInputs
 			_typeCount = context.BladeContainer.GetTypeCount();
 		}
 
-		public override byte GetGrassType(float x, float y, float z)
-		{
-			return (byte) (_random.NextDouble() * _typeCount);
-		}
+		public override byte GetGrassType(float x, float y, float z) { return (byte) (_random.NextDouble() * _typeCount); }
+
+		public override float GetDensity(float x, float y, float z) { return x * z; }
+
+		public override float GetHeightModifier(float x, float y, float z) { return x * z; }
 	}
 }

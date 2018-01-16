@@ -43,7 +43,6 @@ namespace GrassSimulation.Core.Wind
 			_wind = Vector3.zero;
 			
 			WindData = new Vector4();
-			//Ctx.GrassSimulationComputeShader.SetVector("WindData", WindData);
 		}
 
 		public void Update()

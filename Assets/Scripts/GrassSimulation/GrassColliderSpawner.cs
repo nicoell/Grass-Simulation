@@ -8,6 +8,8 @@ public class GrassColliderSpawner : MonoBehaviour
 	public float SpawnInterval;
 	[Range(0, 10)]
 	public float ScaleRandomness;
+	[Range(0, 10)]
+	public float MassRandomness;
 	[Range(0, 100)]
 	public float Lifetime;
 	[Range(0, 100)]
@@ -29,6 +31,7 @@ public class GrassColliderSpawner : MonoBehaviour
 			var rigidBody = grassCollider.GetComponent<Rigidbody>();
 			rigidBody.velocity = transform.TransformDirection(Vector3.forward * VelocityModifier);
 			rigidBody.transform.localScale = Random.Range(0.5f, 0.5f + ScaleRandomness) * grassCollider.transform.localScale;
+			rigidBody.mass = Random.Range(0.01f, 0.5f + MassRandomness);
 			Destroy(grassCollider, Lifetime);
 		}
 	}

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using GrassSimulation.Core.Lod;
 using UnityEngine;
 
@@ -17,10 +16,7 @@ namespace GrassSimulation.StandardContainers
 			foreach (var grassPatch in _grassPatches) grassPatch.Destroy();
 		}
 
-		public override Bounds GetBounds()
-		{
-			return _rootPatch.Bounds;
-		}
+		public override Bounds GetBounds() { return _rootPatch.Bounds; }
 
 		protected override void DrawImpl()
 		{

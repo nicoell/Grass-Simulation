@@ -18,8 +18,7 @@ namespace GrassSimulation.Core.Lod
 			//Create and fill UvData
 			UvData = new UvData[Ctx.Settings.GetSharedBufferLength()];
 
-			for (var i = 0; i < Ctx.Settings.GetSharedBufferLength(); i++)
-				UvData[i].Position = Ctx.PositionInput.GetPosition(i);
+			for (var i = 0; i < Ctx.Settings.GetSharedBufferLength(); i++) UvData[i].Position = Ctx.PositionInput.GetPosition(i);
 			UvBuffer = new ComputeBuffer((int) Ctx.Settings.GetSharedBufferLength(), 2 * sizeof(float),
 				ComputeBufferType.Default);
 			UvBuffer.SetData(UvData);
@@ -56,8 +55,16 @@ namespace GrassSimulation.Core.Lod
 			};
 
 			var grassMapData = new Color[Ctx.Settings.GrassMapResolution * Ctx.Settings.GrassMapResolution];
-			for (var i = 0; i < Ctx.Settings.GrassMapResolution * Ctx.Settings.GrassMapResolution; i++)
-				grassMapData[i] = new Color(Ctx.GrassMapInput.GetGrassType(0, 0, 0) / 255f, 0, 0, 0);
+			for (var y = 0; y < Ctx.Settings.GrassMapResolution; y++)
+			for (var x = 0; x < Ctx.Settings.GrassMapResolution; x++)
+			{
+				var i = y * Ctx.Settings.GrassMapResolution + x;
+				var pos = new Vector3((float) x / Ctx.Settings.GrassMapResolution, 0, (float) y / Ctx.Settings.GrassMapResolution);
+				pos.z = 1 - pos.z;
+				pos.y = Ctx.HeightInput.GetHeight(pos.x, pos.z);
+				grassMapData[i] = new Color(Ctx.GrassMapInput.GetGrassType(pos.x, pos.y, pos.z) / 255f,
+					Ctx.GrassMapInput.GetDensity(pos.x, pos.y, pos.z), Ctx.GrassMapInput.GetHeightModifier(pos.x, pos.y, pos.z), 0);
+			}
 
 			GrassMapTexture.SetPixels(grassMapData);
 			GrassMapTexture.Apply();
@@ -75,14 +82,12 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassBillboardScreen.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassBillboardScreen.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "GrassMapTexture", GrassMapTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);
 		}
 
 		public UvData[] UvData { get; private set; }
 
-		public void Destroy()
-		{
-			UvBuffer.Release();
-		}
+		public void Destroy() { UvBuffer.Release(); }
 	}
 }
