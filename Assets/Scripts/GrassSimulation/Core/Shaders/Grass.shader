@@ -65,6 +65,7 @@ Shader "GrassSimulation/Grass"
             uniform float LodDistanceTessellationMax;
             uniform float4 NormalHeightUvCorrection;
             uniform int VertexCount;
+            uniform int EnableHeightTransition;
             
             Texture2DArray<float4> GrassBlades0;
             SamplerState samplerGrassBlades0;
@@ -218,7 +219,7 @@ Shader "GrassSimulation/Grass"
         		//TODO: Check if height transition is disabled
         		uint instanceID = floor(transition);
         		if (instanceID == IN[0].instanceID){
-        		    OUT.transitionFactor = frac(transition);
+        		    OUT.transitionFactor = smoothstep(0, 1, frac(transition)) * EnableHeightTransition;
         		} else {
         		    OUT.transitionFactor = 1;
         		}
@@ -304,7 +305,9 @@ Shader "GrassSimulation/Grass"
                 float3 i1 = h1 + v * (h2 - h1);
                 float3 i2 = i1 + off;
                 
-                #ifdef GRASS_GEOMETRY
+                #ifdef BILLBOARD_GENERATION
+                    float widthFactor = 1;
+                #elif GRASS_GEOMETRY
                     //Width Correction
                     float4 i1V = mul(ViewProjMatrix, float4(i1, 1));
                     i1V = i1V / i1V.w;
@@ -314,8 +317,8 @@ Shader "GrassSimulation/Grass"
                     widthV.x = widthV.x * (_ScreenParams.x / 2);
                     widthV.y = widthV.y * (_ScreenParams.y / 2);
                     float screenWidth = length(widthV.xy);
-                    float widthFactor = 1.0f - min(max((screenWidth - 1.0) / 2.0, 0.0), 1.0);
-                    widthFactor *= u;
+                    float widthFactor = 1.0f - clamp((screenWidth - 1.0) / 2.0, 0, 1);
+                    //widthFactor *= u;
                 #endif
             
                 float3 bitangent = bladeDir;
@@ -347,7 +350,8 @@ Shader "GrassSimulation/Grass"
                     float4 texSample1 = GrassBlades1.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                     float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample1.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
                     float t = u + ((texSample0.r*u) + ((1.0-texSample0.r)*omu));
-                    float3 outpos = lerp(i1, i2, max(t, widthFactor)) + translation;
+                    //t *= widthFactor;
+                    float3 outpos = lerp(i1, i2, t) + translation;
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
                     OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
                     OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);

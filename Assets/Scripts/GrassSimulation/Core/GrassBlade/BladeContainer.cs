@@ -58,8 +58,8 @@ namespace GrassSimulation.Core.GrassBlade
 						switch (id) {
 							case 0:
 								var edgeCurve = blade.EdgeCurve.Evaluate((float) y / mipHeight) * blade.WidthModifier;
-								/*edgeCurve = Mathf.SmoothStep(edgeCurve, 1.0f,
-								miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);*/
+								edgeCurve = Mathf.SmoothStep(edgeCurve, blade.WidthModifier,
+								miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
 								var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
 
@@ -69,8 +69,8 @@ namespace GrassSimulation.Core.GrassBlade
 								a = color.b;
 								break;
 							case 1:
-								var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight);
-								//midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
+								midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
 								r = midTranslation;
 								break;

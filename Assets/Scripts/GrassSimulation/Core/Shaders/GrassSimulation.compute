@@ -9,7 +9,6 @@
 #include "GrassFuncs.cginc"
 
 //Once
-bool ApplyTransition;
 float4x4 CollisionViewProj;
 float3 CollisionVolumeSize;
 float3 CollisionVolumeMin;
@@ -194,7 +193,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (cPressureAtV2 < 0)
     {
         dataDirty = true;
-        float3 projVelocityAtV2 = cDataAtV2.xyz * bendingFactor * mdt;
+        float3 projVelocityAtV2 = cDataAtV2.xyz * bendingFactor;
         v2.xz += projVelocityAtV2.xz;
         v2.y += cPressureAtV2 * CollisionVolumeSize.y;
         collisionForce = max(collisionForce, length(cDataAtV2.xyz));
