@@ -8,6 +8,7 @@ namespace GrassSimulation.Core.GrassBlade
 		private const int TextureHeight = 64;
 		private const float SampleStep = 1f / TextureHeight;
 		private SimulationContext _ctx;
+		[SerializeField]
 		public Blade[] Blades;
 
 		public void Init(SimulationContext context)
