@@ -259,6 +259,7 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen.SetFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
 			
 			GrassSimulationComputeShader.SetFloat("GrassDataResolution", Settings.GrassDataResolution);
+			GrassSimulationComputeShader.SetFloat("RecoveryFactor", Settings.RecoveryFactor);
 			GrassSimulationComputeShader.SetFloat("LodTessellationMin", Settings.LodTessellationMin);
 			GrassSimulationComputeShader.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
 			GrassSimulationComputeShader.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);

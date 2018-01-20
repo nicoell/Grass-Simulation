@@ -20,10 +20,10 @@ GameObject:
   m_Component:
   - component: {fileID: 4558266314415452}
   - component: {fileID: 33153832032382358}
-  - component: {fileID: 135930803443563342}
   - component: {fileID: 23553561521412342}
   - component: {fileID: 54513600185565242}
   - component: {fileID: 114300303012432472}
+  - component: {fileID: 135373612272098742}
   m_Layer: 8
   m_Name: TestSphereGrassCollider
   m_TagString: Untagged
@@ -111,7 +111,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01e1794296cd886429fd31447db8c00a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!135 &135930803443563342
+--- !u!135 &135373612272098742
 SphereCollider:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -121,5 +121,5 @@ SphereCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.45
   m_Center: {x: 0, y: 0, z: 0}

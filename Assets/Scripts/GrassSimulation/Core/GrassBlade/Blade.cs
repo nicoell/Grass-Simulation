@@ -12,6 +12,8 @@ namespace GrassSimulation.Core.GrassBlade
 		public AnimationCurve MidTranslation;
 		[SerializeField]
 		public Gradient ColorGradient;
+		[SerializeField]
+		public Texture2D GrassTexture;
 		[Range(0, 1)]
 		public float WidthModifier = 1;
 	}

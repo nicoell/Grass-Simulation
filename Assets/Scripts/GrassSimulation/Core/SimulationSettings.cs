@@ -33,6 +33,10 @@ namespace GrassSimulation.Core
 		[Header("Gravity")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
 
+		[Header("Collisions")]
+		[Range(0.1f, 100f)]
+		public float RecoveryFactor = 1f;
+
 		[Header("Procedural Wind")]
 		[Range(0, 32)]
 		public float WindFrequencyDirMin = 5f;

@@ -18,6 +18,7 @@ float LodTessellationMax;
 float LodDistanceTessellationMin;
 float LodDistanceTessellationMax;
 float4 NormalHeightUvCorrection;
+float RecoveryFactor;
 
 Texture2D GrassMapTexture;
 Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
@@ -117,10 +118,10 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     AdjustBezierArcLength(v1, v2, height);
 
     float collisionForce = 0;
-    float transition = 1.0;
+    float distance = 1.0;
     
     SimulationTexture[uint3(id.xy, 0)] = float4(v1, collisionForce);
-    SimulationTexture[uint3(id.xy, 1)] = float4(v2, transition);
+    SimulationTexture[uint3(id.xy, 1)] = float4(v2, distance);
 }
 
 [numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
@@ -156,7 +157,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float mdt = DeltaTime;//min(DeltaTime, 1.0);
 	float3 idleV2 = bladeUp * height;
 	float3 v2 = simulationData1.xyz;
-	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * mdt, 0.0);
+	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * RecoveryFactor * mdt, 0.0);
 
 	//Gravity
 	float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
@@ -171,8 +172,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 wind = WindData.xyz * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
 	
 	//Stiffness 
-	//TODO: Rework temp max without collisionForce
-	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.25) * max(1.0 - collisionForce, 0.1) * mdt;
+	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.5) * max(1.0 - collisionForce, 0.0) * mdt;
 
 	//apply new forces
 	v2 += gravity + wind + stiffness;
@@ -193,10 +193,9 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (cPressureAtV2 < 0)
     {
         dataDirty = true;
-        float3 projVelocityAtV2 = cDataAtV2.xyz * bendingFactor;
-        v2.xz += projVelocityAtV2.xz;
-        v2.y += cPressureAtV2 * CollisionVolumeSize.y;
-        collisionForce = max(collisionForce, length(cDataAtV2.xyz));
+        v2.xyz -= cDataAtV2.xyz * cPressureAtV2;
+        v2.xyz -= gravity * (cPressureAtV2 * CollisionVolumeSize.y);
+        collisionForce += max(length(cDataAtV2.xyz), abs(cPressureAtV2 * CollisionVolumeSize.y));
     }
     
     //Test collision with beziers midPoint
@@ -208,10 +207,9 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (cPressureAtMidPoint < 0)
     {
         dataDirty = true;
-        float3 projVelocityAtMidPoint = cDataAtMidPoint.xyz * bendingFactor * mdt;
-        v2.xz += projVelocityAtMidPoint.xz;
-        v2.y += cPressureAtMidPoint * CollisionVolumeSize.y * 4.0;
-        collisionForce = max(collisionForce, length(cDataAtMidPoint.xyz));
+        v2.xyz -= 4 * cDataAtMidPoint.xyz * cPressureAtMidPoint;
+        v2.xyz -= 4 * gravity * (cPressureAtMidPoint * CollisionVolumeSize.y);
+        collisionForce += max(length(cDataAtMidPoint.xyz), abs(cPressureAtV2 * CollisionVolumeSize.y));
     }
 
     if (dataDirty)

@@ -70,6 +70,7 @@ Shader "GrassSimulation/Grass"
             Texture2DArray<float4> GrassBlades0;
             SamplerState samplerGrassBlades0;
             Texture2DArray<float4> GrassBlades1;
+            SamplerState samplerGrassBlades1;
             Texture2DArray GrassBillboards;
             SamplerState samplerGrassBillboards;
             Texture2D GrassMapTexture;
@@ -339,22 +340,22 @@ Shader "GrassSimulation/Grass"
 
                 #ifdef GRASS_BILLBOARD_CROSSED
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                    OUT.color = float4(0, 0, 0, 0);
-                    OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
+                    //OUT.color = float4(0, 0, 0, 0);
+                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.xy);
                 #elif GRASS_BILLBOARD_SCREEN
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                    OUT.color = float4(0, 0, 0, 0);
-                    OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
+                    //OUT.color = float4(0, 0, 0, 0);
+                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.xy);
                 #elif GRASS_GEOMETRY
                     float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
-                    float4 texSample1 = GrassBlades1.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
-                    float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample1.r); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                    
+                    float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
                     float t = u + ((texSample0.r*u) + ((1.0-texSample0.r)*omu));
                     //t *= widthFactor;
                     float3 outpos = lerp(i1, i2, t) + translation;
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
-                    OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
-                    OUT.uvw = float3(uv.xy, IN[0].grassMapData.x);
+                    //OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
+                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.xy);
                 #endif
 
         		return OUT;
@@ -362,10 +363,16 @@ Shader "GrassSimulation/Grass"
 
 			float4 frag (FSIn IN) : SV_TARGET
 			{
-                #ifdef GRASS_GEOMETRY
-                    return IN.color;
+			    #ifdef BILLBOARD_GENERATION
+                    float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
+                    return bladeColor;
+                #elif GRASS_GEOMETRY
+                    float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
+                    bladeColor.xyz *= lerp(lerp(0.8, 0.2, IN.uvwd.w), 1, IN.uvwd.y);
+                    return bladeColor;
                 #else
-                    float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvw);
+                    float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvwd.xyz);
+                    billboardSample.xyz *= lerp(lerp(0.8, 0.2, IN.uvwd.w), 1, IN.uvwd.y);
                     return billboardSample;
                 #endif
 			}

@@ -29,16 +29,16 @@ struct HSOut
 struct DSOut
 {
     float4 pos : SV_POSITION;
-    float4 color : COLOR0;
-    float3 uvw : TEXCOORD0;
+    //float4 color : COLOR0;
+    float4 uvwd : TEXCOORD0;
     float3 normal : NORMAL;
 };
 
 struct FSIn
 {
     float4 pos : SV_POSITION;
-    float4 color : COLOR0;
-    float3 uvw : TEXCOORD0;
+    //float4 color : COLOR0;
+    float4 uvwd : TEXCOORD0;
     float3 normal : NORMAL;
 };
 
