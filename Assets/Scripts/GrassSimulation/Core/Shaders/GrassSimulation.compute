@@ -139,7 +139,7 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
 void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
 {
     //Create all the needed uv coordinates
-    float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
+    float2 uvLocal = float2(id.x/GrassDataResolution + 0.5 / GrassDataResolution, id.y/GrassDataResolution + 0.5 / GrassDataResolution);
     //float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
     float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
     float2 uvCollisionTexture = uvGlobal;
@@ -220,21 +220,22 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
         float maxCollisionDepthAtV2 = groundDepthAtV2 - cV2.z;
         // TODO: test MIN_COLLISION_DEPTH
         // Determine the exact pressure the gets applied on v2 (the downward delta) in relative space
-        float pressureAtV2 = min(collisionDepthAtV2, maxCollisionDepthAtV2);
+        float pressureAtV2 = collisionDepthAtV2;//min(collisionDepthAtV2, maxCollisionDepthAtV2));
         // and in worldSpace
-        float worldSpacePressureAtV2 = pressureAtV2 * CollisionVolumeSize.y;
+        float worldSpacePressureAtV2 = min(pressureAtV2 * CollisionVolumeSize.y, height);
         
         float lengthV2 = length(v2);
         // Apply a collision to v2 control point
         // First apply colliders velocity to grass
-        v2 += colliderDataAtV2.xyz * pressureAtV2;
+        v2 += colliderDataAtV2.xyz * worldSpacePressureAtV2;
         // Secondly apply a force along the gravity vector
-        v2 += gravity * worldSpacePressureAtV2;
+        v2 += normalize(GravityVec.xyz) * GravityVec.w * worldSpacePressureAtV2;
         
         lengthV2 = abs(lengthV2 - length(v2));
         
         // Determine the force of the collision. Depends on pressure and colliders velocity;
-        collisionForce = max(collisionForce, lengthV2);
+        //collisionForce = max(collisionForce, lengthV2 * 50);
+        collisionForce += lengthV2;
     }
     
     //Test collision with beziers midPoint
@@ -257,7 +258,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (dataDirty)
     {
         //ValidateV2Tex(v2, v0);
-        v2 = float3(0,0,0);
+        //v2 = float3(0,0,0);
         ValidateV2(v2, bladeUp);
         v1 = GetV1(v2, bladeUp, height, invHeight);
         AdjustBezierArcLength(v1, v2, height);

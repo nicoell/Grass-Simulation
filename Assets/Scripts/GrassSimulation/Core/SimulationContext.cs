@@ -298,6 +298,9 @@ namespace GrassSimulation.Core
 			BillboardTexturePatchContainer.SetupContainer();
 			BillboardTexturePatchContainer.Draw();
 			
+			//Needs to be reset here, since BillboardTexturePatchContainer sets its own NormalHeightTexture
+			GrassSimulationComputeShader.SetTexture(KernelPhysics, "NormalHeightTexture", GrassInstance.NormalHeightTexture);
+			GrassSimulationComputeShader.SetTexture(KernelSimulationSetup, "NormalHeightTexture", GrassInstance.NormalHeightTexture);
 			
 			GrassBillboardCrossed.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
 			GrassBillboardCrossed.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);

@@ -10,6 +10,7 @@ namespace GrassSimulation.StandardInputs
 
 		public override float GetHeight(float x, float y)
 		{
+			return _terrain.terrainData.GetInterpolatedHeight(x, y) / _terrain.terrainData.size.y;
 			if (Mathf.Approximately(x, 1f) || Mathf.Approximately(y, 1f)) return _terrain.terrainData.GetInterpolatedHeight(x, y) / _terrain.terrainData.size.y;
 			int x0 = Mathf.FloorToInt(x * (_terrain.terrainData.heightmapWidth - 1)),
 				y0 = Mathf.FloorToInt(y * (_terrain.terrainData.heightmapHeight - 1));

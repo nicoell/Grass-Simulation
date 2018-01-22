@@ -41,10 +41,7 @@ namespace GrassSimulation.Core.Collision
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMin", bounds.min.x, bounds.min.y, bounds.min.z);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMax", bounds.max.x, bounds.max.y, bounds.max.z);
 			var proj = GL.GetGPUProjectionMatrix(Ctx.CollisionCamera.projectionMatrix, false);
-			/*for (int i = 0; i < 4; i++) proj[1, i] = -proj[1, i];
-			for (int i = 0; i < 4; i++) proj[2, i] = proj[2, i] * 0.5f + proj[3, i] * 0.5f;*/
 			Ctx.GrassSimulationComputeShader.SetMatrix("CollisionViewProj", proj * Ctx.CollisionCamera.worldToCameraMatrix);
-			Shader.SetGlobalMatrix("GrassCollisionViewProj", proj * Ctx.CollisionCamera.worldToCameraMatrix);
 		}
 
 		public void UpdateDepthTexture()

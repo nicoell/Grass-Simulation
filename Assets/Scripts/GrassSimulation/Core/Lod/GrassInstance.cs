@@ -117,8 +117,10 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassBillboardScreen.SetTexture("NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "GrassMapTexture", GrassMapTexture);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);
+
+			// !CAUTION! NormalHeightTexture WILL BE OVERWRITTEN BY BILLBOARD GENERATION
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", NormalHeightTexture);
 		}
 
