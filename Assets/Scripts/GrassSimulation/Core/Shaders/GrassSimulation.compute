@@ -8,8 +8,6 @@
 
 #include "GrassFuncs.cginc"
 
-static const float MIN_COLLISION_DEPTH = 0.001;
-
 //Once
 float4x4 CollisionViewProj;
 float3 CollisionVolumeSize;
@@ -213,52 +211,52 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (collisionDepthAtV2 > 0)
     {
         dataDirty = true;
-        // Get ground depth at v2
-        float groundDepthAtV2 = 1 - NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, cV2.xy, 0).w; 
-        // Determine the applied pressure
-        // First get the maximum possible collision depth
-        float maxCollisionDepthAtV2 = groundDepthAtV2 - cV2.z;
-        // TODO: test MIN_COLLISION_DEPTH
-        // Determine the exact pressure the gets applied on v2 (the downward delta) in relative space
-        float pressureAtV2 = collisionDepthAtV2;//min(collisionDepthAtV2, maxCollisionDepthAtV2));
+        // Determine the exact pressure the gets applied on midPoint (the downward delta) in relative space
+        float pressureAtV2 = collisionDepthAtV2;
         // and in worldSpace
         float worldSpacePressureAtV2 = min(pressureAtV2 * CollisionVolumeSize.y, height);
         
-        float lengthV2 = length(v2);
         // Apply a collision to v2 control point
         // First apply colliders velocity to grass
         v2 += colliderDataAtV2.xyz * worldSpacePressureAtV2;
-        // Secondly apply a force along the gravity vector
+        // Second apply a force along the gravity vector
         v2 += normalize(GravityVec.xyz) * GravityVec.w * worldSpacePressureAtV2;
-        
-        lengthV2 = abs(lengthV2 - length(v2));
-        
+
         // Determine the force of the collision. Depends on pressure and colliders velocity;
-        //collisionForce = max(collisionForce, lengthV2 * 50);
-        collisionForce += lengthV2;
+        collisionForce += worldSpacePressureAtV2;
+    } else 
+    {
+        //Test collision with beziers midPoint
+        float3 midPoint = 0.5f * v1 + 0.25f * v2;
+        float3 cMidPoint = (GetCollisionVolumePos(v0 + midPoint).xyz);
+        cMidPoint.xy = (cMidPoint.xy + 1) / 2;
+        // Get collider data at v2
+        float4 colliderDataAtMidPoint = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cMidPoint.xy, 0);
+        // At first test if there is a collision
+        float collisionDepthAtMidPoint = colliderDataAtMidPoint.a - cMidPoint.z;
+        if (collisionDepthAtMidPoint > 0)
+        {
+            dataDirty = true;
+            // Determine the exact pressure the gets applied on v2 (the downward delta) in relative space
+            float pressureAtMidPoint = collisionDepthAtMidPoint;
+            // and in worldSpace, multiply with 4, because only v2 gets altered
+            float worldSpacePressureAtMidPoint = 4 * min(pressureAtMidPoint * CollisionVolumeSize.y, height);
+            
+            // Apply a collision to v2 control point
+            // First apply colliders velocity to grass
+            v2 += colliderDataAtMidPoint.xyz * worldSpacePressureAtMidPoint;
+            // Second apply a force along the gravity vector
+            v2 += normalize(GravityVec.xyz) * GravityVec.w * worldSpacePressureAtMidPoint;
+    
+            // Determine the force of the collision. Depends on pressure and colliders velocity;
+            collisionForce += worldSpacePressureAtMidPoint;
+        }
     }
     
-    //Test collision with beziers midPoint
-    /*float3 midPoint = 0.5f * v1 + 0.25f * v2;
-    float3 cMidPoint = GetCollisionVolumePos(v0 + midPoint).xyz;
-    cMidPoint.xy = (cMidPoint.xy + 1) / 2;
-    float4 cDataAtMidPoint = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cMidPoint.xy, 0);
-    float cDepthAtMidPoint = cDataAtMidPoint.a;
-    //float cPressureAtMidPoint = max(-cV0.z, cDepthAtMidPoint - cMidPoint.z);
-    float cPressureAtMidPoint = min(0, cMidPoint.z - cDepthAtMidPoint);
-    if (cPressureAtMidPoint < 0)
-    {
-        dataDirty = true;
-        v2.xyz -= 4 * cDataAtMidPoint.xyz * cPressureAtMidPoint;
-        v2.xyz -= 4 * gravity * (cPressureAtMidPoint * CollisionVolumeSize.y);
-        collisionForce += max(length(cDataAtMidPoint.xyz), abs(cPressureAtMidPoint * CollisionVolumeSize.y));
-    }
-    */
 
     if (dataDirty)
     {
         //ValidateV2Tex(v2, v0);
-        //v2 = float3(0,0,0);
         ValidateV2(v2, bladeUp);
         v1 = GetV1(v2, bladeUp, height, invHeight);
         AdjustBezierArcLength(v1, v2, height);

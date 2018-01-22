@@ -34,8 +34,8 @@ namespace GrassSimulation.Core
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
 
 		[Header("Collisions")]
-		[Range(0.1f, 100f)]
-		public float RecoveryFactor = 1f;
+		[Range(0.01f, 10f)]
+		public float RecoveryFactor = 0.1f;
 
 		[Header("Procedural Wind")]
 		[Range(0, 32)]

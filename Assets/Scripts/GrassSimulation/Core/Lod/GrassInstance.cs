@@ -47,9 +47,10 @@ namespace GrassSimulation.Core.Lod
 			ParameterTexture.Apply();
 
 			//Create and fill NormalHeightTexture
+			//Float texture to save final height to reduce errors
 			NormalHeightTexture = new Texture2D(Ctx.Settings.GrassMapResolution,
 				Ctx.Settings.GrassMapResolution,
-				TextureFormat.RGBA32, false, true)
+				TextureFormat.RGBAFloat, false, true)
 			{
 				filterMode = FilterMode.Bilinear,
 				wrapMode = TextureWrapMode.Clamp

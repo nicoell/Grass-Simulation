@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using GrassSimulation.Core.Lod;
 using UnityEngine;
+using UnityEngine.Assertions.Comparers;
 
 namespace GrassSimulation.StandardContainers
 {
@@ -40,7 +41,6 @@ namespace GrassSimulation.StandardContainers
 			var terrainBoundsWorldCenter = localToWorldMatrix.MultiplyPoint3x4(Ctx.DimensionsInput.GetBounds().center);
 			//Prepare some measurements
 			var terrainSize = new Vector2(Ctx.DimensionsInput.GetWidth(), Ctx.DimensionsInput.GetDepth());
-			var terrainLevel = Ctx.DimensionsInput.GetHeight();
 			var heightSamplingRate = Ctx.HeightInput.GetSamplingRate();
 			var patchQuantity = new Vector2Int((int) (terrainSize.x / Ctx.Settings.PatchSize),
 				(int) (terrainSize.y / Ctx.Settings.PatchSize));
@@ -65,8 +65,8 @@ namespace GrassSimulation.StandardContainers
 				patchBoundsCenter.x += x * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 				patchBoundsCenter.z += y * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 
-				var minHeight = 1f;
-				var maxHeight = 0f;
+				var minHeight = float.PositiveInfinity;
+				var maxHeight = float.NegativeInfinity;
 				for (var j = patchTexCoord.x; j < patchTexCoord.x + patchTexCoord.z; j += heightSamplingRate.x)
 				for (var k = patchTexCoord.y; k < patchTexCoord.y + patchTexCoord.w; k += heightSamplingRate.y)
 				{
@@ -76,8 +76,8 @@ namespace GrassSimulation.StandardContainers
 				}
 
 				//We can now calculate the center.y and height of BoundingBox
-				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
-				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
+				patchBoundsCenter.y += minHeight + (maxHeight - minHeight) / 2;
+				patchBoundsSize.y = maxHeight - minHeight;
 
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Ctx, patchTexCoord,

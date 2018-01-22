@@ -75,7 +75,7 @@ namespace GrassSimulation.Core.Lod
 			_patchModelMatrix = Matrix4x4.TRS(
 				new Vector3(bounds.center.x - bounds.extents.x, Ctx.Transform.position.y, bounds.center.z - bounds.extents.z),
 				Quaternion.identity,
-				new Vector3(Ctx.Settings.PatchSize, Ctx.DimensionsInput.GetHeight(), Ctx.Settings.PatchSize));
+				new Vector3(Ctx.Settings.PatchSize, 1, Ctx.Settings.PatchSize));
 				//new Vector3(Ctx.Settings.PatchSize, Ctx.DimensionsInput.GetHeight(), Ctx.Settings.PatchSize));
 			
 			// Create the IndirectArguments Buffer
