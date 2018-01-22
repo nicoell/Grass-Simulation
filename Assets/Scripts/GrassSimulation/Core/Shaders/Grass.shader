@@ -98,8 +98,8 @@ Shader "GrassSimulation/Grass"
 			float GetTessellationLevel(float distance, uint instanceID, float2 uv)
 			{
                 float transition = 0;
-                float2 uvGrassMap = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uv);
-                float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGrassMap, 0);
+                float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uv);
+                float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
                 
                 #ifdef GRASS_BILLBOARD_CROSSED
                     transition = DoubleLerp(LodInstancesBillboardCrossed * grassMapData.y, distance,
@@ -191,12 +191,12 @@ Shader "GrassSimulation/Grass"
         		HSOut OUT = (HSOut)0;
 
         		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
-        		float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, IN[0].uvLocal);
-        		float2 uvGrassMap = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
-        		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvNormalHeight, 0);
+        	//float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, IN[0].uvLocal);
+        		float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
+        		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
         		float4 SimulationData0 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0);
 				float4 SimulationData1 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0);
-        		float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGrassMap, 0);
+        		float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
         		
         		OUT.pos = mul(PatchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
         		

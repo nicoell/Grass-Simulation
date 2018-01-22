@@ -10,6 +10,7 @@ namespace GrassSimulation.Core.Lod
 	public class GrassInstance : ContextRequirement
 	{
 		public Texture2D GrassMapTexture;
+		public Texture2D NormalHeightTexture;
 		public Texture2D ParameterTexture;
 		public ComputeBuffer UvBuffer;
 
@@ -45,6 +46,35 @@ namespace GrassSimulation.Core.Lod
 			ParameterTexture.SetPixels(parameterData);
 			ParameterTexture.Apply();
 
+			//Create and fill NormalHeightTexture
+			NormalHeightTexture = new Texture2D(Ctx.Settings.GrassMapResolution,
+				Ctx.Settings.GrassMapResolution,
+				TextureFormat.RGBA32, false, true)
+			{
+				filterMode = FilterMode.Bilinear,
+				wrapMode = TextureWrapMode.Clamp
+			};
+			
+			var normalHeightData = new Color[Ctx.Settings.GrassMapResolution * Ctx.Settings.GrassMapResolution];
+			var uvGlobal = new Vector2(0, 0);
+			var pixelCenter = new Vector2(0.5f / Ctx.Settings.GrassMapResolution , 0.5f / Ctx.Settings.GrassMapResolution); 
+			
+			for (var y = 0; y < Ctx.Settings.GrassMapResolution; y++)
+			for (var x = 0; x < Ctx.Settings.GrassMapResolution; x++)
+			{
+				var i = y * Ctx.Settings.GrassMapResolution + x;
+				uvGlobal.x = (float) x / Ctx.Settings.GrassMapResolution;
+				uvGlobal.y = (float) y / Ctx.Settings.GrassMapResolution;
+				uvGlobal += pixelCenter;
+				
+				var posY = Ctx.HeightInput.GetHeight(uvGlobal.x, uvGlobal.y);
+				var up = Ctx.NormalInput.GetNormal(uvGlobal.x, uvGlobal.y);
+
+				normalHeightData[i] = new Color(up.x, up.y, up.z, posY);
+			}
+			NormalHeightTexture.SetPixels(normalHeightData);
+			NormalHeightTexture.Apply();
+			
 			//Create and fill GrassMapTexture
 			GrassMapTexture = new Texture2D(Ctx.Settings.GrassMapResolution,
 				Ctx.Settings.GrassMapResolution,
@@ -72,18 +102,24 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassGeometry.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassGeometry.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassGeometry.SetTexture("GrassMapTexture", GrassMapTexture);
+			Ctx.GrassGeometry.SetTexture("NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassBillboardGeneration.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardGeneration.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassBillboardGeneration.SetTexture("GrassMapTexture", GrassMapTexture);
+			Ctx.GrassBillboardGeneration.SetTexture("NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassBillboardCrossed.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardCrossed.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassBillboardCrossed.SetTexture("GrassMapTexture", GrassMapTexture);
+			Ctx.GrassBillboardCrossed.SetTexture("NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassBillboardScreen.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardScreen.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassBillboardScreen.SetTexture("GrassMapTexture", GrassMapTexture);
+			Ctx.GrassBillboardScreen.SetTexture("NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "ParameterTexture", ParameterTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "GrassMapTexture", GrassMapTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "ParameterTexture", ParameterTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", NormalHeightTexture);
 		}
 
 		public UvData[] UvData { get; private set; }

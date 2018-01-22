@@ -76,7 +76,7 @@ namespace GrassSimulation.Core.Lod
 				new Vector3(bounds.center.x - bounds.extents.x, Ctx.Transform.position.y, bounds.center.z - bounds.extents.z),
 				Quaternion.identity,
 				new Vector3(Ctx.Settings.PatchSize, Ctx.DimensionsInput.GetHeight(), Ctx.Settings.PatchSize));
-
+			
 			// Create the IndirectArguments Buffer
 			_argsGeometryBuffer =
 				new ComputeBuffer(1, _argsGeometry.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
@@ -281,7 +281,7 @@ namespace GrassSimulation.Core.Lod
 			_materialPropertyBlock.SetFloat("ParameterOffsetY", _parameterOffsetY);
 			_materialPropertyBlock.SetVector("PatchTexCoord", _patchTexCoord);
 			_materialPropertyBlock.SetTexture("SimulationTexture", _simulationTexture);
-			_materialPropertyBlock.SetTexture("NormalHeightTexture", _normalHeightTexture);
+			//_materialPropertyBlock.SetTexture("NormalHeightTexture", _normalHeightTexture);
 			_materialPropertyBlock.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 		}
 
@@ -290,11 +290,12 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassSimulationComputeShader.SetInt("StartIndex", _startIndex);
 			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetX", _parameterOffsetX);
 			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetY", _parameterOffsetY);
+			Ctx.GrassSimulationComputeShader.SetVector("PatchTexCoord", _patchTexCoord);
 			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for SimulationSetup Kernel
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture", _simulationTexture);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
+			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
 			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelSimulationSetup, out threadGroupX,
@@ -318,7 +319,7 @@ namespace GrassSimulation.Core.Lod
 
 			//Set buffers for Physics Kernel
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture", _simulationTexture);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", _normalHeightTexture);
+			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
 			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelPhysics, out threadGroupX, out threadGroupY,

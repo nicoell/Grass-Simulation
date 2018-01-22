@@ -8,6 +8,8 @@
 
 #include "GrassFuncs.cginc"
 
+static const float MIN_COLLISION_DEPTH = 0.001;
+
 //Once
 float4x4 CollisionViewProj;
 float3 CollisionVolumeSize;
@@ -78,19 +80,27 @@ void AdjustBezierArcLength(inout float3 v1, inout float3 v2, in float height)
     v2 = v1 + v12;
 }
 
+void ValidateV2Tex(inout float3 v2, in float3 v0)
+{
+    float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz + 1)/2;
+    float height = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, cV2.xy, 0).w * PatchModelMatrix[1][1] + PatchModelMatrix[1][3];
+	v2.y = max(v0.y + v2.y, height) - v0.y;
+}
+
 void ValidateV2(inout float3 v2, in float3 bladeUp)
 {
     //Ensure valid v2 position (not under ground plane)
 	v2 += bladeUp * -min(dot(bladeUp, v2), 0);
 }
 
-void CalculateBladeDirAndFront(in float3 bladeUp, in float dirAlpha, out float3 bladeDir, out float3 bladeFront)
+void CalculateBladeDirAndFront(inout float3 bladeUp, in float dirAlpha, out float3 bladeDir, out float3 bladeFront)
 {
 	float sd = sin(dirAlpha);
 	float cd = cos(dirAlpha);
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
 	bladeDir = normalize(cross(bladeUp, tmp));
 	bladeFront = normalize(cross(bladeUp, bladeDir));
+	//bladeUp = normalize(bladeUp + 0.3 * bladeFront);
 }
 
 /*
@@ -102,11 +112,12 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
 {
     //Create all the needed uv coordinates
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
-    float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
+    float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
+    //float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
     float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
     
     //Read all the textures -°O°/
-    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvNormalHeight, 0);
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
     
     //Create and name all needed variables
@@ -129,14 +140,14 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 {
     //Create all the needed uv coordinates
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
-    float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
+    //float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
     float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
     float2 uvCollisionTexture = uvGlobal;
-    uvCollisionTexture.x = 1 - uvCollisionTexture.x;
+    //uvCollisionTexture.x = 1 - uvCollisionTexture.x;
     float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
     
     //Read all the textures -°O°/
-    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvNormalHeight, 0);
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
     float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
     float4 simulationData0 = SimulationTexture.Load(uint3(id.xy, 0));
@@ -177,43 +188,76 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	//apply new forces
 	v2 += gravity + wind + stiffness;
 
+	//ValidateV2Tex(v2, v0);
 	ValidateV2(v2, bladeUp);
     float3 v1 = GetV1(v2, bladeUp, height, invHeight);
     AdjustBezierArcLength(v1, v2, height);
     
-    //Collisions
+    // Collisions
     bool dataDirty = false;
-    float3 cV0 = (GetCollisionVolumePos(v0).xyz + 1)/2;
-
+    //float3 cV0 = (GetCollisionVolumePos(v0).xyz);
+    //cV0.xy = (cV0.xy + 1) / 2;
+    
     //Test collision with v2
-    float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz + 1)/2;
-    float4 cDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV2.xy, 0);
-    float cDepthAtV2 = 1 - cDataAtV2.a;
-    float cPressureAtV2 = min(0, max(-cV0.z, cDepthAtV2 - cV2.z));
-    if (cPressureAtV2 < 0)
+    /* 
+     * Get v2 position in collider Volume
+     * x,y are brought in range 0..1 so they can be used as texture coordinates 
+     * z is depth, with 1 at near plane (ground level) and 0 at far plane
+     */
+    float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz);
+    cV2.xy = (cV2.xy + 1) / 2;
+    // Get collider data at v2
+    float4 colliderDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV2.xy, 0);
+    // At first test if there is a collision
+    float collisionDepthAtV2 = colliderDataAtV2.a - cV2.z;
+    if (collisionDepthAtV2 > 0)
     {
         dataDirty = true;
-        v2.xyz -= cDataAtV2.xyz * cPressureAtV2;
-        v2.xyz -= gravity * (cPressureAtV2 * CollisionVolumeSize.y);
-        collisionForce += max(length(cDataAtV2.xyz), abs(cPressureAtV2 * CollisionVolumeSize.y));
+        // Get ground depth at v2
+        float groundDepthAtV2 = 1 - NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, cV2.xy, 0).w; 
+        // Determine the applied pressure
+        // First get the maximum possible collision depth
+        float maxCollisionDepthAtV2 = groundDepthAtV2 - cV2.z;
+        // TODO: test MIN_COLLISION_DEPTH
+        // Determine the exact pressure the gets applied on v2 (the downward delta) in relative space
+        float pressureAtV2 = min(collisionDepthAtV2, maxCollisionDepthAtV2);
+        // and in worldSpace
+        float worldSpacePressureAtV2 = pressureAtV2 * CollisionVolumeSize.y;
+        
+        float lengthV2 = length(v2);
+        // Apply a collision to v2 control point
+        // First apply colliders velocity to grass
+        v2 += colliderDataAtV2.xyz * pressureAtV2;
+        // Secondly apply a force along the gravity vector
+        v2 += gravity * worldSpacePressureAtV2;
+        
+        lengthV2 = abs(lengthV2 - length(v2));
+        
+        // Determine the force of the collision. Depends on pressure and colliders velocity;
+        collisionForce = max(collisionForce, lengthV2);
     }
     
     //Test collision with beziers midPoint
-    float3 midPoint = 0.5f * v1 + 0.25f * v2;
-    float3 cMidPoint = (GetCollisionVolumePos(v0 + midPoint).xyz + 1)/2;
+    /*float3 midPoint = 0.5f * v1 + 0.25f * v2;
+    float3 cMidPoint = GetCollisionVolumePos(v0 + midPoint).xyz;
+    cMidPoint.xy = (cMidPoint.xy + 1) / 2;
     float4 cDataAtMidPoint = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cMidPoint.xy, 0);
-    float cDepthAtMidPoint = 1 - cDataAtMidPoint.a;
-    float cPressureAtMidPoint = min(0, max(-cV0.z, cDepthAtMidPoint - cMidPoint.z));
+    float cDepthAtMidPoint = cDataAtMidPoint.a;
+    //float cPressureAtMidPoint = max(-cV0.z, cDepthAtMidPoint - cMidPoint.z);
+    float cPressureAtMidPoint = min(0, cMidPoint.z - cDepthAtMidPoint);
     if (cPressureAtMidPoint < 0)
     {
         dataDirty = true;
         v2.xyz -= 4 * cDataAtMidPoint.xyz * cPressureAtMidPoint;
         v2.xyz -= 4 * gravity * (cPressureAtMidPoint * CollisionVolumeSize.y);
-        collisionForce += max(length(cDataAtMidPoint.xyz), abs(cPressureAtV2 * CollisionVolumeSize.y));
+        collisionForce += max(length(cDataAtMidPoint.xyz), abs(cPressureAtMidPoint * CollisionVolumeSize.y));
     }
+    */
 
     if (dataDirty)
     {
+        //ValidateV2Tex(v2, v0);
+        v2 = float3(0,0,0);
         ValidateV2(v2, bladeUp);
         v1 = GetV1(v2, bladeUp, height, invHeight);
         AdjustBezierArcLength(v1, v2, height);
