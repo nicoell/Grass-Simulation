@@ -37,7 +37,7 @@ namespace GrassSimulation.Core
 		[NonSerialized]
 		public Camera CollisionCamera;
 		public Camera BillboardTextureCamera;
-		[HideInInspector]
+		[NonSerialized]
 		public BillboardTexturePatchContainer BillboardTexturePatchContainer;
 
 		[EmbeddedScriptableObject]
@@ -134,7 +134,8 @@ namespace GrassSimulation.Core
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
 			if (CollisionCamera == null) CollisionCamera = GameObject.FindWithTag("GrassSimulationCollisionCamera").GetComponent<Camera>();
 			if (BillboardTextureCamera == null) BillboardTextureCamera = GameObject.FindWithTag("BillboardTextureCamera").GetComponent<Camera>();
-			if (BillboardTexturePatchContainer == null) BillboardTexturePatchContainer = CreateInstance<BillboardTexturePatchContainer>();
+			BillboardTexturePatchContainer = null;
+			BillboardTexturePatchContainer = CreateInstance<BillboardTexturePatchContainer>();
 			
 			if (BladeContainer == null) BladeContainer = CreateInstance<BladeContainer>();
 			BladeContainer.Init(this);

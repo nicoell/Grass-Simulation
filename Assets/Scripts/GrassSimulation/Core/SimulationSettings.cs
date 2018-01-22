@@ -112,7 +112,7 @@ namespace GrassSimulation.Core
 
 		public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
 
-		//TODO: Change for non-quad Containers
+		//TODO: Multiply with InstancedGrassFactor??
 		public uint GetSharedTextureLength() { return (uint) (GrassDataResolution * GrassDataResolution * InstancedGrassFactor * InstancedGrassFactor); }
 		
 		public int GetSharedTextureWidthHeight() { return (int) (GrassDataResolution * InstancedGrassFactor); }

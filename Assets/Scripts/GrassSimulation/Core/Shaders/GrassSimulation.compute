@@ -101,6 +101,11 @@ void CalculateBladeDirAndFront(inout float3 bladeUp, in float dirAlpha, out floa
 	//bladeUp = normalize(bladeUp + 0.3 * bladeFront);
 }
 
+bool IsNAN(float n)
+{
+    return n != n;
+}
+
 /*
  * Kernels below.
  */ 
@@ -264,7 +269,11 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     
     float3 camDir = v0 - CamPos;
 	float distance = length(camDir);
-
+    
+    if (IsNAN(v2.x)) v2.x = 100.0;
+    if (IsNAN(v2.y)) v2.y = 100.0;
+    if (IsNAN(v2.z)) v2.z = 100.0;
+    
     SimulationTexture[uint3(id.xy, 0)] = float4(v1, collisionForce);
     SimulationTexture[uint3(id.xy, 1)] = float4(v2, distance);
 }
