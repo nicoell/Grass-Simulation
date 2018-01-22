@@ -19,28 +19,30 @@ namespace GrassSimulation.Core.Billboard
 		private readonly Matrix4x4 _patchModelMatrix;
 		private readonly Vector4 _patchTexCoord; //x: xStart, y: yStart, z: width, w:height
 		private readonly int _startIndex;
+		private Texture2D _boundsTexture0;
 		private Texture2D _boundsTexture1;
-		private Texture2D _boundsTexture2;
 		private Mesh _dummyMesh;
 		private Texture2D _normalHeightTexture;
-		private RenderTexture _simulationTexture;
+		
+		private RenderTexture _simulationTexture0;
+		private RenderTexture _simulationTexture1;
 
 		public BillboardTexturePatch(SimulationContext ctx) : base(ctx)
 		{
 			_patchTexCoord = new Vector4(0, 0, 1, 1);
 			Bounds = new Bounds(Vector3.zero, Vector3.one);
 			_startIndex = Ctx.Random.Next(0,
-				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.BillboardTextureGrassCount));
+				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.BillboardGrassCount));
 			_materialPropertyBlock = new MaterialPropertyBlock();
 			_parameterOffsetX = (float) Ctx.Random.NextDouble();
 			_parameterOffsetY = (float) Ctx.Random.NextDouble();
 			//TODO: make customizable
 			_patchModelMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity,
-				new Vector3(1f, 1f, 1f));
+				new Vector3(Ctx.Settings.BillboardGrassSpacingFactor, 1f, 5f));
 
 			_argsGeometryBuffer =
 				new ComputeBuffer(1, _argsGeometry.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-			_argsGeometry[0] = Ctx.Settings.BillboardTextureGrassCount; //Vertex Count
+			_argsGeometry[0] = Ctx.Settings.BillboardGrassCount; //Vertex Count
 			_argsGeometry[1] = 1;
 			_argsGeometryBuffer.SetData(_argsGeometry);
 
@@ -72,7 +74,8 @@ namespace GrassSimulation.Core.Billboard
 			_materialPropertyBlock.SetFloat("ParameterOffsetX", _parameterOffsetX);
 			_materialPropertyBlock.SetFloat("ParameterOffsetY", _parameterOffsetY);
 			_materialPropertyBlock.SetVector("PatchTexCoord", _patchTexCoord);
-			_materialPropertyBlock.SetTexture("SimulationTexture", _simulationTexture);
+			_materialPropertyBlock.SetTexture("SimulationTexture0", _simulationTexture0);
+			_materialPropertyBlock.SetTexture("SimulationTexture1", _simulationTexture1);
 			_materialPropertyBlock.SetTexture("NormalHeightTexture", _normalHeightTexture);
 			_materialPropertyBlock.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 		}
@@ -82,38 +85,36 @@ namespace GrassSimulation.Core.Billboard
 			var min = Vector3.positiveInfinity;
 			var max = Vector3.negativeInfinity;
 
-			var debug = "_startIndex = "+_startIndex;
-			debug += "\n\tmin = "+min;
-			debug += "\n\tmax = "+max;
+			//var debug = "_startIndex = "+_startIndex;
+			//debug += "\n\tmin = "+min;
+			//debug += "\n\tmax = "+max;
 
-			for (var i = _startIndex; i < _startIndex + Ctx.Settings.BillboardTextureGrassCount; i++)
+			for (var i = _startIndex; i < _startIndex + Ctx.Settings.BillboardGrassCount; i++)
 			{
-				debug += "\n#### Loop#" + (i - _startIndex) +  ", index " + i + " / " + (_startIndex + Ctx.Settings.BillboardTextureGrassCount);
 				var localV0 = new Vector3(Ctx.GrassInstance.UvData[i].Position.x, 0, Ctx.GrassInstance.UvData[i].Position.y);
-				debug += "\n\tlocalV0 = " + localV0;
 				var v0 = _patchModelMatrix.MultiplyPoint(localV0);
-				debug += "\n\tv0 = " + v0;
-				var v1Sample = _boundsTexture1.GetPixelBilinear(localV0.x, localV0.z);
-				debug += "\n\tv1Sample = " + v1Sample;
-				var v2Sample = _boundsTexture2.GetPixelBilinear(localV0.x, localV0.z);
-				debug += "\n\tv2Sample = " + v2Sample;
+				var v1Sample = _boundsTexture0.GetPixelBilinear(localV0.x, localV0.z);
+				var v2Sample = _boundsTexture1.GetPixelBilinear(localV0.x, localV0.z);
 				var v1 = v0 + new Vector3(v1Sample.r, v1Sample.g, v1Sample.b);
-				debug += "\n\tv1 = " + v1;
 				var v2 = v0 + new Vector3(v2Sample.r, v2Sample.g, v2Sample.b);
-				debug += "\n\tv2 = " + v2;
-
 				min = Vector3.Min(min, Vector3.Min(Vector3.Min(v0, v1), v2));
-				debug += "\n\tmin = "+min;
 				max = Vector3.Max(max, Vector3.Max(Vector3.Max(v0, v1), v2));
+				/*
+				debug += "\n#### Loop#" + (i - _startIndex);
+				debug += "\n\tlocalV0 = " + localV0;
+				debug += "\n\tv0 = " + v0;
+				debug += "\n\tv1Sample = " + v1Sample;
+				debug += "\n\tv2Sample = " + v2Sample;
+				debug += "\n\tv1 = " + v1;
+				debug += "\n\tv2 = " + v2;
+				debug += "\n\tmin = "+min;
 				debug += "\n\tmax = "+max;
+				*/
 			}
 			
-			Debug.Log(debug);
-			
 			var retBounds = new Bounds();
-			retBounds.SetMinMax(min, max);
-			var bladeWidthCorrection = new Vector3(Ctx.Settings.BladeMaxWidth, 0, Ctx.Settings.BladeMaxWidth);
-			//retBounds.SetMinMax(min - bladeWidthCorrection, max + bladeWidthCorrection);
+			var bladeWidthCorrection = new Vector3(Ctx.Settings.BladeMaxWidth, 0, Ctx.Settings.BladeMaxWidth) * Ctx.Settings.BillboardGrassWidthCorrectionFactor;
+			retBounds.SetMinMax(min - bladeWidthCorrection, max + bladeWidthCorrection);
 
 			Bounds = retBounds;
 			return retBounds;
@@ -124,17 +125,17 @@ namespace GrassSimulation.Core.Billboard
 			base.DrawGizmo();
 			
 
-			if (!_boundsTexture1 || !_boundsTexture2) return;
+			if (!_boundsTexture0 || !_boundsTexture1) return;
 			
 			var min = Vector3.positiveInfinity;
 			var max = Vector3.negativeInfinity;
 			
-			for (var i = _startIndex; i < _startIndex + Ctx.Settings.BillboardTextureGrassCount; i++)
+			for (var i = _startIndex; i < _startIndex + Ctx.Settings.BillboardGrassCount; i++)
 			{
 				var localV0 = new Vector3(Ctx.GrassInstance.UvData[i].Position.x, 0, Ctx.GrassInstance.UvData[i].Position.y);
 				var v0 = _patchModelMatrix.MultiplyPoint(localV0);
-				var v1Sample = _boundsTexture1.GetPixelBilinear(localV0.x, localV0.z);
-				var v2Sample = _boundsTexture2.GetPixelBilinear(localV0.x, localV0.z);
+				var v1Sample = _boundsTexture0.GetPixelBilinear(localV0.x, localV0.z);
+				var v2Sample = _boundsTexture1.GetPixelBilinear(localV0.x, localV0.z);
 				var v1 = v0 + new Vector3(v1Sample.r, v1Sample.g, v1Sample.b);
 				var v2 = v0 + new Vector3(v2Sample.r, v2Sample.g, v2Sample.b);
 				
@@ -143,14 +144,14 @@ namespace GrassSimulation.Core.Billboard
 				
 				Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
 				Gizmos.DrawLine(v0, v1);
-				Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
-				Gizmos.DrawLine(v0, v2);
+				Gizmos.color = new Color(0f, 1f, 0.5f, 0.8f);
+				Gizmos.DrawLine(v1, v2);
 			}
 			
 			var retBounds = new Bounds();
 			retBounds.SetMinMax(min, max);
 			
-			new Color(1f, 0.4f, 0.2f, 0.8f);
+			Gizmos.color = new Color(1f, 0.4f, 0.2f, 0.8f);
 			Gizmos.DrawWireCube(retBounds.center, retBounds.size);
 		}
 
@@ -165,7 +166,8 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for Physics Kernel
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture", _simulationTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture0", _simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture1", _simulationTexture1);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
@@ -176,11 +178,11 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, (int) (Ctx.Settings.GrassDataResolution / threadGroupX),
 				(int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
 
-			_boundsTexture1 = RenderTextureUtils.GetRenderTextureVolumeElementAsTexture2D(Ctx.RenderTextureVolumeToSlice,
-				_simulationTexture, 0,
+			_boundsTexture0 = RenderTextureUtils.GetRenderTextureAsTexture2D(
+				_simulationTexture0,
 				TextureFormat.RGBAFloat, false, true);
-			_boundsTexture2 = RenderTextureUtils.GetRenderTextureVolumeElementAsTexture2D(Ctx.RenderTextureVolumeToSlice,
-				_simulationTexture, 1,
+			_boundsTexture1 = RenderTextureUtils.GetRenderTextureAsTexture2D(
+				_simulationTexture1,
 				TextureFormat.RGBAFloat, false, true);
 		}
 
@@ -208,19 +210,29 @@ namespace GrassSimulation.Core.Billboard
 			_normalHeightTexture.SetPixels(textureData);
 			_normalHeightTexture.Apply();
 
-			_simulationTexture = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
+			_simulationTexture0 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
 				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
 				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
 			{
 				filterMode = FilterMode.Bilinear,
 				autoGenerateMips = false,
 				useMipMap = false,
-				dimension = TextureDimension.Tex2DArray,
-				volumeDepth = 2,
 				enableRandomWrite = true,
 				wrapMode = TextureWrapMode.Clamp
 			};
-			_simulationTexture.Create();
+			_simulationTexture0.Create();
+			
+			_simulationTexture1 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
+				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
+				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
+			{
+				filterMode = FilterMode.Bilinear,
+				autoGenerateMips = false,
+				useMipMap = false,
+				enableRandomWrite = true,
+				wrapMode = TextureWrapMode.Clamp
+			};
+			_simulationTexture1.Create();
 
 			SetupSimulation();
 		}
@@ -233,7 +245,8 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for SimulationSetup Kernel
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture", _simulationTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture0", _simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture1", _simulationTexture1);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
@@ -248,7 +261,7 @@ namespace GrassSimulation.Core.Billboard
 
 		private void CreateDummyMesh()
 		{
-			var dummyMeshSize = Ctx.Settings.BillboardTextureGrassCount;
+			var dummyMeshSize = Ctx.Settings.BillboardGrassCount;
 			var dummyVertices = new Vector3[dummyMeshSize];
 			var indices = new int[dummyMeshSize];
 

@@ -53,7 +53,8 @@ namespace GrassSimulation.Core.Lod
 		 */
 		private Matrix4x4 _patchModelMatrix;
 
-		private RenderTexture _simulationTexture;
+		private RenderTexture _simulationTexture0;
+		private RenderTexture _simulationTexture1;
 
 		public GrassPatch(SimulationContext ctx, Vector4 patchTexCoord, Bounds bounds) : base(ctx)
 		{
@@ -223,19 +224,29 @@ namespace GrassSimulation.Core.Lod
 			_normalHeightTexture.SetPixels(textureData);
 			_normalHeightTexture.Apply();
 
-			_simulationTexture = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
+			_simulationTexture0 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
 				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
 				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
 			{
 				filterMode = FilterMode.Bilinear,
 				autoGenerateMips = false,
 				useMipMap = false,
-				dimension = TextureDimension.Tex2DArray,
-				volumeDepth = 2,
 				enableRandomWrite = true,
 				wrapMode = TextureWrapMode.Clamp
 			};
-			_simulationTexture.Create();
+			_simulationTexture0.Create();
+			
+			_simulationTexture1 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
+				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
+				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
+			{
+				filterMode = FilterMode.Bilinear,
+				autoGenerateMips = false,
+				useMipMap = false,
+				enableRandomWrite = true,
+				wrapMode = TextureWrapMode.Clamp
+			};
+			_simulationTexture1.Create();
 
 			SetupSimulation();
 		}
@@ -281,7 +292,8 @@ namespace GrassSimulation.Core.Lod
 			_materialPropertyBlock.SetFloat("ParameterOffsetX", _parameterOffsetX);
 			_materialPropertyBlock.SetFloat("ParameterOffsetY", _parameterOffsetY);
 			_materialPropertyBlock.SetVector("PatchTexCoord", _patchTexCoord);
-			_materialPropertyBlock.SetTexture("SimulationTexture", _simulationTexture);
+			_materialPropertyBlock.SetTexture("SimulationTexture0", _simulationTexture0);
+			_materialPropertyBlock.SetTexture("SimulationTexture1", _simulationTexture1);
 			//_materialPropertyBlock.SetTexture("NormalHeightTexture", _normalHeightTexture);
 			_materialPropertyBlock.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 		}
@@ -295,7 +307,8 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for SimulationSetup Kernel
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture", _simulationTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture0", _simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture1", _simulationTexture1);
 			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
@@ -319,7 +332,8 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for Physics Kernel
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture", _simulationTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture0", _simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture1", _simulationTexture1);
 			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;

@@ -19,6 +19,8 @@ float LodDistanceTessellationMin;
 float LodDistanceTessellationMax;
 float4 NormalHeightUvCorrection;
 float RecoveryFactor;
+float BladeHeightCullingThreshold;
+bool BillboardGeneration;
 
 Texture2D GrassMapTexture;
 Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
@@ -36,7 +38,8 @@ Texture2D<float4> CollisionDepthTexture; //up.xyz, pos.y
 SamplerState samplerCollisionDepthTexture;
 Texture2D<float4> NormalHeightTexture; //up.xyz, pos.y
 SamplerState samplerNormalHeightTexture;
-RWTexture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
+RWTexture2D<float4> SimulationTexture0; //v1.xyz, collisionForce;
+RWTexture2D<float4> SimulationTexture1; //v2.xyz, distance;
 
 //Per Frame
 float3 CamPos;
@@ -88,7 +91,7 @@ void ValidateV2Tex(inout float3 v2, in float3 v0)
 void ValidateV2(inout float3 v2, in float3 bladeUp)
 {
     //Ensure valid v2 position (not under ground plane)
-	v2 += bladeUp * -min(dot(bladeUp, v2), 0);
+	v2 += bladeUp * -min(dot(bladeUp, v2) - 0.01, 0);
 }
 
 void CalculateBladeDirAndFront(inout float3 bladeUp, in float dirAlpha, out float3 bladeDir, out float3 bladeFront)
@@ -134,8 +137,8 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     float collisionForce = 0;
     float distance = 1.0;
     
-    SimulationTexture[uint3(id.xy, 0)] = float4(v1, collisionForce);
-    SimulationTexture[uint3(id.xy, 1)] = float4(v2, distance);
+    SimulationTexture0[id.xy] = float4(v1, collisionForce);
+    SimulationTexture1[id.xy] = float4(v2, distance);
 }
 
 [numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
@@ -153,8 +156,18 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
     float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
-    float4 simulationData0 = SimulationTexture.Load(uint3(id.xy, 0));
-    float4 simulationData1 = SimulationTexture.Load(uint3(id.xy, 1));
+    //Don't use grassmaps density if we are generating our billboard data
+    if (BillboardGeneration) grassMapData.z = 1;
+    float4 simulationData0 = SimulationTexture0.Load(id.xy);
+    float4 simulationData1 = SimulationTexture1.Load(id.xy);
+    
+    //Check for the case, that no grass grows at this place (or too small one)
+    if (grassMapData.z < BladeHeightCullingThreshold)
+    {
+        SimulationTexture0[id.xy] = float4(0, 0, 0, 0);
+        SimulationTexture1[id.xy] = float4(0, 0, 0, 1);
+        return;
+    }
     
     //Create and name all needed variables
 	float width = parameters.x;
@@ -180,8 +193,9 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	gravity = gravity * height * bendingFactor * mdt;
 
 	//Wind
-	float windageHeight = abs(dot(v2, bladeUp)) * invHeight;
-	float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2)));
+	float windageHeight = abs(dot(normalize(v2), bladeUp)) * invHeight;
+	//float windageHeight = 1;
+	float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2))); //one possible source for v2 being NaN normalize
 	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
 	float3 wind = WindData.xyz * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
 	
@@ -189,6 +203,9 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.5) * max(1.0 - collisionForce, 0.0) * mdt;
 
 	//apply new forces
+    //v2 += wind + stiffness;
+	//v2 += gravity + stiffness;
+	//v2 += gravity + wind;
 	v2 += gravity + wind + stiffness;
 
 	//ValidateV2Tex(v2, v0);
@@ -274,6 +291,6 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (IsNAN(v2.y)) v2.y = 100.0;
     if (IsNAN(v2.z)) v2.z = 100.0;
     
-    SimulationTexture[uint3(id.xy, 0)] = float4(v1, collisionForce);
-    SimulationTexture[uint3(id.xy, 1)] = float4(v2, distance);
+    SimulationTexture0[id.xy] = float4(v1, collisionForce);
+    SimulationTexture1[id.xy] = float4(v2, distance);
 }

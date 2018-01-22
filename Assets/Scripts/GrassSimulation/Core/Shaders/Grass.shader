@@ -87,8 +87,9 @@ Shader "GrassSimulation/Grass"
 			
 			Texture2D NormalHeightTexture; //up.xyz, pos.y
 			SamplerState samplerNormalHeightTexture;
-			Texture2DArray<float4> SimulationTexture; //v1.xyz, tesslevel; v2.xyz, transition
-			SamplerState samplerSimulationTexture;
+			Texture2D<float4> SimulationTexture0; //v1.xyz, collisionForce;
+			SamplerState samplerSimulationTexture0;
+			Texture2D<float4> SimulationTexture1; //v2.xyz, distance;
             
             //PerFrame
             uniform float4 CamPos;
@@ -149,7 +150,7 @@ Shader "GrassSimulation/Grass"
 			HSConstOut hullPatchConstant( InputPatch<VSOut, 1> IN)
     		{
         		HSConstOut OUT = (HSConstOut)0;
-        		float distance = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0).w;
+        		float distance = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0).w;
         		
         		float level = GetTessellationLevel(distance, IN[0].instanceID, IN[0].uvLocal);
         		
@@ -194,8 +195,8 @@ Shader "GrassSimulation/Grass"
         	//float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, IN[0].uvLocal);
         		float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
-        		float4 SimulationData0 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 0), 0);
-				float4 SimulationData1 = SimulationTexture.SampleLevel(samplerSimulationTexture, float3(IN[0].uvLocal, 1), 0);
+        		float4 SimulationData0 = SimulationTexture0.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
+				float4 SimulationData1 = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
         		float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
         		
         		OUT.pos = mul(PatchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
@@ -341,11 +342,11 @@ Shader "GrassSimulation/Grass"
                 #ifdef GRASS_BILLBOARD_CROSSED
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
                     //OUT.color = float4(0, 0, 0, 0);
-                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.xy);
+                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #elif GRASS_BILLBOARD_SCREEN
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
                     //OUT.color = float4(0, 0, 0, 0);
-                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.xy);
+                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #elif GRASS_GEOMETRY
                     float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                     
@@ -355,7 +356,7 @@ Shader "GrassSimulation/Grass"
                     float3 outpos = lerp(i1, i2, t) + translation;
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
                     //OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
-                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.xy);
+                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #endif
 
         		return OUT;
@@ -368,11 +369,11 @@ Shader "GrassSimulation/Grass"
                     return bladeColor;
                 #elif GRASS_GEOMETRY
                     float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
-                    bladeColor.xyz *= lerp(lerp(0.8, 0.2, IN.uvwd.w), 1, IN.uvwd.y);
+                    bladeColor.xyz *= lerp(IN.uvwd.w, 1, IN.uvwd.y);
                     return bladeColor;
                 #else
                     float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvwd.xyz);
-                    billboardSample.xyz *= lerp(lerp(0.8, 0.2, IN.uvwd.w), 1, IN.uvwd.y);
+                    billboardSample.xyz *= lerp(IN.uvwd.w, 1, clamp(IN.uvwd.y + 0.2, 0, 1));
                     return billboardSample;
                 #endif
 			}

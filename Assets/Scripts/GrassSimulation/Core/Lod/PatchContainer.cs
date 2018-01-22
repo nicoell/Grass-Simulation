@@ -49,7 +49,7 @@ namespace GrassSimulation.Core.Lod
 		protected virtual void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
-			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);
+			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", false);
 			Ctx.GrassGeometry.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassGeometry.SetVector("viewDir", Ctx.Camera.transform.forward);
 			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix",

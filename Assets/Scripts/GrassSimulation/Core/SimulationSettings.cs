@@ -26,9 +26,16 @@ namespace GrassSimulation.Core
 		public float BladeMaxWidth = 0.5f;
 		[Range(0, 6)]
 		public float BladeTextureMaxMipmapLevel = 5;
-		public uint BillboardTextureGrassCount = 64;
 		[Range(0,1)]
 		public float BladeHeightCullingThreshold = 0.01f;
+		
+		[Header("Billboard Grass Settings")]
+		public uint BillboardGrassCount = 64;
+		[Range(0.1f, 5)]
+		public float BillboardGrassSpacingFactor = 0.5f;
+		[Range(0,1)]
+		public float BillboardGrassWidthCorrectionFactor = 0.5f;
+		
 
 		[Header("Gravity")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration
