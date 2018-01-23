@@ -17,10 +17,16 @@ namespace GrassSimulation.Core.Lod
 		public GrassInstance(SimulationContext ctx) : base(ctx)
 		{
 			//Create and fill UvData
-			UvData = new UvData[Ctx.Settings.GetSharedBufferLength()];
+			int bufferLength = (int) (Mathf.Max(Ctx.Settings.GetMaxAmountBladesPerPatch(),
+				                          Ctx.Settings.GetMaxAmountBillboardsPerPatch() * Ctx.PositionInput.GetRepetitionCount()) *
+			                          Ctx.Settings.InstancedGrassFactor * Ctx.Settings.InstancedGrassFactor);
+			UvData = new UvData[bufferLength];
 
-			for (var i = 0; i < Ctx.Settings.GetSharedBufferLength(); i++) UvData[i].Position = Ctx.PositionInput.GetPosition(i);
-			UvBuffer = new ComputeBuffer((int) Ctx.Settings.GetSharedBufferLength(), 2 * sizeof(float),
+			for (var i = 0; i < bufferLength; i++)
+			{
+				UvData[i].Position = Ctx.PositionInput.GetPosition(i);
+			}
+			UvBuffer = new ComputeBuffer(bufferLength, 2 * sizeof(float),
 				ComputeBufferType.Default);
 			UvBuffer.SetData(UvData);
 

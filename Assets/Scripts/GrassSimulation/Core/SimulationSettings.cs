@@ -69,6 +69,8 @@ namespace GrassSimulation.Core
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
 		[Range(1,32)]
 		public uint InstancedGrassFactor = 4;
+		[Range(1,128)]
+		public uint ParameterVariance = 1;
 		[Range(0,64)]
 		public float LodTessellationMin = 1;
 		[Range(0,64)]
@@ -104,7 +106,12 @@ namespace GrassSimulation.Core
 
 		public uint GetMaxAmountBladesPerPatch()
 		{
-			return PatchSize * PatchSize * LodInstancesGeometry;
+			return GetMinAmountBladesPerPatch() * LodInstancesGeometry;
+		}
+		
+		public uint GetMaxAmountBillboardsPerPatch()
+		{
+			return GetMinAmountBillboardsPerPatch() * (uint) Mathf.Max(LodInstancesBillboardCrossed, LodInstancesBillboardScreen);
 		}
 
 		public uint GetMinAmountBladesPerPatch()
@@ -117,12 +124,12 @@ namespace GrassSimulation.Core
 			return PatchSize;
 		}
 
-		public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
+		//public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
 
 		//TODO: Multiply with InstancedGrassFactor??
-		public uint GetSharedTextureLength() { return (uint) (GrassDataResolution * GrassDataResolution * InstancedGrassFactor * InstancedGrassFactor); }
+		public uint GetSharedTextureLength() { return (uint) (GrassDataResolution * GrassDataResolution * ParameterVariance * ParameterVariance); }
 		
-		public int GetSharedTextureWidthHeight() { return (int) (GrassDataResolution * InstancedGrassFactor); }
+		public int GetSharedTextureWidthHeight() { return (int) (GrassDataResolution * ParameterVariance); }
 
 		public uint GetPerPatchTextureLength() { return (uint) (GrassDataResolution * GrassDataResolution); }
 		

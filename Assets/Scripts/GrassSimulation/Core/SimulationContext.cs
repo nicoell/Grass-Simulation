@@ -316,6 +316,13 @@ namespace GrassSimulation.Core
 			IsReady = true;
 		}
 
+		public int GetBufferLength()
+		{
+			return (int) (Mathf.Max(Settings.GetMaxAmountBladesPerPatch(),
+				                      Settings.GetMaxAmountBillboardsPerPatch() * PositionInput.GetRepetitionCount()) *
+			                      Settings.InstancedGrassFactor * Settings.InstancedGrassFactor);
+		}
+
 		public void OnGUI()
 		{
 			PatchContainer.OnGUI();

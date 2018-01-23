@@ -32,7 +32,7 @@ namespace GrassSimulation.Core.Billboard
 			_patchTexCoord = new Vector4(0, 0, 1, 1);
 			Bounds = new Bounds(Vector3.zero, Vector3.one);
 			_startIndex = Ctx.Random.Next(0,
-				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.BillboardGrassCount));
+				(int) (Ctx.GetBufferLength() - Ctx.Settings.BillboardGrassCount));
 			_materialPropertyBlock = new MaterialPropertyBlock();
 			_parameterOffsetX = (float) Ctx.Random.NextDouble();
 			_parameterOffsetY = (float) Ctx.Random.NextDouble();

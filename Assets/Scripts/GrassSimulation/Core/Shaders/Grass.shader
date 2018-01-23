@@ -38,7 +38,9 @@ Shader "GrassSimulation/Grass"
 			static const float TRANSITION_EPSILON = 0.01;
 			static const float GRASSMAP_WIDTH_INFLUENCE = 0.5;
 
-            struct UvData { float2 Position; };
+            struct UvData { 
+                float2 Position;
+            };
             
             //Billboard Specific
             uniform float GrassType;
@@ -138,15 +140,13 @@ Shader "GrassSimulation/Grass"
 				OUT.vertexID = vertexID;
 				OUT.instanceID = instanceID;
 				#ifdef GRASS_BILLBOARD_CROSSED
-				    OUT.uvLocal = UvBuffer[StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID % VertexCount) * RepetitionCount].Position;
+				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID % VertexCount) * RepetitionCount;
 				#elif GRASS_BILLBOARD_SCREEN
-				    OUT.uvLocal = UvBuffer[StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID * RepetitionCount)].Position;
+				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID * RepetitionCount);
 				#else
-				    OUT.uvLocal = UvBuffer[StartIndex + VertexCount * instanceID + vertexID].Position;
+				    int i = StartIndex + VertexCount * instanceID + vertexID;
                 #endif
-                //#ifdef BILLBOARD_GENERATION
-                //OUT.uvLocal = lerp(float3(0.25, 0.25, 0.25), float3(0.75, 0.75, 0.75), OUT.uvLocal);
-                //#endif
+				OUT.uvLocal = UvBuffer[i].Position;
 				return OUT;
 			}
 			
@@ -190,12 +190,14 @@ Shader "GrassSimulation/Grass"
     		[outputcontrolpoints(1)]
     		HSOut hull( InputPatch<VSOut, 1> IN, uint i : SV_OutputControlPointID )
     		{
-    		    //TODO: Its probably faster to only do the stuff here if GrassBlade does not get culled (tesslevel > 0)
-    		
         		HSOut OUT = (HSOut)0;
-
+    		    //TODO: Its probably faster to only do the stuff here if GrassBlade does not get culled (tesslevel > 0)
+    		    
+    		    //if (GetTessellationLevel(distance, IN[0].instanceID, IN[0].uvLocal) == 0) return OUT;
+    		    
+                
         		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
-        		float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
+        	    float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
         		float4 SimulationData0 = SimulationTexture0.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
 				float4 SimulationData1 = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
@@ -203,8 +205,6 @@ Shader "GrassSimulation/Grass"
         		
         		OUT.pos = mul(PatchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
         		
-        		float3 camDir = OUT.pos - CamPos.xyz;
-                //float distance = length(camDir);
         		float distance = SimulationData1.w;
         		
         		float transition = 0;
@@ -233,6 +233,8 @@ Shader "GrassSimulation/Grass"
         		OUT.bladeUp = normalize(normalHeight.xyz);
         		OUT.v1 = SimulationData0.xyz;
         		OUT.v2 = SimulationData1.xyz;
+        		
+        		float3 camDir = OUT.pos - CamPos.xyz;
         		
         		#ifdef GRASS_BILLBOARD_SCREEN
                     camDir = normalize(camDir);
@@ -308,24 +310,7 @@ Shader "GrassSimulation/Grass"
                 float3 h2 = p1 + v * (p2 - p1);
                 float3 i1 = h1 + v * (h2 - h1);
                 float3 i2 = i1 + off;
-                
-                //TODO: Can be removed?
-                #ifdef BILLBOARD_GENERATION
-                    float widthFactor = 1;
-                #elif GRASS_GEOMETRY
-                    //Width Correction
-                    float4 i1V = mul(ViewProjMatrix, float4(i1, 1));
-                    i1V = i1V / i1V.w;
-                    float4 i2V = mul(ViewProjMatrix, float4(i2, 1));
-                    i2V = i2V / i2V.w;
-                    float4 widthV = i2V - i1V;
-                    widthV.x = widthV.x * (_ScreenParams.x / 2);
-                    widthV.y = widthV.y * (_ScreenParams.y / 2);
-                    float screenWidth = length(widthV.xy);
-                    float widthFactor = 1.0f - clamp((screenWidth - 1.0) / 2.0, 0, 1);
-                    //widthFactor *= u;
-                #endif
-            
+                            
                 float3 bitangent = bladeDir;
                 float3 tangent;
             
@@ -344,21 +329,17 @@ Shader "GrassSimulation/Grass"
 
                 #ifdef GRASS_BILLBOARD_CROSSED
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                    //OUT.color = float4(0, 0, 0, 0);
                     OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #elif GRASS_BILLBOARD_SCREEN
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                    //OUT.color = float4(0, 0, 0, 0);
                     OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #elif GRASS_GEOMETRY
                     float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
-                    
                     float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
                     float t = u + ((texSample0.r*u) + ((1.0-texSample0.r)*omu));
-                    //t *= widthFactor;
+
                     float3 outpos = lerp(i1, i2, t) + translation;
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
-                    //OUT.color = float4(float3(texSample0.g, texSample0.b, texSample0.a), 1);
                     OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #endif
 

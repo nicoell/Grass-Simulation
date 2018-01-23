@@ -71,7 +71,7 @@ namespace GrassSimulation.Core.Lod
 			var maxElementsUsed = Mathf.Max(Ctx.Settings.GetMaxAmountBladesPerPatch(),
 				Ctx.Settings.GetMinAmountBillboardsPerPatch() * 3 * Ctx.PositionInput.GetRepetitionCount());
 			_startIndex = Ctx.Random.Next(0,
-				(int) (Ctx.Settings.GetSharedBufferLength() - maxElementsUsed));
+				(int) (Ctx.GetBufferLength() - maxElementsUsed));
 			_materialPropertyBlock = new MaterialPropertyBlock();
 			_parameterOffsetX = (float) Ctx.Random.NextDouble();
 			_parameterOffsetY = (float) Ctx.Random.NextDouble();
