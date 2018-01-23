@@ -98,6 +98,11 @@ Shader "GrassSimulation/Grass"
             uniform float4 CamPos;
             uniform float4 CamUp;
             uniform float4x4 ViewProjMatrix;
+            
+            //Lightning
+            uniform float AmbientLightFactor;
+            uniform float3 LightDirection;
+            uniform float LightIntensity;
 
 			float GetTessellationLevel(float distance, uint instanceID, float2 uv)
 			{
@@ -325,7 +330,6 @@ Shader "GrassSimulation/Grass"
                 }
                 
                 float3 normal = normalize(cross(tangent, bitangent));
-	            OUT.normal = normal;
 
                 #ifdef GRASS_BILLBOARD_CROSSED
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
@@ -335,15 +339,46 @@ Shader "GrassSimulation/Grass"
                     OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #elif GRASS_GEOMETRY
                     float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
-                    float3 translation = normal * width * (0.5 - abs(u - 0.5)) * ((1.0 - floor(v)) * texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                    float t = u + ((texSample0.r*u) + ((1.0-texSample0.r)*omu));
+                    //float3 translation = normal * width * (0.5 - abs(u - 0.5)) * (/*(1.0 - floor(v)) * */texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                    float3 translation = texSample0.g * normal * width * 2* abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                    //float3 translationMid = texSample0.g * normal * width * 0.5;
+                    //bitangent = normalize(bitangent + ((u * 2) - 1) * translation);
+                    //normal = normalize(cross(tangent, bitangent));
+                    
+                    float t = u + (texSample0.r * u + (1.0 - texSample0.r) * omu);
 
                     float3 outpos = lerp(i1, i2, t) + translation;
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
                     OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                 #endif
+                
+	            OUT.normal = normal;
 
         		return OUT;
+            }
+
+            float GetRadiance(in float Kd, in float Ao, in float Ia, in float3 N, in float3 L, in float gamma, in float Id, in float d, in float beta)
+            {
+                // Following 2008 Boulanger Lambert reflectance model p.60
+                /*
+                float Kd; // Diffuse reflectance factor (0..1) of grass bladeColor
+                float Ao; // Ambient occlusion factor (0..1), lower close to the ground  /// lerp(IN.uvwd.w, 1, IN.uvwd.y)
+                float Ia; // Intensity ambient light
+                
+                float3 N; // Normal of grassblade at surface point
+                float3 L; // Light Direction
+                
+                float gamma; // The blades translucency
+                float Id; // Intensity light source
+                float d;  // Distance between light source and surface point
+                float beta; // light attenuation
+                */
+                float Iambient = Kd * Ao * Ia;
+                float Idiffuse = Kd * max(N * L, 0);
+                float Itranslucent = gamma * Kd * max(-N * L, 0);
+                float attenuation = Id / (1 + beta * d * d);
+                
+                return Iambient + /* attenuation * */ (Idiffuse + Itranslucent);
             }
 
 			float4 frag (FSIn IN) : SV_TARGET
@@ -352,12 +387,40 @@ Shader "GrassSimulation/Grass"
                     float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
                     return bladeColor;
                 #elif GRASS_GEOMETRY
+                    float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
+                    float Kd = bladeLightningData.x;
+                    float Ao = lerp(IN.uvwd.w, 1, IN.uvwd.y);
+                    float Ia = AmbientLightFactor;
+                    float3 N = IN.normal;
+                    float3 L = LightDirection;
+                    float gamma = bladeLightningData.y;
+                    float Id = LightIntensity;
+                    float d = 0;
+                    float beta = 0;
+                    
+                    float radiance = GetRadiance(Kd, Ao, Ia, N, L, gamma, Id, d, beta);
+                    
                     float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
-                    bladeColor.xyz *= lerp(IN.uvwd.w, 1, IN.uvwd.y);
+                    bladeColor.xyz *= radiance;
+                    //bladeColor.xyz = (N + 1)/2;
                     return bladeColor;
                 #else
+                    float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
+                    float Kd = bladeLightningData.x;
+                    float Ao = lerp(IN.uvwd.w, 1, clamp(IN.uvwd.y + 0.5, 0, 1));
+                    float Ia = AmbientLightFactor;
+                    float3 N = IN.normal;
+                    float3 L = LightDirection;
+                    float gamma = bladeLightningData.y;
+                    float Id = LightIntensity;
+                    float d = 0;
+                    float beta = 0;
+                    
+                    float radiance = GetRadiance(Kd, Ao, Ia, N, L, gamma, Id, d, beta);
+                    
                     float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvwd.xyz);
-                    billboardSample.xyz *= lerp(IN.uvwd.w, 1, clamp(IN.uvwd.y + 0.2, 0, 1));
+                    billboardSample.xyz *= radiance;
+                    //billboardSample.xyz = (N + 1)/2;
                     return billboardSample;
                 #endif
 			}

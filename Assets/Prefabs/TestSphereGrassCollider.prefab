@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: 23553561521412342}
   - component: {fileID: 54513600185565242}
   - component: {fileID: 114300303012432472}
-  - component: {fileID: 135289462629942502}
+  - component: {fileID: 65754231004929464}
   m_Layer: 8
   m_Name: TestSphereGrassCollider
   m_TagString: Untagged
@@ -84,7 +84,7 @@ MeshFilter:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1174000999662488}
-  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!54 &54513600185565242
 Rigidbody:
   m_ObjectHideFlags: 1
@@ -100,6 +100,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!65 &65754231004929464
+BoxCollider:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1174000999662488}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 0.95, y: 0.96, z: 0.95}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &114300303012432472
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -111,15 +123,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01e1794296cd886429fd31447db8c00a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!135 &135289462629942502
-SphereCollider:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1174000999662488}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.45
-  m_Center: {x: 0, y: 0, z: 0}

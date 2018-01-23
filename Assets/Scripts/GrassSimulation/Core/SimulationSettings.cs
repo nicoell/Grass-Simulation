@@ -35,7 +35,10 @@ namespace GrassSimulation.Core
 		public float BillboardGrassSpacingFactor = 0.5f;
 		[Range(0,1)]
 		public float BillboardGrassWidthCorrectionFactor = 0.5f;
-		
+
+		[Header("Lightning")]
+		[Range(0,1)]
+		public float AmbientLightFactor = 0.1f;
 
 		[Header("Gravity")]
 		public Vector4 Gravity = new Vector4(0f, -1f, 0f, 2f); //xyz: vector    w: acceleration

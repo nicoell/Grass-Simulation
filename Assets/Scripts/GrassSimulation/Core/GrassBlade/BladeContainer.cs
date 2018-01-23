@@ -84,8 +84,8 @@ namespace GrassSimulation.Core.GrassBlade
 
 								r = edgeCurve;
 								g = midTranslation;
-								//b = color.g;
-								//a = color.b;
+								b = blade.DiffuseReflectance;
+								a = blade.Translucency;
 								break;
 							default:
 								var uv = new Vector2((float) x / mipWidth + uvCenter.x, (float) y / mipHeight + uvCenter.y);

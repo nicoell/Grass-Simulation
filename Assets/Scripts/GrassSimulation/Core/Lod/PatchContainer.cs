@@ -53,11 +53,20 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassGeometry.SetVector("viewDir", Ctx.Camera.transform.forward);
 			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix",
 				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassGeometry.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+			Ctx.GrassGeometry.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+			Ctx.GrassGeometry.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
 			Ctx.GrassBillboardCrossed.SetVector("CamPos", Ctx.Camera.transform.position);
+			Ctx.GrassBillboardCrossed.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+			Ctx.GrassBillboardCrossed.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+			Ctx.GrassBillboardCrossed.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
 			Ctx.GrassBillboardScreen.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassBillboardScreen.SetVector("CamUp", Ctx.Camera.transform.up);
+			Ctx.GrassBillboardScreen.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+			Ctx.GrassBillboardScreen.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+			Ctx.GrassBillboardScreen.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
 			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", false);
 			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", Time.deltaTime);

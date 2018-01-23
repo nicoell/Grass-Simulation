@@ -1,4 +1,5 @@
 ﻿using System;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace GrassSimulation.Core.GrassBlade
@@ -11,10 +12,13 @@ namespace GrassSimulation.Core.GrassBlade
 		[SerializeField]
 		public AnimationCurve MidTranslation;
 		[SerializeField]
-		public Gradient ColorGradient;
-		[SerializeField]
 		public Texture2D GrassTexture;
 		[Range(0, 1)]
 		public float WidthModifier = 1;
+		[Range(0, 1)]
+		public float DiffuseReflectance;
+		[Range(0, 1)]
+		public float Translucency;
+
 	}
 }
