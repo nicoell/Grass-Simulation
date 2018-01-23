@@ -374,8 +374,8 @@ Shader "GrassSimulation/Grass"
                 float beta; // light attenuation
                 */
                 float Iambient = Kd * Ao * Ia;
-                float Idiffuse = Kd * max(N * L, 0);
-                float Itranslucent = gamma * Kd * max(-N * L, 0);
+                float Idiffuse = Kd * max(dot(N, L), 0);
+                float Itranslucent = gamma * Kd * max(dot(-N, L), 0);
                 float attenuation = Id / (1 + beta * d * d);
                 
                 return Iambient + /* attenuation * */ (Idiffuse + Itranslucent);
