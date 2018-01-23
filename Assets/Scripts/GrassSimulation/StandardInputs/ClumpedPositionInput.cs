@@ -11,13 +11,10 @@ namespace GrassSimulation.StandardInputs
 		private Random _random;
 		
 		private int _lastId;
-		private int _curClumpSize;
 		private Vector2 _curPos;
 		
 		[Range(1, 64)]
-		public int ClumpSizeMin = 4;
-		[Range(1, 64)]
-		public int ClumpSizeMax = 16;
+		public uint ClumpSize = 4;
 		public float ClumpRadiusMin = 0.001f;
 		public float ClumpRadiusMax = 0.001f;
 
@@ -29,10 +26,9 @@ namespace GrassSimulation.StandardInputs
 
 		public override Vector2 GetPosition(int id)
 		{
-			if (_lastId == -1 || id > _lastId + _curClumpSize)
+			if (_lastId == -1 || id > _lastId + ClumpSize)
 			{
 				_lastId = id;
-				_curClumpSize = _random.Next(ClumpSizeMin, ClumpSizeMax);
 				_curPos = new Vector2((float) _random.NextDouble(), (float) _random.NextDouble());
 			}
 			var radius = ClumpRadiusMin + (float) _random.NextDouble() * (ClumpRadiusMax - ClumpRadiusMin);
@@ -40,5 +36,7 @@ namespace GrassSimulation.StandardInputs
 			var offset = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * radius;
 			return _curPos + offset;
 		}
+
+		public override uint GetRepetitionCount() { return ClumpSize; }
 	}
 }

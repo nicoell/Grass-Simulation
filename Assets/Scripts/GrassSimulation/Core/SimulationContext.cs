@@ -17,6 +17,7 @@ namespace GrassSimulation.Core
 		[Header("Requirements")]
 		public Transform Transform;
 		public Camera Camera;
+		public Light SunLight;
 		public ComputeShader GrassSimulationComputeShader;
 		public ComputeShader RenderTextureVolumeToSlice;
 		public Shader CollisionDepthShader;
@@ -306,8 +307,10 @@ namespace GrassSimulation.Core
 			
 			GrassBillboardCrossed.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
 			GrassBillboardCrossed.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
+			GrassBillboardCrossed.SetFloat("RepetitionCount", PositionInput.GetRepetitionCount());
 			GrassBillboardScreen.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
 			GrassBillboardScreen.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
+			GrassBillboardScreen.SetFloat("RepetitionCount", PositionInput.GetRepetitionCount());
 			
 			//Everything is ready.
 			IsReady = true;

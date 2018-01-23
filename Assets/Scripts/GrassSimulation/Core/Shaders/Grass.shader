@@ -40,9 +40,10 @@ Shader "GrassSimulation/Grass"
 
             struct UvData { float2 Position; };
             
-            //Billboard Generation
+            //Billboard Specific
             uniform float GrassType;
             uniform float BillboardAspect;
+            uniform float RepetitionCount;
             
             //Once
             uniform float BillboardAlphaCutoff;
@@ -137,7 +138,9 @@ Shader "GrassSimulation/Grass"
 				OUT.vertexID = vertexID;
 				OUT.instanceID = instanceID;
 				#ifdef GRASS_BILLBOARD_CROSSED
-				    OUT.uvLocal = UvBuffer[StartIndex + VertexCount * instanceID + (vertexID % VertexCount)].Position;
+				    OUT.uvLocal = UvBuffer[StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID % VertexCount) * RepetitionCount].Position;
+				#elif GRASS_BILLBOARD_SCREEN
+				    OUT.uvLocal = UvBuffer[StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID * RepetitionCount)].Position;
 				#else
 				    OUT.uvLocal = UvBuffer[StartIndex + VertexCount * instanceID + vertexID].Position;
                 #endif
@@ -192,12 +195,11 @@ Shader "GrassSimulation/Grass"
         		HSOut OUT = (HSOut)0;
 
         		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
-        	//float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, IN[0].uvLocal);
         		float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
         		float4 SimulationData0 = SimulationTexture0.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
 				float4 SimulationData1 = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
-        		float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
+        		float4 grassMapData = GrassMapTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
         		
         		OUT.pos = mul(PatchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
         		
@@ -276,7 +278,7 @@ Shader "GrassSimulation/Grass"
         		DSOut OUT = (DSOut)0;
                 
 				float3 pos = IN[0].pos;
-        		float3 up = IN[0].bladeUp;
+        		float3 up = IN[0].bladeUp; //TODO: Use same correction as in compute shader
         		float3 bladeDir = IN[0].bladeDir;
                 #ifdef GRASS_GEOMETRY
                     float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
@@ -307,6 +309,7 @@ Shader "GrassSimulation/Grass"
                 float3 i1 = h1 + v * (h2 - h1);
                 float3 i2 = i1 + off;
                 
+                //TODO: Can be removed?
                 #ifdef BILLBOARD_GENERATION
                     float widthFactor = 1;
                 #elif GRASS_GEOMETRY

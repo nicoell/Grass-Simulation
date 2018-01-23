@@ -35,6 +35,7 @@ namespace GrassSimulation.Core.Lod
 		private bool _applyTransition;
 		private Mesh _dummyMesh;
 		private Mesh _dummyMeshBillboardCrossed;
+		private Mesh _dummyMeshBillboardScreen;
 		private Bounds _inputBounds;
 		private Texture2D _normalHeightTexture;
 
@@ -67,8 +68,10 @@ namespace GrassSimulation.Core.Lod
 			Bounds = boundsCorrected;
 			//_boundsVertices = new Bounds.BoundsVertices(bounds);
 			_patchTexCoord = patchTexCoord;
+			var maxElementsUsed = Mathf.Max(Ctx.Settings.GetMaxAmountBladesPerPatch(),
+				Ctx.Settings.GetMinAmountBillboardsPerPatch() * 3 * Ctx.PositionInput.GetRepetitionCount());
 			_startIndex = Ctx.Random.Next(0,
-				(int) (Ctx.Settings.GetSharedBufferLength() - Ctx.Settings.GetMaxAmountBladesPerPatch()));
+				(int) (Ctx.Settings.GetSharedBufferLength() - maxElementsUsed));
 			_materialPropertyBlock = new MaterialPropertyBlock();
 			_parameterOffsetX = (float) Ctx.Random.NextDouble();
 			_parameterOffsetY = (float) Ctx.Random.NextDouble();
@@ -102,6 +105,7 @@ namespace GrassSimulation.Core.Lod
 			CreateGrassDataTexture();
 			CreateDummyMesh();
 			CreateDummyMeshBillboardCrossed();
+			CreateDummyMeshBillboardScreen();
 			SetupMaterialPropertyBlock();
 		}
 
@@ -132,7 +136,7 @@ namespace GrassSimulation.Core.Lod
 					_materialPropertyBlock);
 
 			if (_argsBillboardScreen[1] > 0)
-				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBillboardScreen, Bounds, _argsBillboardScreenBuffer, 0,
+				Graphics.DrawMeshInstancedIndirect(_dummyMeshBillboardScreen, 0, Ctx.GrassBillboardScreen, Bounds, _argsBillboardScreenBuffer, 0,
 					_materialPropertyBlock);
 		}
 
@@ -283,6 +287,23 @@ namespace GrassSimulation.Core.Lod
 			_dummyMeshBillboardCrossed = new Mesh {vertices = dummyVertices};
 			_dummyMeshBillboardCrossed.SetIndices(indices, MeshTopology.Points, 0);
 			_dummyMeshBillboardCrossed.RecalculateBounds();
+		}
+		
+		private void CreateDummyMeshBillboardScreen()
+		{
+			var dummyMeshSize = Ctx.Settings.GetMinAmountBillboardsPerPatch();
+			var dummyVertices = new Vector3[dummyMeshSize];
+			var indices = new int[dummyMeshSize];
+
+			for (var i = 0; i < dummyMeshSize; i++)
+			{
+				dummyVertices[i] = Vector3.zero;
+				indices[i] = i;
+			}
+
+			_dummyMeshBillboardScreen = new Mesh {vertices = dummyVertices};
+			_dummyMeshBillboardScreen.SetIndices(indices, MeshTopology.Points, 0);
+			_dummyMeshBillboardScreen.RecalculateBounds();
 		}
 
 		private void SetupMaterialPropertyBlock()

@@ -49,7 +49,6 @@ namespace GrassSimulation.Core.Lod
 		protected virtual void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
-			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", false);
 			Ctx.GrassGeometry.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassGeometry.SetVector("viewDir", Ctx.Camera.transform.forward);
 			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix",
@@ -60,13 +59,14 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassBillboardScreen.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassBillboardScreen.SetVector("CamUp", Ctx.Camera.transform.up);
 			
+			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", false);
 			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", Time.deltaTime);
 			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 			Ctx.GrassSimulationComputeShader.SetFloats("CamPos", Ctx.Camera.transform.position.x,
 				Ctx.Camera.transform.position.y, Ctx.Camera.transform.position.z);
-			
+			Ctx.GrassSimulationComputeShader.SetVector("SunLight", new Vector4(-Ctx.SunLight.transform.forward.x, -Ctx.SunLight.transform.forward.y, -Ctx.SunLight.transform.forward.z, Ctx.SunLight.intensity));
 			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
 		}
 	}

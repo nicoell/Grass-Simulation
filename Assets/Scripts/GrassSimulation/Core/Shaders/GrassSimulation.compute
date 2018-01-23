@@ -47,6 +47,7 @@ float DeltaTime;
 float Time;
 float4x4 ViewProjMatrix;
 float4 GravityVec;
+float4 SunLight; //Direction towards sun and Influence
 float4 WindData;
 
 float4 LocalToWorldPos(float4 pos){ return mul(PatchModelMatrix, pos); }
@@ -101,7 +102,7 @@ void CalculateBladeDirAndFront(inout float3 bladeUp, in float dirAlpha, out floa
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
 	bladeDir = normalize(cross(bladeUp, tmp));
 	bladeFront = normalize(cross(bladeUp, bladeDir));
-	//bladeUp = normalize(bladeUp + 0.3 * bladeFront);
+	bladeUp = normalize(bladeUp + SunLight.xyz * SunLight.w);
 }
 
 bool IsNAN(float n)
@@ -119,7 +120,6 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     //Create all the needed uv coordinates
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
     float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
-    //float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
     float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
     
     //Read all the textures -°O°/
@@ -127,10 +127,15 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
     
     //Create and name all needed variables
+    float dirAlpha = parameters.w;
+    float3 bladeDir;
+	float3 bladeFront;
     float3 bladeUp = normalize(normalHeight.xyz);
+    float3 bladeNormal = normalize(normalHeight.xyz);
+    CalculateBladeDirAndFront(bladeNormal, dirAlpha, bladeDir, bladeFront);
     float height = parameters.z;
-    float3 v2 = bladeUp * height;
-    float3 v1 = GetV1(v2, bladeUp, height, 1.0 / height);
+    float3 v2 = bladeNormal * height;
+    float3 v1 = GetV1(v2, bladeNormal, height, 1.0 / height);
     
     AdjustBezierArcLength(v1, v2, height);
 
@@ -146,16 +151,13 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 {
     //Create all the needed uv coordinates
     float2 uvLocal = float2(id.x/GrassDataResolution + 0.5 / GrassDataResolution, id.y/GrassDataResolution + 0.5 / GrassDataResolution);
-    //float2 uvNormalHeight = lerp(NormalHeightUvCorrection.xy, NormalHeightUvCorrection.zw, uvLocal);
     float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uvLocal);
-    float2 uvCollisionTexture = uvGlobal;
-    //uvCollisionTexture.x = 1 - uvCollisionTexture.x;
     float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + uvLocal;
     
     //Read all the textures -°O°/
     float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
+    float4 grassMapData = GrassMapTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
     float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
-    float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
     //Don't use grassmaps density if we are generating our billboard data
     if (BillboardGeneration) grassMapData.z = 1;
     float4 simulationData0 = SimulationTexture0.Load(id.xy);
@@ -178,11 +180,12 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 localV0 = float3(uvLocal.x, normalHeight.w, uvLocal.y);
 	float3 v0 = LocalToWorldPos(localV0).xyz;
 	float3 bladeUp = normalize(normalHeight.xyz);
+	float3 bladeNormal = normalize(normalHeight.xyz); //Normal gets altered by negative gravity, so that it grows away
 	float3 bladeDir;
 	float3 bladeFront;
-	CalculateBladeDirAndFront(bladeUp, dirAlpha, bladeDir, bladeFront);
+	CalculateBladeDirAndFront(bladeNormal, dirAlpha, bladeDir, bladeFront);
 	float mdt = DeltaTime;//min(DeltaTime, 1.0);
-	float3 idleV2 = bladeUp * height;
+	float3 idleV2 = bladeNormal * height;
 	float3 v2 = simulationData1.xyz;
 	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * RecoveryFactor * mdt, 0.0);
 
@@ -210,7 +213,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 
 	//ValidateV2Tex(v2, v0);
 	ValidateV2(v2, bladeUp);
-    float3 v1 = GetV1(v2, bladeUp, height, invHeight);
+    float3 v1 = GetV1(v2, bladeNormal, height, invHeight);
     AdjustBezierArcLength(v1, v2, height);
     
     // Collisions
@@ -280,7 +283,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     {
         //ValidateV2Tex(v2, v0);
         ValidateV2(v2, bladeUp);
-        v1 = GetV1(v2, bladeUp, height, invHeight);
+        v1 = GetV1(v2, bladeNormal, height, invHeight);
         AdjustBezierArcLength(v1, v2, height);
     }
     
