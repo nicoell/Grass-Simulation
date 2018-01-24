@@ -19,7 +19,9 @@ namespace GrassSimulation.Core.GrassBlade
 		public float DiffuseReflectance;
 		[Range(0, 1)]
 		public float Translucency;
-		
+
+		[SerializeField]
+		public bool HasBlossom;
 		[SerializeField]
 		public Texture2D BlossomTexture;
 		[SerializeField]

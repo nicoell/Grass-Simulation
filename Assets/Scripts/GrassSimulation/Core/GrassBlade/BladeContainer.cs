@@ -30,6 +30,17 @@ namespace GrassSimulation.Core.GrassBlade
 			}
 			return output / count;
 		}
+
+		public int GetBlossomCount()
+		{
+			int blossomCount = 0;
+			for (var i = 0; i < Blades.Length; i++)
+			{
+				if (!Blades[blossomCount].HasBlossom) break;
+				blossomCount++;
+			}
+			return blossomCount;
+		}
 		
 		public Texture2DArray GetGeoemetryTexture2DArray(int id)
 		{
@@ -58,17 +69,23 @@ namespace GrassSimulation.Core.GrassBlade
 						height = GrassTextureHeight;
 						break;
 			}
-			var tex2DArray = new Texture2DArray(width, height, Blades.Length,
-				TextureFormat.RGBA32, true, true)
+
+			var texDepth = 0;
+			if (id == 0 || id == 2) texDepth = Blades.Length;
+			else texDepth = GetBlossomCount();
+			if (texDepth == 0) return null;
+			
+			var tex2DArray = new Texture2DArray(width, height, texDepth,
+				(id == 1) ? TextureFormat.RGBAFloat : TextureFormat.RGBA32, true, true)
 			{
 				name = "BladeTextures",
-				wrapMode = TextureWrapMode.Clamp,
+				wrapMode = (id == 1) ? TextureWrapMode.Mirror : TextureWrapMode.Clamp,
 				filterMode = FilterMode.Trilinear,
 				anisoLevel = 0,
 				mipMapBias = -0.5f
 			};
 
-			for (var i = 0; i < Blades.Length; i++)
+			for (var i = 0; i < texDepth; i++)
 			{
 				int miplevel = 0, mipWidth, mipHeight;
 				var blade = Blades[i];
@@ -107,7 +124,7 @@ namespace GrassSimulation.Core.GrassBlade
 								var blossomGamma = blade.BlossomGamma.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
 								blossomGamma = Mathf.SmoothStep(blossomGamma, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 								
-								var blossomDelta = blade.BlossomGamma.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
+								var blossomDelta = blade.BlossomDelta.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
 								blossomDelta = Mathf.SmoothStep(blossomDelta, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
 								//var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
@@ -146,7 +163,7 @@ namespace GrassSimulation.Core.GrassBlade
 					miplevel++;
 				} while (mipHeight != 1 || mipWidth != 1);
 			}
-			tex2DArray.Apply(id != 0);
+			tex2DArray.Apply(id == 2 || id == 3);
 
 			return tex2DArray;
 		}

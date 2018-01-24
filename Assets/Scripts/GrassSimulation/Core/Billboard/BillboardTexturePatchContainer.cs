@@ -88,9 +88,13 @@ namespace GrassSimulation.Core.Billboard
 		{
 			Ctx.GrassBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
 			Ctx.GrassBillboardGeneration.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
-			Ctx.GrassBlossomBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
-			Ctx.GrassBlossomBillboardGeneration.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
-			
+
+			if (Ctx.GrassBlossomBillboardGeneration)
+			{
+				Ctx.GrassBlossomBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
+				Ctx.GrassBlossomBillboardGeneration.SetMatrix("ViewProjMatrix",
+					Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			}
 			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", true);
 			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 0.5f);
 			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);

@@ -55,14 +55,16 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassGeometry.SetVector("LightDirection", Ctx.SunLight.transform.forward);
 			Ctx.GrassGeometry.SetFloat("LightIntensity", Ctx.SunLight.intensity);
 			Ctx.GrassGeometry.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
-			
-			Ctx.GrassBlossom.SetVector("CamPos", Ctx.Camera.transform.position);
-			Ctx.GrassBlossom.SetVector("viewDir", Ctx.Camera.transform.forward);
-			Ctx.GrassBlossom.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
-			Ctx.GrassBlossom.SetVector("LightDirection", Ctx.SunLight.transform.forward);
-			Ctx.GrassBlossom.SetFloat("LightIntensity", Ctx.SunLight.intensity);
-			Ctx.GrassBlossom.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
-			
+
+			if (Ctx.GrassBlossom)
+			{
+				Ctx.GrassBlossom.SetVector("CamPos", Ctx.Camera.transform.position);
+				Ctx.GrassBlossom.SetVector("viewDir", Ctx.Camera.transform.forward);
+				Ctx.GrassBlossom.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+				Ctx.GrassBlossom.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+				Ctx.GrassBlossom.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+				Ctx.GrassBlossom.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
+			}
 			Ctx.GrassBillboardCrossed.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassBillboardCrossed.SetVector("LightDirection", Ctx.SunLight.transform.forward);
 			Ctx.GrassBillboardCrossed.SetFloat("LightIntensity", Ctx.SunLight.intensity);

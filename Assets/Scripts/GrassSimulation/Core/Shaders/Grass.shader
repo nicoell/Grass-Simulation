@@ -34,6 +34,7 @@ Shader "GrassSimulation/Grass"
 			#include "UnityCG.cginc"
 			
 			static const float PI = 3.141592;
+			static const float PI_1_PI = 0.318309;
 			static const float PI_2_3 = 2.094394;
 			static const float TRANSITION_EPSILON = 0.01;
 			static const float GRASSMAP_WIDTH_INFLUENCE = 0.5;
@@ -69,6 +70,7 @@ Shader "GrassSimulation/Grass"
             uniform float LodDistanceTessellationMax;
             uniform float4 NormalHeightUvCorrection;
             uniform int VertexCount;
+            uniform int BlossomCount;
             uniform int EnableHeightTransition;
             
             #ifdef GRASS_BLOSSOM
@@ -148,11 +150,16 @@ Shader "GrassSimulation/Grass"
                 if (instanceID == transitionInstanceID && transition < TRANSITION_EPSILON) return 0;
                 //Cull if height Modifier is too low ro teduce aliasing
                 if (grassMapData.z < BladeHeightCullingThreshold) return 0;
-            
+                
                 #ifdef GRASS_GEOMETRY
                     return SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
                 #elif GRASS_BLOSSOM
-                    return SingleLerpMinMax(2, /* LodTessellationMax/2 */ 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
+                    #ifdef BILLBOARD_GENERATION
+                        if (BlossomCount <= GrassType) return 0;
+                    #else
+                        if (BlossomCount <= ceil(grassMapData.x * 255)) return 0;
+                    #endif
+                    return SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
                 #else
                     return 1.0;
                 #endif
@@ -188,6 +195,13 @@ Shader "GrassSimulation/Grass"
                     OUT.TessFactor[2] = level;	//right
                     OUT.TessFactor[3] = 1.0;	//top
                     OUT.InsideTessFactor[0] = 1.0;
+                    OUT.InsideTessFactor[1] = level;
+                #elif GRASS_BLOSSOM
+                    OUT.TessFactor[0] = level;	//left
+                    OUT.TessFactor[1] = level;	//bottom
+                    OUT.TessFactor[2] = level;	//right
+                    OUT.TessFactor[3] = level;	//top
+                    OUT.InsideTessFactor[0] = level;
                     OUT.InsideTessFactor[1] = level;
                 #else
                     OUT.TessFactor[0] = level;	//left
@@ -273,7 +287,7 @@ Shader "GrassSimulation/Grass"
                     float tesslevel = SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, clamp(tesslevel / LodTessellationMax, 0, 1));
                 #elif GRASS_BLOSSOM
-                    float tesslevel = SingleLerpMinMax(2, /* LodTessellationMax/2 */ 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
+                    float tesslevel = SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, clamp(tesslevel / LodTessellationMax, 0, 1));
                	#else
                	    OUT.parameters.w = 0;
@@ -282,7 +296,7 @@ Shader "GrassSimulation/Grass"
                	#ifdef BILLBOARD_GENERATION
                	    OUT.grassMapData.x = GrassType;
                	#else
-                	OUT.grassMapData.x = grassMapData.x * 255;
+                	OUT.grassMapData.x = ceil(grassMapData.x * 255);
                	#endif
                	OUT.grassMapData.yzw = grassMapData.yzw;
                   
@@ -302,32 +316,61 @@ Shader "GrassSimulation/Grass"
                     float3 v1 = IN[0].v1 * IN[0].transitionFactor;
                     float3 v2 = IN[0].v2 * IN[0].transitionFactor;
                     float width = IN[0].parameters.x;
+                    float height = IN[0].parameters.z  * IN[0].transitionFactor;
                     
                     float3 tangent = normalize(v2 - v1);
                     float3 normal = normalize(cross(tangent, bladeDir));
-                    float3 bitangent = cross(normal, tangent);
+                    float3 bitangent = cross(tangent, normal);
                     
-                    float2 uvDirection = normalize((uv - 0.5) * 2);
+                    float2 uvDirection = (uv - float2(0.5, 0.5)) * 2;
+                    uvDirection = length(uvDirection) == 0 ? float2(0, 0) : normalize(uvDirection);
                     
                     float uParam = abs((uv.x - 0.5) * 2);
                     float vParam = abs((uv.y - 0.5) * 2);
-                    float t = max(uParam, vParam);
+                    float h = IN[0].parameters.w / 64;
+                    float t = lerp(0, 1 - h - 0.01, max(uParam, vParam));
+                    float betaT = length(uvDirection) == 0 ? 0 : atan2(uvDirection.x, uvDirection.y) * PI_1_PI + 1;//1 - cos(uv.x * PI_1_2) * cos(uv.y * PI_1_2);
+                    float4 blossomData0 = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t), IN[0].grassMapData.x), IN[0].parameters.w);
+                    float4 blossomData1 = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t + h), IN[0].grassMapData.x), IN[0].parameters.w);
+
+                    float beta = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, betaT), IN[0].grassMapData.x), IN[0].parameters.w).r;
+                    float gamma0 = blossomData0.g; // Translation Factor along uvDirection
+                    float delta0 = blossomData0.b; // Translation Factor along tangent
+                    float gamma1 = blossomData1.g;
+                    float delta1 = blossomData1.b;
                     
-                    float4 blossomData = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t), IN[0].grassMapData.x), IN[0].parameters.w);
+                    float2 uvDirection0 = uvDirection * gamma0 * width * 2;
+                    float2 uvDirection1 = uvDirection * gamma1 * width * 2;
+                    delta0 *= height; 
+                    delta1 *= height; 
                     
-                    float beta = blossomData.x;
-                    float gamma = blossomData.y; // Translation Factor along uvDirection
-                    float delta = blossomData.z; // Translation Factor along tangent
+                    float3 offset0 = beta * (uvDirection0.x * normal + uvDirection0.y * bitangent + delta0 * tangent);
+                    float3 offset1 = beta * (uvDirection1.x * normal + uvDirection1.y * bitangent + delta1 * tangent);
                     
-                    uvDirection *= gamma; 
+                    float3 derivate = normalize(offset1 - offset0);
                     
-                    float3 offset = uvDirection.x * normal + uvDirection.y * bitangent + delta * tangent;
-                    pos = pos + v2 + width * offset;
+                    
+                    pos = pos + v2 + offset0;
+                    //pos = pos + v2 + float3(uv.x, 0, uv.y);
                     
                     OUT.pos = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
                     OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                     
-                    OUT.normal = normal;
+                    /*if(dot(derivate, derivate) < 1e-3)
+                    {
+                        OUT.normal = length(uvDirection) == 0 ? tangent : tangent;
+                    } else 
+                    {*/
+                    float3 newTangent = normalize(uvDirection.x * normal + uvDirection.y * bitangent); 
+                    if (length(uvDirection) == 0 || abs(dot(derivate, newTangent)) > 1 - 1e-3) 
+                    {
+                        OUT.normal = tangent;
+                    } else 
+                    {
+                        float3 bitangentNew = cross(derivate, newTangent);
+                        OUT.normal = cross(derivate, bitangentNew);
+                    }
+                    //OUT.normal = derivate;
                 #else
                 
                     float3 pos = IN[0].pos;
@@ -342,8 +385,6 @@ Shader "GrassSimulation/Grass"
                         float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
                         float width = length(IN[0].v2) * BillboardAspect * IN[0].transitionFactor;
                     #endif
-                    float bend = IN[0].parameters.y;
-                    float height = IN[0].parameters.z;
     
                     float u = uv.x;
                     float omu = 1.0 - u;
@@ -386,12 +427,12 @@ Shader "GrassSimulation/Grass"
                     #elif GRASS_GEOMETRY
                         float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                         //float3 translation = normal * width * (0.5 - abs(u - 0.5)) * (/*(1.0 - floor(v)) * */texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                        float3 translation = texSample0.g * normal * width * 2* abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                        float3 translation = texSample0.g * normal * width * 2 * abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
                         //float3 translationMid = texSample0.g * normal * width * 0.5;
                         //bitangent = normalize(bitangent + ((u * 2) - 1) * translation);
                         //normal = normalize(cross(tangent, bitangent));
                         
-                        float t = u + (texSample0.r * u + (1.0 - texSample0.r) * omu);
+                        float t = 0.5 + (u - 0.5) * texSample0.r;
     
                         float3 outpos = lerp(i1, i2, t) + translation;
                         OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
@@ -472,7 +513,8 @@ Shader "GrassSimulation/Grass"
                     float radiance = GetRadiance(Kd, Ao, Ia, N, L, gamma, Id, d, beta);
                     
                     float4 blossomColor = GrassBlossom1.Sample(samplerGrassBlossom1, IN.uvwd.xyz);
-                    //blossomColor.xyz *= radiance;
+                    blossomColor.xyz *= radiance;
+                    //blossomColor.xyz = (N + 1)/2;
                     return blossomColor;
                 #else
                     float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
