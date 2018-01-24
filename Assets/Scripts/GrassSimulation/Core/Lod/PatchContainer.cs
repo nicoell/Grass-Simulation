@@ -51,11 +51,17 @@ namespace GrassSimulation.Core.Lod
 			//TODO: Maybe outsource all the computeshader data settings to its own class
 			Ctx.GrassGeometry.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassGeometry.SetVector("viewDir", Ctx.Camera.transform.forward);
-			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix",
-				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 			Ctx.GrassGeometry.SetVector("LightDirection", Ctx.SunLight.transform.forward);
 			Ctx.GrassGeometry.SetFloat("LightIntensity", Ctx.SunLight.intensity);
 			Ctx.GrassGeometry.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
+			
+			Ctx.GrassBlossom.SetVector("CamPos", Ctx.Camera.transform.position);
+			Ctx.GrassBlossom.SetVector("viewDir", Ctx.Camera.transform.forward);
+			Ctx.GrassBlossom.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassBlossom.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+			Ctx.GrassBlossom.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+			Ctx.GrassBlossom.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
 			Ctx.GrassBillboardCrossed.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassBillboardCrossed.SetVector("LightDirection", Ctx.SunLight.transform.forward);

@@ -110,10 +110,18 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassGeometry.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassGeometry.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassGeometry.SetTexture("NormalHeightTexture", NormalHeightTexture);
+			Ctx.GrassBlossom.SetBuffer("UvBuffer", UvBuffer);
+			Ctx.GrassBlossom.SetTexture("ParameterTexture", ParameterTexture);
+			Ctx.GrassBlossom.SetTexture("GrassMapTexture", GrassMapTexture);
+			Ctx.GrassBlossom.SetTexture("NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassBillboardGeneration.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardGeneration.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassBillboardGeneration.SetTexture("GrassMapTexture", GrassMapTexture);
 			Ctx.GrassBillboardGeneration.SetTexture("NormalHeightTexture", NormalHeightTexture);
+			Ctx.GrassBlossomBillboardGeneration.SetBuffer("UvBuffer", UvBuffer);
+			Ctx.GrassBlossomBillboardGeneration.SetTexture("ParameterTexture", ParameterTexture);
+			Ctx.GrassBlossomBillboardGeneration.SetTexture("GrassMapTexture", GrassMapTexture);
+			Ctx.GrassBlossomBillboardGeneration.SetTexture("NormalHeightTexture", NormalHeightTexture);
 			Ctx.GrassBillboardCrossed.SetBuffer("UvBuffer", UvBuffer);
 			Ctx.GrassBillboardCrossed.SetTexture("ParameterTexture", ParameterTexture);
 			Ctx.GrassBillboardCrossed.SetTexture("GrassMapTexture", GrassMapTexture);

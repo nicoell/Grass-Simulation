@@ -19,6 +19,19 @@ namespace GrassSimulation.Core.GrassBlade
 		public float DiffuseReflectance;
 		[Range(0, 1)]
 		public float Translucency;
+		
+		[SerializeField]
+		public Texture2D BlossomTexture;
+		[SerializeField]
+		public AnimationCurve BlossomBeta;
+		[SerializeField]
+		[Tooltip("Verschiebung weg von der Mitte")]
+		public AnimationCurve BlossomGamma;
+		[SerializeField]
+		[Tooltip("Verschiebung entlang der Tangente")]
+		public AnimationCurve BlossomDelta;
+		[Range(0, 1)]
+		public float BlossomDiffuseReflectance;
 
 	}
 }

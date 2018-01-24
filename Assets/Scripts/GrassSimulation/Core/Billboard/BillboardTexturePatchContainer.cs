@@ -86,12 +86,12 @@ namespace GrassSimulation.Core.Billboard
 
 		protected override void UpdatePerFrameData()
 		{
-			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", true);
 			Ctx.GrassBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
-
-			Ctx.GrassBillboardGeneration.SetMatrix("ViewProjMatrix",
-				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
-
+			Ctx.GrassBillboardGeneration.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassBlossomBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
+			Ctx.GrassBlossomBillboardGeneration.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			
+			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", true);
 			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 0.5f);
 			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",

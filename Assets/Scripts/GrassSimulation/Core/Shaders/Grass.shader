@@ -25,8 +25,8 @@ Shader "GrassSimulation/Grass"
 			#pragma hull hull
 			#pragma domain domain
 			#pragma fragment frag
-			// Create three shader variants for geometry grass, billboard crossed grass and billboard screen faced grass
-			#pragma multi_compile GRASS_BILLBOARD_CROSSED GRASS_BILLBOARD_SCREEN GRASS_GEOMETRY
+			// Create four shader variants for blossoms, geometry grass, billboard crossed grass and billboard screen faced grass
+			#pragma multi_compile GRASS_BILLBOARD_CROSSED GRASS_BILLBOARD_SCREEN GRASS_GEOMETRY GRASS_BLOSSOM
 			#pragma multi_compile __ BILLBOARD_GENERATION
 			
 			#include "GrassFuncs.cginc"
@@ -42,8 +42,9 @@ Shader "GrassSimulation/Grass"
                 float2 Position;
             };
             
-            //Billboard Specific
+            //Billboard Generation
             uniform float GrassType;
+            //Billboard Specific
             uniform float BillboardAspect;
             uniform float RepetitionCount;
             
@@ -70,12 +71,28 @@ Shader "GrassSimulation/Grass"
             uniform int VertexCount;
             uniform int EnableHeightTransition;
             
-            Texture2DArray<float4> GrassBlades0;
-            SamplerState samplerGrassBlades0;
-            Texture2DArray<float4> GrassBlades1;
-            SamplerState samplerGrassBlades1;
-            Texture2DArray GrassBillboards;
-            SamplerState samplerGrassBillboards;
+            #ifdef GRASS_BLOSSOM
+                Texture2DArray<float4> GrassBlossom0;
+                SamplerState samplerGrassBlossom0;
+                Texture2DArray<float4> GrassBlossom1;
+                SamplerState samplerGrassBlossom1;
+            #else // Is needed everywhere except for blossoms
+                Texture2DArray<float4> GrassBlades0;
+                SamplerState samplerGrassBlades0;
+            #endif
+            #ifdef GRASS_GEOMETRY
+                Texture2DArray<float4> GrassBlades1;
+                SamplerState samplerGrassBlades1;
+            #endif
+            #ifdef GRASS_BILLBOARD_SCREEN
+                Texture2DArray GrassBillboards;
+                SamplerState samplerGrassBillboards;
+            #endif
+            #ifdef GRASS_BILLBOARD_CROSSED
+                Texture2DArray GrassBillboards;
+                SamplerState samplerGrassBillboards;
+            #endif
+            
             Texture2D GrassMapTexture;
             Texture2D<float4> ParameterTexture; // width, bend, height, dirAlpha
             SamplerState samplerParameterTexture;
@@ -104,6 +121,7 @@ Shader "GrassSimulation/Grass"
             uniform float3 LightDirection;
             uniform float LightIntensity;
 
+			
 			float GetTessellationLevel(float distance, uint instanceID, float2 uv)
 			{
                 float transition = 0;
@@ -116,7 +134,7 @@ Shader "GrassSimulation/Grass"
                 #elif GRASS_BILLBOARD_SCREEN
                     transition = DoubleLerp(LodInstancesBillboardScreen * grassMapData.y, distance,
                         LodDistanceBillboardScreenStart, LodDistanceBillboardScreenPeak, LodDistanceBillboardScreenEnd);
-                #elif GRASS_GEOMETRY
+                #else
                     transition = SingleLerp(LodInstancesGeometry * grassMapData.y, distance,
                         LodDistanceGeometryStart, LodDistanceGeometryEnd);
                 #endif
@@ -133,6 +151,8 @@ Shader "GrassSimulation/Grass"
             
                 #ifdef GRASS_GEOMETRY
                     return SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
+                #elif GRASS_BLOSSOM
+                    return SingleLerpMinMax(2, /* LodTessellationMax/2 */ 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
                 #else
                     return 1.0;
                 #endif
@@ -162,26 +182,19 @@ Shader "GrassSimulation/Grass"
         		
         		float level = GetTessellationLevel(distance, IN[0].instanceID, IN[0].uvLocal);
         		
-        		#ifdef GRASS_BILLBOARD_CROSSED       		
-                    OUT.TessFactor[0] = level;	//left
-                    OUT.TessFactor[1] = level;	//bottom
-                    OUT.TessFactor[2] = level;	//right
-                    OUT.TessFactor[3] = level;	//top
-                    OUT.InsideTessFactor[0] = level;
-                    OUT.InsideTessFactor[1] = level;
-        		#elif GRASS_BILLBOARD_SCREEN
-                    OUT.TessFactor[0] = level;	//left
-                    OUT.TessFactor[1] = level;	//bottom
-                    OUT.TessFactor[2] = level;	//right
-                    OUT.TessFactor[3] = level;	//top
-                    OUT.InsideTessFactor[0] = level;
-                    OUT.InsideTessFactor[1] = level;
-        		#elif GRASS_GEOMETRY
+        		#if GRASS_GEOMETRY
                     OUT.TessFactor[0] = level;	//left
                     OUT.TessFactor[1] = 2.0;	//bottom
                     OUT.TessFactor[2] = level;	//right
                     OUT.TessFactor[3] = 1.0;	//top
                     OUT.InsideTessFactor[0] = 1.0;
+                    OUT.InsideTessFactor[1] = level;
+                #else
+                    OUT.TessFactor[0] = level;	//left
+                    OUT.TessFactor[1] = level;	//bottom
+                    OUT.TessFactor[2] = level;	//right
+                    OUT.TessFactor[3] = level;	//top
+                    OUT.InsideTessFactor[0] = level;
                     OUT.InsideTessFactor[1] = level;
         		#endif
         	
@@ -196,10 +209,6 @@ Shader "GrassSimulation/Grass"
     		HSOut hull( InputPatch<VSOut, 1> IN, uint i : SV_OutputControlPointID )
     		{
         		HSOut OUT = (HSOut)0;
-    		    //TODO: Its probably faster to only do the stuff here if GrassBlade does not get culled (tesslevel > 0)
-    		    
-    		    //if (GetTessellationLevel(distance, IN[0].instanceID, IN[0].uvLocal) == 0) return OUT;
-    		    
                 
         		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
         	    float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
@@ -219,7 +228,7 @@ Shader "GrassSimulation/Grass"
                 #elif GRASS_BILLBOARD_SCREEN
                     transition = DoubleLerp(LodInstancesBillboardScreen * grassMapData.y, distance,
                         LodDistanceBillboardScreenStart, LodDistanceBillboardScreenPeak, LodDistanceBillboardScreenEnd);
-                #elif GRASS_GEOMETRY
+                #else
                     transition = SingleLerp(LodInstancesGeometry * grassMapData.y, distance,
                         LodDistanceGeometryStart, LodDistanceGeometryEnd);
                 #endif
@@ -245,13 +254,13 @@ Shader "GrassSimulation/Grass"
                     camDir = normalize(camDir);
                     float3 right = cross(camDir, CamUp.xyz);
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, camDir));
-                    #elif GRASS_BILLBOARD_CROSSED
+                #elif GRASS_BILLBOARD_CROSSED
                     float dirAlpha = OUT.parameters.w + PI_2_3 * floor(IN[0].vertexID / VertexCount);
                     float sd = sin(dirAlpha);
                     float cd = cos(dirAlpha); 
                     float3 tmp = normalize(float3(sd, sd + cd, cd));
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, tmp));
-        		#elif GRASS_GEOMETRY
+        		#else
                     float dirAlpha = OUT.parameters.w;
                     float sd = sin(dirAlpha);
                     float cd = cos(dirAlpha); 
@@ -262,6 +271,9 @@ Shader "GrassSimulation/Grass"
                	//Calculate mipmaplevel for grass texture lookup based on tessellationfactor 
                	#ifdef GRASS_GEOMETRY
                     float tesslevel = SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
+                    OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, clamp(tesslevel / LodTessellationMax, 0, 1));
+                #elif GRASS_BLOSSOM
+                    float tesslevel = SingleLerpMinMax(2, /* LodTessellationMax/2 */ 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, clamp(tesslevel / LodTessellationMax, 0, 1));
                	#else
                	    OUT.parameters.w = 0;
@@ -283,76 +295,113 @@ Shader "GrassSimulation/Grass"
     					float2 uv : SV_DomainLocation)
     		{
         		DSOut OUT = (DSOut)0;
-                
-				float3 pos = IN[0].pos;
-        		float3 up = IN[0].bladeUp; //TODO: Use same correction as in compute shader
-        		float3 bladeDir = IN[0].bladeDir;
-                #ifdef GRASS_GEOMETRY
-                    float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
-                    float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
+
+                #ifdef GRASS_BLOSSOM
+                    float3 pos = IN[0].pos;
+                    float3 bladeDir = IN[0].bladeDir;
+                    float3 v1 = IN[0].v1 * IN[0].transitionFactor;
+                    float3 v2 = IN[0].v2 * IN[0].transitionFactor;
                     float width = IN[0].parameters.x;
-                #else
-                    float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
-                    float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
-                    float width = length(IN[0].v2) * BillboardAspect * IN[0].transitionFactor;
-                #endif
-        		float bend = IN[0].parameters.y;
-        		float height = IN[0].parameters.z;
-
-        		float u = uv.x;
-                float omu = 1.0 - u;
-                float v = uv.y;
-                float omv = 1.0 - v;
-            
-                float3 off = bladeDir * width;
-                float3 off2 = off * 0.5;
-            
-                float3 p0 = pos - off2;
-                float3 p1 = v1 - off2;
-                float3 p2 = v2 - off2;
-            
-                float3 h1 = p0 + v * (p1 - p0);
-                float3 h2 = p1 + v * (p2 - p1);
-                float3 i1 = h1 + v * (h2 - h1);
-                float3 i2 = i1 + off;
-                            
-                float3 bitangent = bladeDir;
-                float3 tangent;
-            
-                float3 h1h2 = h2 - h1;
-                if(dot(h1h2, h1h2) < 1e-3)
-                {
-                    tangent = up;
-                }
-                else
-                {
-                    tangent = normalize(h1h2);
-                }
-                
-                float3 normal = normalize(cross(tangent, bitangent));
-
-                #ifdef GRASS_BILLBOARD_CROSSED
-                    OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
-                #elif GRASS_BILLBOARD_SCREEN
-                    OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                    OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
-                #elif GRASS_GEOMETRY
-                    float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
-                    //float3 translation = normal * width * (0.5 - abs(u - 0.5)) * (/*(1.0 - floor(v)) * */texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                    float3 translation = texSample0.g * normal * width * 2* abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                    //float3 translationMid = texSample0.g * normal * width * 0.5;
-                    //bitangent = normalize(bitangent + ((u * 2) - 1) * translation);
-                    //normal = normalize(cross(tangent, bitangent));
                     
-                    float t = u + (texSample0.r * u + (1.0 - texSample0.r) * omu);
-
-                    float3 outpos = lerp(i1, i2, t) + translation;
-                    OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
+                    float3 tangent = normalize(v2 - v1);
+                    float3 normal = normalize(cross(tangent, bladeDir));
+                    float3 bitangent = cross(normal, tangent);
+                    
+                    float2 uvDirection = normalize((uv - 0.5) * 2);
+                    
+                    float uParam = abs((uv.x - 0.5) * 2);
+                    float vParam = abs((uv.y - 0.5) * 2);
+                    float t = max(uParam, vParam);
+                    
+                    float4 blossomData = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t), IN[0].grassMapData.x), IN[0].parameters.w);
+                    
+                    float beta = blossomData.x;
+                    float gamma = blossomData.y; // Translation Factor along uvDirection
+                    float delta = blossomData.z; // Translation Factor along tangent
+                    
+                    uvDirection *= gamma; 
+                    
+                    float3 offset = uvDirection.x * normal + uvDirection.y * bitangent + delta * tangent;
+                    pos = pos + v2 + width * offset;
+                    
+                    OUT.pos = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
                     OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                    
+                    OUT.normal = normal;
+                #else
+                
+                    float3 pos = IN[0].pos;
+                    float3 up = IN[0].bladeUp; //TODO: Use same correction as in compute shader
+                    float3 bladeDir = IN[0].bladeDir;
+                    #ifdef GRASS_GEOMETRY
+                        float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
+                        float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
+                        float width = IN[0].parameters.x;
+                    #else
+                        float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
+                        float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
+                        float width = length(IN[0].v2) * BillboardAspect * IN[0].transitionFactor;
+                    #endif
+                    float bend = IN[0].parameters.y;
+                    float height = IN[0].parameters.z;
+    
+                    float u = uv.x;
+                    float omu = 1.0 - u;
+                    float v = uv.y;
+                    float omv = 1.0 - v;
+                    
+                    float3 off = bladeDir * width;
+                    float3 off2 = off * 0.5;
+                
+                    float3 p0 = pos - off2;
+                    float3 p1 = v1 - off2;
+                    float3 p2 = v2 - off2;
+                
+                    float3 h1 = p0 + v * (p1 - p0);
+                    float3 h2 = p1 + v * (p2 - p1);
+                    float3 i1 = h1 + v * (h2 - h1);
+                    float3 i2 = i1 + off;
+                                
+                    float3 bitangent = bladeDir;
+                    float3 tangent;
+                
+                    float3 h1h2 = h2 - h1;
+                    if(dot(h1h2, h1h2) < 1e-3)
+                    {
+                        tangent = up;
+                    }
+                    else
+                    {
+                        tangent = normalize(h1h2);
+                    }
+                    
+                    float3 normal = normalize(cross(tangent, bitangent));
+    
+                    #ifdef GRASS_BILLBOARD_CROSSED
+                        OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
+                        OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                    #elif GRASS_BILLBOARD_SCREEN
+                        OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
+                        OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                    #elif GRASS_GEOMETRY
+                        float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
+                        //float3 translation = normal * width * (0.5 - abs(u - 0.5)) * (/*(1.0 - floor(v)) * */texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                        float3 translation = texSample0.g * normal * width * 2* abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
+                        //float3 translationMid = texSample0.g * normal * width * 0.5;
+                        //bitangent = normalize(bitangent + ((u * 2) - 1) * translation);
+                        //normal = normalize(cross(tangent, bitangent));
+                        
+                        float t = u + (texSample0.r * u + (1.0 - texSample0.r) * omu);
+    
+                        float3 outpos = lerp(i1, i2, t) + translation;
+                        OUT.pos = mul(UNITY_MATRIX_VP, float4(outpos, 1.0));
+                        OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                    #endif
+                    
+                    OUT.normal = normal;
                 #endif
                 
-	            OUT.normal = normal;
+                
 
         		return OUT;
             }
@@ -384,8 +433,13 @@ Shader "GrassSimulation/Grass"
 			float4 frag (FSIn IN) : SV_TARGET
 			{
 			    #ifdef BILLBOARD_GENERATION
-                    float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
-                    return bladeColor;
+			        #ifdef GRASS_GEOMETRY
+                        float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
+                        return bladeColor;
+                    #else // GRASS_BLOSSOM
+                        float4 blossomColor = GrassBlossom1.Sample(samplerGrassBlossom1, IN.uvwd.xyz);
+                        return blossomColor;
+                    #endif
                 #elif GRASS_GEOMETRY
                     float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
                     float Kd = bladeLightningData.x;
@@ -404,6 +458,22 @@ Shader "GrassSimulation/Grass"
                     bladeColor.xyz *= radiance;
                     //bladeColor.xyz = (N + 1)/2;
                     return bladeColor;
+                #elif GRASS_BLOSSOM
+                    float Kd = GrassBlossom0.Sample(samplerGrassBlossom0, IN.uvwd.xyz).a;
+                    float Ao = lerp(IN.uvwd.w, 1, IN.uvwd.y);
+                    float Ia = AmbientLightFactor;
+                    float3 N = IN.normal;
+                    float3 L = LightDirection;
+                    float gamma = 1;
+                    float Id = LightIntensity;
+                    float d = 0;
+                    float beta = 0;
+                    
+                    float radiance = GetRadiance(Kd, Ao, Ia, N, L, gamma, Id, d, beta);
+                    
+                    float4 blossomColor = GrassBlossom1.Sample(samplerGrassBlossom1, IN.uvwd.xyz);
+                    //blossomColor.xyz *= radiance;
+                    return blossomColor;
                 #else
                     float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
                     float Kd = bladeLightningData.x;

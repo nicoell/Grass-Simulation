@@ -125,11 +125,15 @@ namespace GrassSimulation.Core.Lod
 			//TODO: Add settings for options in computeShader
 			ComputeLod();
 			RunSimulationComputeShader();
-			
+
 			if (_argsGeometry[1] > 0)
+			{
 				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0,
+					_materialPropertyBlock);
+				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBlossom, Bounds, _argsGeometryBuffer, 0,
 					_materialPropertyBlock); /*TODO: Only draw with active camera ... not good for editor
 					, ShadowCastingMode.Off, false, 0, Ctx.Camera*/
+			}
 
 			if (_argsBillboardCrossed[1] > 0)
 				Graphics.DrawMeshInstancedIndirect(_dummyMeshBillboardCrossed, 0, Ctx.GrassBillboardCrossed, Bounds, _argsBillboardCrossedBuffer, 0,

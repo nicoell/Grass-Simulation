@@ -63,8 +63,12 @@ namespace GrassSimulation.Core.Billboard
 		{
 			//RunSimulationComputeShader();
 			if (_argsGeometry[1] > 0)
+			{
 				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBillboardGeneration, Bounds, _argsGeometryBuffer, 0,
 					_materialPropertyBlock, ShadowCastingMode.Off, false, 0, Ctx.BillboardTextureCamera);
+				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBlossomBillboardGeneration, Bounds, _argsGeometryBuffer, 0,
+					_materialPropertyBlock, ShadowCastingMode.Off, false, 0, Ctx.BillboardTextureCamera);
+			}
 		}
 
 		private void SetupMaterialPropertyBlock()

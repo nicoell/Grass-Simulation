@@ -37,11 +37,23 @@ namespace GrassSimulation.Core.GrassBlade
 			int width, height;
 			switch (id)
 			{
-					case 0:
+					case 0: //GrassBlade Data
 						width = 1;
 						height = TextureHeight;
 						break;
-					default:
+					case 1: //Blossom Data
+						width = 1;
+						height = TextureHeight;
+						break;
+					case 2: //GrassBlade Texture
+						width = GrassTextureWidth;
+						height = GrassTextureHeight;
+						break;
+					case 3: //Blossom Texture
+						width = GrassTextureWidth;
+						height = GrassTextureHeight;
+						break;
+					default: //GrassBlade Texture
 						width = GrassTextureWidth;
 						height = GrassTextureHeight;
 						break;
@@ -73,10 +85,10 @@ namespace GrassSimulation.Core.GrassBlade
 						//TODO: Add multisampling of animationcurve
 						float r = 0, g = 0, b = 0, a = 0;
 						switch (id) {
-							case 0:
+							case 0: //GrassBlade Data
 								var edgeCurve = blade.EdgeCurve.Evaluate((float) y / mipHeight) * blade.WidthModifier;
 								edgeCurve = Mathf.SmoothStep(edgeCurve, blade.WidthModifier,
-								miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+									miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 								var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
 								midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
@@ -87,7 +99,25 @@ namespace GrassSimulation.Core.GrassBlade
 								b = blade.DiffuseReflectance;
 								a = blade.Translucency;
 								break;
-							default:
+							case 1: //Blossom Data
+								var blossomBeta = blade.BlossomBeta.Evaluate((float) y / mipHeight) * blade.WidthModifier;
+								blossomBeta = Mathf.SmoothStep(blossomBeta, blade.WidthModifier,
+									miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								
+								var blossomGamma = blade.BlossomGamma.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
+								blossomGamma = Mathf.SmoothStep(blossomGamma, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								
+								var blossomDelta = blade.BlossomGamma.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
+								blossomDelta = Mathf.SmoothStep(blossomDelta, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+
+								//var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
+
+								r = blossomBeta;
+								g = blossomGamma;
+								b = blossomDelta;
+								a = blade.BlossomDiffuseReflectance;
+								break;
+							case 2: //GrassBlade Texture
 								var uv = new Vector2((float) x / mipWidth + uvCenter.x, (float) y / mipHeight + uvCenter.y);
 								var color = blade.GrassTexture.GetPixelBilinear(uv.x, uv.y);
 								r = color.r;
@@ -95,6 +125,17 @@ namespace GrassSimulation.Core.GrassBlade
 								b = color.b;
 								a = color.a;
 								break;
+							case 3: //Blossom Texture
+								var uvBlossom = new Vector2((float) x / mipWidth + uvCenter.x, (float) y / mipHeight + uvCenter.y);
+								var colorBlossom = blade.BlossomTexture.GetPixelBilinear(uvBlossom.x, uvBlossom.y);
+								r = colorBlossom.r;
+								g = colorBlossom.g;
+								b = colorBlossom.b;
+								a = colorBlossom.a;
+								break;
+							default: //GrassBlade Texture
+								break;
+								
 						}
 
 						var index = mipWidth * y + x;
