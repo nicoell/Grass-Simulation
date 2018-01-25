@@ -22,6 +22,7 @@ namespace GrassSimulation.StandardContainers
 		protected override void DrawImpl()
 		{
 			CullViewFrustum();
+			foreach (var grassPatch in _grassPatches) grassPatch.DeltaTime += Time.deltaTime;
 			foreach (var visiblePatch in _visiblePatches) visiblePatch.Draw();
 		}
 

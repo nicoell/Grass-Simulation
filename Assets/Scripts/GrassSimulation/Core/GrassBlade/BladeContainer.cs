@@ -2,7 +2,7 @@
 
 namespace GrassSimulation.Core.GrassBlade
 {
-	//TODO: Cap Blade Array Count to 256 values
+//TODO: Cap Blade Array Count to 256 values
 	public class BladeContainer : ScriptableObject, IInitializableWithCtx
 	{
 		private const int TextureHeight = 64;
@@ -13,10 +13,7 @@ namespace GrassSimulation.Core.GrassBlade
 		[SerializeField]
 		public Blade[] Blades;
 
-		public void Init(SimulationContext context)
-		{
-			_ctx = context;
-		}
+		public void Init(SimulationContext context) { _ctx = context; }
 
 		private Color MultiSampleGradient(Gradient gradient, float sampleLoc, float sampleSize)
 		{
@@ -31,9 +28,22 @@ namespace GrassSimulation.Core.GrassBlade
 			return output / count;
 		}
 
+		private float MultiSampleAnimationCurve(AnimationCurve curve, float sampleLoc, float sampleSize)
+		{
+			var output = 0.0f;
+			var count = 0;
+			for (var l = sampleLoc - sampleSize; l < sampleLoc + sampleSize; l += SampleStep)
+			{
+				var t = Mathf.Clamp01(l + SampleStep / 2f);
+				output += curve.Evaluate(t);
+				count++;
+			}
+			return output / count;
+		}
+		
 		public int GetBlossomCount()
 		{
-			int blossomCount = 0;
+			var blossomCount = 0;
 			for (var i = 0; i < Blades.Length; i++)
 			{
 				if (!Blades[blossomCount].HasBlossom) break;
@@ -41,75 +51,86 @@ namespace GrassSimulation.Core.GrassBlade
 			}
 			return blossomCount;
 		}
-		
+
 		public Texture2DArray GetGeoemetryTexture2DArray(int id)
 		{
 			if (Blades == null || Blades.Length <= 0) return null;
 			int width, height;
 			switch (id)
 			{
-					case 0: //GrassBlade Data
-						width = 1;
-						height = TextureHeight;
-						break;
-					case 1: //Blossom Data
-						width = 1;
-						height = TextureHeight;
-						break;
-					case 2: //GrassBlade Texture
-						width = GrassTextureWidth;
-						height = GrassTextureHeight;
-						break;
-					case 3: //Blossom Texture
-						width = GrassTextureWidth;
-						height = GrassTextureHeight;
-						break;
-					default: //GrassBlade Texture
-						width = GrassTextureWidth;
-						height = GrassTextureHeight;
-						break;
+				case 0:
+					width = 1;
+					height = TextureHeight;
+					break;
+				case 1:
+					width = 1;
+					height = TextureHeight;
+					break;
+				case 2:
+					width = GrassTextureWidth;
+					height = GrassTextureHeight;
+					break;
+				case 3:
+					width = GrassTextureWidth;
+					height = GrassTextureHeight;
+					break;
+				default:
+					width = GrassTextureWidth;
+					height = GrassTextureHeight;
+					break;
 			}
 
 			var texDepth = 0;
 			if (id == 0 || id == 2) texDepth = Blades.Length;
 			else texDepth = GetBlossomCount();
 			if (texDepth == 0) return null;
-			
+
 			var tex2DArray = new Texture2DArray(width, height, texDepth,
-				(id == 1) ? TextureFormat.RGBAFloat : TextureFormat.RGBA32, true, true)
+				id == 1 ? TextureFormat.RGBAFloat : TextureFormat.RGBA32, true, true)
 			{
 				name = "BladeTextures",
-				wrapMode = (id == 1) ? TextureWrapMode.Mirror : TextureWrapMode.Clamp,
+				wrapMode = id == 1 ? TextureWrapMode.Mirror : TextureWrapMode.Clamp,
 				filterMode = FilterMode.Trilinear,
-				anisoLevel = 0,
-				mipMapBias = -0.5f
+				anisoLevel = 16
+				
+				//mipMapBias = -0.5f
 			};
 
 			for (var i = 0; i < texDepth; i++)
 			{
 				int miplevel = 0, mipWidth, mipHeight;
+				float blossomBetaAverage = 0, blossomGammaAverage = 0, blossomDeltaAverage = 0;
 				var blade = Blades[i];
+				
+				if (id == 1)
+				{
+					blossomBetaAverage = MultiSampleAnimationCurve(blade.BlossomBeta, 0.5f, 0.5f);
+					blossomGammaAverage = MultiSampleAnimationCurve(blade.BlossomGamma, 0.5f, 0.5f);
+					blossomDeltaAverage = MultiSampleAnimationCurve(blade.BlossomDelta, 0.5f, 0.5f);
+				}
+				
 				do
 				{
 					mipWidth = Mathf.Max(1, tex2DArray.width >> miplevel);
 					mipHeight = Mathf.Max(1, tex2DArray.height >> miplevel);
 					var samplingInterval = 1.0f / mipHeight;
+
 					var uvCenter = new Vector2(0.5f / mipWidth, 0.5f / mipHeight);
 					var colors = new Color[mipHeight * mipWidth];
 					for (var y = 0; y < mipHeight; y++)
 					for (var x = 0; x < mipWidth; x++)
 					{
-						//TODO: Add multisampling of animationcurve
+//TODO: Add multisampling of animationcurve
 						float r = 0, g = 0, b = 0, a = 0;
-						switch (id) {
+						switch (id)
+						{
 							case 0: //GrassBlade Data
 								var edgeCurve = blade.EdgeCurve.Evaluate((float) y / mipHeight) * blade.WidthModifier;
 								edgeCurve = Mathf.SmoothStep(edgeCurve, blade.WidthModifier,
 									miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-								var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
+								var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight) * blade.WidthModifier;
 								midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
-								//var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
 
 								r = edgeCurve;
 								g = midTranslation;
@@ -117,18 +138,20 @@ namespace GrassSimulation.Core.GrassBlade
 								a = blade.Translucency;
 								break;
 							case 1: //Blossom Data
-								var blossomBeta = blade.BlossomBeta.Evaluate((float) y / mipHeight) * blade.WidthModifier;
-								blossomBeta = Mathf.SmoothStep(blossomBeta, blade.WidthModifier,
+								/*var blossomBeta = blade.BlossomBeta.Evaluate((float) y / mipHeight);
+								blossomBeta = Mathf.SmoothStep(blossomBeta, 1,
 									miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								var blossomGamma = blade.BlossomGamma.Evaluate((float) y / mipHeight);
+								var blossomDelta = blade.BlossomDelta.Evaluate((float) y / mipHeight);*/
 								
-								var blossomGamma = blade.BlossomGamma.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
-								blossomGamma = Mathf.SmoothStep(blossomGamma, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 								
-								var blossomDelta = blade.BlossomDelta.Evaluate((float) y / mipHeight)  * blade.WidthModifier;
-								blossomDelta = Mathf.SmoothStep(blossomDelta, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-
-								//var color = MultiSampleGradient(blade.ColorGradient, (float) y / mipHeight, samplingInterval);
-
+								var blossomBeta = MultiSampleAnimationCurve(blade.BlossomBeta, (float) y / mipHeight, samplingInterval);
+								blossomBeta = Mathf.SmoothStep(blossomBeta, 1, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								var blossomGamma = MultiSampleAnimationCurve(blade.BlossomGamma, (float) y / mipHeight, samplingInterval);
+								//blossomGamma = Mathf.SmoothStep(blossomGamma, blossomGammaAverage, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								var blossomDelta = MultiSampleAnimationCurve(blade.BlossomDelta, (float) y / mipHeight, samplingInterval);
+								//blossomDelta = Mathf.SmoothStep(blossomDelta, blossomDeltaAverage, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
+								
 								r = blossomBeta;
 								g = blossomGamma;
 								b = blossomDelta;
@@ -152,7 +175,6 @@ namespace GrassSimulation.Core.GrassBlade
 								break;
 							default: //GrassBlade Texture
 								break;
-								
 						}
 
 						var index = mipWidth * y + x;
@@ -168,9 +190,6 @@ namespace GrassSimulation.Core.GrassBlade
 			return tex2DArray;
 		}
 
-		public byte GetTypeCount()
-		{
-			return (byte) Blades.Length;
-		}
+		public byte GetTypeCount() { return (byte) Blades.Length; }
 	}
 }

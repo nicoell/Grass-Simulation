@@ -297,6 +297,7 @@ namespace GrassSimulation.Core
 			GrassBillboardCrossed.SetInt("EnableHeightTransition", Settings.EnableHeightTransition ? 1 : 0);
 			GrassBillboardCrossed.SetInt("VertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardCrossed.SetFloat("BillboardAlphaCutoff", Settings.BillboardAlphaCutoff);
+			GrassBillboardCrossed.SetFloat("BillboardHeightAdjustment", Settings.BillboardHeightAdjustment);
 			GrassBillboardCrossed.SetFloat("BladeHeightCullingThreshold", Settings.BladeHeightCullingThreshold);
 			GrassBillboardCrossed.SetFloat("LodInstancesBillboardCrossed", Settings.LodInstancesBillboardCrossed);
 			GrassBillboardCrossed.SetFloat("LodDistanceBillboardCrossedStart", Settings.LodDistanceBillboardCrossedStart);
@@ -318,6 +319,7 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen.SetInt("EnableHeightTransition", Settings.EnableHeightTransition ? 1 : 0);
 			GrassBillboardScreen.SetInt("VertexCount", (int) Settings.GetMinAmountBillboardsPerPatch());
 			GrassBillboardScreen.SetFloat("BillboardAlphaCutoff", Settings.BillboardAlphaCutoff);
+			GrassBillboardScreen.SetFloat("BillboardHeightAdjustment", Settings.BillboardHeightAdjustment);
 			GrassBillboardScreen.SetFloat("BladeHeightCullingThreshold", Settings.BladeHeightCullingThreshold);
 			GrassBillboardScreen.SetFloat("LodInstancesBillboardScreen", Settings.LodInstancesBillboardScreen);
 			GrassBillboardScreen.SetFloat("LodDistanceBillboardScreenStart", Settings.LodDistanceBillboardScreenStart);

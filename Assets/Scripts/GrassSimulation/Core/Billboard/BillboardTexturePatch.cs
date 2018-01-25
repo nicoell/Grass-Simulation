@@ -118,8 +118,8 @@ namespace GrassSimulation.Core.Billboard
 			}
 
 			var retBounds = new Bounds();
-			var bladeWidthCorrection = new Vector3(Ctx.Settings.BladeMaxWidth, 0, Ctx.Settings.BladeMaxWidth) *
-			                           Ctx.Settings.BillboardGrassWidthCorrectionFactor;
+			var bladeWidthCorrection = new Vector3(Ctx.Settings.BladeMaxWidth * Ctx.Settings.BillboardGrassWidthCorrectionFactor,
+				Ctx.Settings.BladeMaxHeight / 3, Ctx.Settings.BladeMaxWidth * Ctx.Settings.BillboardGrassWidthCorrectionFactor);
 			retBounds.SetMinMax(min - bladeWidthCorrection, max + bladeWidthCorrection);
 
 			Bounds = retBounds;

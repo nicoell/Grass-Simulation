@@ -10,8 +10,7 @@ namespace GrassSimulation.Core
 		public int RandomSeed = 42;
 
 		[Header("Grass Settings")]
-		[Range(0,1)]
-		public float BillboardAlphaCutoff = 0.4f;
+		
 		[Range(0,1)]
 		public float BladeMinBend = 0.5f;
 		[Range(0,1)]
@@ -30,11 +29,15 @@ namespace GrassSimulation.Core
 		public float BladeHeightCullingThreshold = 0.01f;
 		
 		[Header("Billboard Grass Settings")]
+		[Range(0,1)]
+		public float BillboardAlphaCutoff = 0.4f;
 		public uint BillboardGrassCount = 64;
 		[Range(0.1f, 5)]
 		public float BillboardGrassSpacingFactor = 0.5f;
 		[Range(0,1)]
 		public float BillboardGrassWidthCorrectionFactor = 0.5f;
+		[Range(1,2)]
+		public float BillboardHeightAdjustment = 1.3f;
 
 		[Header("Lightning")]
 		[Range(0,1)]

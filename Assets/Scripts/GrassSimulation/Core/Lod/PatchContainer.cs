@@ -77,8 +77,8 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassBillboardScreen.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
 			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", false);
-			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", Time.deltaTime);
-			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
+			//Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", Time.deltaTime);
+			//Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 			Ctx.GrassSimulationComputeShader.SetFloats("CamPos", Ctx.Camera.transform.position.x,

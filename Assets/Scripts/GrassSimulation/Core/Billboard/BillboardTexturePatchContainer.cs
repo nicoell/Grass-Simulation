@@ -23,6 +23,7 @@ namespace GrassSimulation.Core.Billboard
 			for (var i = 0; i < Ctx.BladeContainer.GetTypeCount(); i++)
 			{
 				Ctx.GrassBillboardGeneration.SetFloat("GrassType", i);
+				Ctx.GrassBlossomBillboardGeneration.SetFloat("GrassType", i);
 				_billboardTexturePatch.Draw();
 
 				Ctx.BillboardTextureCamera.Render();

@@ -44,7 +44,6 @@ RWTexture2D<float4> SimulationTexture1; //v2.xyz, distance;
 //Per Frame
 float3 CamPos;
 float DeltaTime;
-float Time;
 float4x4 ViewProjMatrix;
 float4 GravityVec;
 float4 SunLight; //Direction towards sun and Influence
@@ -184,7 +183,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 bladeDir;
 	float3 bladeFront;
 	CalculateBladeDirAndFront(bladeNormal, dirAlpha, bladeDir, bladeFront);
-	float mdt = DeltaTime;//min(DeltaTime, 1.0);
+	float mdt = min(DeltaTime, 1.0);
 	float3 idleV2 = bladeNormal * height;
 	float3 v2 = simulationData1.xyz;
 	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * RecoveryFactor * mdt, 0.0);
@@ -289,10 +288,6 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     
     float3 camDir = v0 - CamPos;
 	float distance = length(camDir);
-    
-    if (IsNAN(v2.x)) v2.x = 100.0;
-    if (IsNAN(v2.y)) v2.y = 100.0;
-    if (IsNAN(v2.z)) v2.z = 100.0;
     
     SimulationTexture0[id.xy] = float4(v1, collisionForce);
     SimulationTexture1[id.xy] = float4(v2, distance);
