@@ -8,6 +8,9 @@ namespace GrassSimulation.Core.GrassBlade
 	public class Blade
 	{
 		[SerializeField]
+		[Range(0, 1)]
+		public float Probability = 0.5f;
+		[SerializeField]
 		public AnimationCurve EdgeCurve;
 		[SerializeField]
 		public AnimationCurve MidTranslation;

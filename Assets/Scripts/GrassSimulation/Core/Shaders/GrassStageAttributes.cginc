@@ -5,7 +5,8 @@ struct VSOut
 {
     uint vertexID : VertexID;
     uint instanceID : InstanceID;
-    float2 uvLocal : TEXCOORD0;
+    int type : TEXCOORD0;
+    float2 uvLocal : TEXCOORD1;
 };
 
 struct HSConstOut

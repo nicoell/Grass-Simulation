@@ -5,6 +5,7 @@ namespace GrassSimulation.Core.Lod
 	public struct UvData
 	{
 		public Vector2 Position;
+		public int GrassType;
 	}
 
 	public class GrassInstance : ContextRequirement
@@ -22,8 +23,12 @@ namespace GrassSimulation.Core.Lod
 			                          Ctx.Settings.InstancedGrassFactor * Ctx.Settings.InstancedGrassFactor);
 			UvData = new UvData[bufferLength];
 
-			for (var i = 0; i < bufferLength; i++) UvData[i].Position = Ctx.PositionInput.GetPosition(i);
-			UvBuffer = new ComputeBuffer(bufferLength, 2 * sizeof(float),
+			for (var i = 0; i < bufferLength; i++)
+			{
+				UvData[i].Position = Ctx.PositionInput.GetPosition(i);
+				UvData[i].GrassType = Ctx.GrassMapInput.GetGrassType(0, 0, 0);
+			}
+			UvBuffer = new ComputeBuffer(bufferLength, 2 * sizeof(float) + sizeof(int),
 				ComputeBufferType.Default);
 			UvBuffer.SetData(UvData);
 

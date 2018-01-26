@@ -22,8 +22,8 @@ namespace GrassSimulation.Core.Billboard
 			var mipMapCount = 1 + Mathf.FloorToInt(Mathf.Log(Mathf.Max(_billboardTexture.width, _billboardTexture.height), 2));
 			for (var i = 0; i < Ctx.BladeContainer.GetTypeCount(); i++)
 			{
-				Ctx.GrassBillboardGeneration.SetFloat("GrassType", i);
-				Ctx.GrassBlossomBillboardGeneration.SetFloat("GrassType", i);
+				Ctx.GrassBillboardGeneration.SetInt("GrassType", i);
+				if (Ctx.GrassBlossomBillboardGeneration) Ctx.GrassBlossomBillboardGeneration.SetInt("GrassType", i);
 				_billboardTexturePatch.Draw();
 
 				Ctx.BillboardTextureCamera.Render();

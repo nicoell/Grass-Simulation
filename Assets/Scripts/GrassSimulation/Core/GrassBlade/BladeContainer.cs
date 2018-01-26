@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Linq;
+using UnityEngine;
 
 namespace GrassSimulation.Core.GrassBlade
 {
@@ -12,8 +14,13 @@ namespace GrassSimulation.Core.GrassBlade
 		private SimulationContext _ctx;
 		[SerializeField]
 		public Blade[] Blades;
+		protected float[] BladeDistribution;
 
-		public void Init(SimulationContext context) { _ctx = context; }
+		public void Init(SimulationContext context)
+		{
+			_ctx = context;
+			BladeDistribution = GetBladeDistribution();
+		}
 
 		private Color MultiSampleGradient(Gradient gradient, float sampleLoc, float sampleSize)
 		{
@@ -28,7 +35,7 @@ namespace GrassSimulation.Core.GrassBlade
 			return output / count;
 		}
 
-		private float MultiSampleAnimationCurve(AnimationCurve curve, float sampleLoc, float sampleSize)
+		public static float MultiSampleAnimationCurve(AnimationCurve curve, float sampleLoc, float sampleSize)
 		{
 			var output = 0.0f;
 			var count = 0;
@@ -39,6 +46,30 @@ namespace GrassSimulation.Core.GrassBlade
 				count++;
 			}
 			return output / count;
+		}
+
+		public float[] GetBladeDistribution()
+		{
+			if (Blades == null || Blades.Length <= 0) return null;
+			float accumulatedProbability = Blades.Sum(t => t.Probability);
+			var bladeDistribution = new float[Blades.Length];
+			bladeDistribution[0] = Blades[0].Probability / accumulatedProbability;
+			for (int i = 1; i < Blades.Length; i++)
+			{
+				bladeDistribution[i] = Blades[i].Probability / accumulatedProbability + bladeDistribution[i-1];
+			}
+			return bladeDistribution;
+		}
+
+		/// <summary>
+		///     <para>Gets the type of grass for a given random number in range 0..1</para>
+		/// </summary>
+		/// <returns>The index corresponding to the array position in the GrassContainer representing the grass type.</returns> 
+		public int GetGrassTypeByDistribution(float x)
+		{
+			int i = Array.BinarySearch(BladeDistribution, x);
+			if (i >= 0) return i;
+			return ~i - 1;
 		}
 		
 		public int GetBlossomCount()
@@ -91,7 +122,7 @@ namespace GrassSimulation.Core.GrassBlade
 				name = "BladeTextures",
 				wrapMode = id == 1 ? TextureWrapMode.Mirror : TextureWrapMode.Clamp,
 				filterMode = FilterMode.Trilinear,
-				anisoLevel = 16
+				anisoLevel = 8
 				
 				//mipMapBias = -0.5f
 			};

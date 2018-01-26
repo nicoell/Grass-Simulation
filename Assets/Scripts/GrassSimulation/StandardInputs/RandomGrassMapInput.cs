@@ -15,7 +15,7 @@ namespace GrassSimulation.StandardInputs
 			_typeCount = context.BladeContainer.GetTypeCount();
 		}
 
-		public override byte GetGrassType(float x, float y, float z) { return (byte) (_random.NextDouble() * _typeCount); }
+		public override int GetGrassType(float x, float y, float z) { return (int) (_random.NextDouble() * _typeCount); }
 
 		public override float GetDensity(float x, float y, float z) { return x * z; }
 

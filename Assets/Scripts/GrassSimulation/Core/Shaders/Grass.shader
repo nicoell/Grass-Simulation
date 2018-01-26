@@ -36,15 +36,16 @@ Shader "GrassSimulation/Grass"
 			static const float PI = 3.141592;
 			static const float PI_1_PI = 0.318309;
 			static const float PI_2_3 = 2.094394;
-			static const float TRANSITION_EPSILON = 0.01;
+			static const float TRANSITION_EPSILON = 0.05;
 			static const float GRASSMAP_WIDTH_INFLUENCE = 0.5;
 
             struct UvData { 
                 float2 Position;
+                int type;
             };
             
             //Billboard Generation
-            uniform float GrassType;
+            uniform int GrassType;
             //Billboard Specific
             uniform float BillboardAspect;
             uniform float BillboardHeightAdjustment;
@@ -57,6 +58,9 @@ Shader "GrassSimulation/Grass"
             uniform float LodInstancesGeometry;
             uniform float LodInstancesBillboardCrossed;
             uniform float LodInstancesBillboardScreen;
+            uniform float LodGeometryTransitionSegments;
+            uniform float LodBillboardCrossedTransitionSegments;
+            uniform float LodBillboardScreenTransitionSegments;
             uniform float LodDistanceGeometryStart;
             uniform float LodDistanceGeometryEnd;
             uniform float LodDistanceBillboardCrossedStart;		
@@ -125,7 +129,7 @@ Shader "GrassSimulation/Grass"
             uniform float LightIntensity;
 
 			
-			float GetTessellationLevel(float distance, uint instanceID, float2 uv)
+			float GetTessellationLevel(float distance, uint instanceID, float2 uv, int type)
 			{
                 float transition = 0;
                 float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uv);
@@ -138,6 +142,8 @@ Shader "GrassSimulation/Grass"
                     transition = DoubleLerp(LodInstancesBillboardScreen * grassMapData.y, distance,
                         LodDistanceBillboardScreenStart, LodDistanceBillboardScreenPeak, LodDistanceBillboardScreenEnd);
                 #else
+                    /*transition = SingleLerp(LodInstancesGeometry * grassMapData.y, distance,
+                        LodDistanceGeometryStart, LodDistanceGeometryEnd);*/
                     transition = SingleLerp(LodInstancesGeometry * grassMapData.y, distance,
                         LodDistanceGeometryStart, LodDistanceGeometryEnd);
                 #endif
@@ -148,19 +154,19 @@ Shader "GrassSimulation/Grass"
                 //Cull if instance should not be visible
                 if (instanceID > transitionInstanceID) return 0;
                 //Cull if transition is too small to reduce aliasing
-                if (instanceID == transitionInstanceID && transition < TRANSITION_EPSILON) return 0;
+                if (instanceID == transitionInstanceID && frac(transition) < TRANSITION_EPSILON) return 0;
                 //Cull if height Modifier is too low ro teduce aliasing
                 if (grassMapData.z < BladeHeightCullingThreshold) return 0;
                 
                 #ifdef GRASS_GEOMETRY
                     return SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
                 #elif GRASS_BLOSSOM
-                    #ifdef BILLBOARD_GENERATION
-                        if (BlossomCount <= GrassType) return 0;
-                    #else
-                        if (BlossomCount <= ceil(grassMapData.x * 255)) return 0;
-                    #endif
-                    return SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
+                    //if (type >= BlossomCount) return 0;
+                    if (BlossomCount <= type) 
+                    {
+                        return 0;
+                    }
+                    return round(SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
                 #else
                     return 1.0;
                 #endif
@@ -171,14 +177,21 @@ Shader "GrassSimulation/Grass"
 				VSOut OUT;
 				
 				OUT.vertexID = vertexID;
-				OUT.instanceID = instanceID;
 				#ifdef GRASS_BILLBOARD_CROSSED
+				    OUT.instanceID = instanceID / LodBillboardCrossedTransitionSegments;
 				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID % VertexCount) * RepetitionCount;
 				#elif GRASS_BILLBOARD_SCREEN
+				    OUT.instanceID = instanceID / LodBillboardScreenTransitionSegments;
 				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID * RepetitionCount);
 				#else
+				    OUT.instanceID = instanceID / LodGeometryTransitionSegments;
 				    int i = StartIndex + VertexCount * instanceID + vertexID;
                 #endif
+				#ifdef BILLBOARD_GENERATION
+				    OUT.type = GrassType;
+				#else
+				    OUT.type = UvBuffer[i].type;
+				#endif
 				OUT.uvLocal = UvBuffer[i].Position;
 				return OUT;
 			}
@@ -188,7 +201,7 @@ Shader "GrassSimulation/Grass"
         		HSConstOut OUT = (HSConstOut)0;
         		float distance = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0).w;
         		
-        		float level = GetTessellationLevel(distance, IN[0].instanceID, IN[0].uvLocal);
+        		float level = GetTessellationLevel(distance, IN[0].instanceID, IN[0].uvLocal, IN[0].type);
         		
         		#if GRASS_GEOMETRY
                     OUT.TessFactor[0] = level;	//left
@@ -253,6 +266,7 @@ Shader "GrassSimulation/Grass"
         		uint instanceID = floor(transition);
         		if (instanceID == IN[0].instanceID){
         		    OUT.transitionFactor = smoothstep(0, 1, frac(transition)) * EnableHeightTransition;
+        		    //OUT.transitionFactor = lerp(0, 1, frac(transition)) * EnableHeightTransition;
         		} else {
         		    OUT.transitionFactor = 1;
         		}
@@ -288,18 +302,15 @@ Shader "GrassSimulation/Grass"
                     float tesslevel = SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / LodTessellationMax));
                 #elif GRASS_BLOSSOM
-                    float tesslevel = SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax) * 2;
+                    float tesslevel = round(SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / 8));
                	    //OUT.parameters.w = 0;
                	#else
                	    OUT.parameters.w = 0;
                	#endif
                	
-               	#ifdef BILLBOARD_GENERATION
-               	    OUT.grassMapData.x = GrassType;
-               	#else
-                	OUT.grassMapData.x = ceil(grassMapData.x * 255);
-               	#endif
+                OUT.grassMapData.x = IN[0].type;
+
                	OUT.grassMapData.yzw = grassMapData.yzw;
                   
         		return OUT;
@@ -433,11 +444,7 @@ Shader "GrassSimulation/Grass"
                         OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
                     #elif GRASS_GEOMETRY
                         float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
-                        //float3 translation = normal * width * (0.5 - abs(u - 0.5)) * (/*(1.0 - floor(v)) * */texSample0.g); //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                        float3 translation = texSample0.g * normal * width * 2 * abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
-                        //float3 translationMid = texSample0.g * normal * width * 0.5;
-                        //bitangent = normalize(bitangent + ((u * 2) - 1) * translation);
-                        //normal = normalize(cross(tangent, bitangent));
+                        float3 translation = texSample0.g * normal * width * abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
                         
                         float t = 0.5 + (u - 0.5) * texSample0.r;
     

@@ -153,8 +153,8 @@ namespace GrassSimulation.Core.Lod
 				Bounds.ClosestPoint(Bounds.center + (Bounds.center - Ctx.Camera.transform.position)));
 
 			//Calculate InstanceCounts of different LODs (Geometry, BillboardsCrossed, BillboardsScreen)
-			var geometryInstanceCount = (uint) Mathf.Ceil(SingleLerp(Ctx.Settings.LodInstancesGeometry, nearestDistance,
-				                            Ctx.Settings.LodDistanceGeometryStart, Ctx.Settings.LodDistanceGeometryEnd));
+			var geometryInstanceCount = (uint) Mathf.Ceil(SingleLerp(Ctx.Settings.LodInstancesGeometry / Ctx.Settings.LodGeometryTransitionSegments, nearestDistance,
+				                            Ctx.Settings.LodDistanceGeometryStart, Ctx.Settings.LodDistanceGeometryEnd)) * Ctx.Settings.LodGeometryTransitionSegments;
 			var billboardCrossedInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardCrossed,
 				nearestDistance,
 				Ctx.Settings.LodDistanceBillboardCrossedStart, Ctx.Settings.LodDistanceBillboardCrossedPeak,

@@ -91,6 +91,12 @@ namespace GrassSimulation.Core
 		public uint LodInstancesBillboardCrossed = 1;
 		[Range(1,1023)]
 		public uint LodInstancesBillboardScreen = 1;
+		[Range(1,256)]
+		public uint LodGeometryTransitionSegments = 8;
+		[Range(1,256)]
+		public uint LodBillboardCrossedTransitionSegments = 8;
+		[Range(1,256)]
+		public uint LodBillboardScreenTransitionSegments = 4;
 		[Range(0,1024)]
 		public float LodDistanceGeometryStart = 1;
 		[Range(0,1024)]
