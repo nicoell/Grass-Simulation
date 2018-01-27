@@ -127,7 +127,8 @@ namespace GrassSimulation.Core.Lod
 
 			if (_argsGeometry[1] > 0)
 			{
-				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0, _materialPropertyBlock);
+				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0,
+					_materialPropertyBlock);
 				if (Ctx.GrassBlossom)
 					Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBlossom, Bounds, _argsGeometryBuffer, 0,
 						_materialPropertyBlock);
@@ -153,25 +154,44 @@ namespace GrassSimulation.Core.Lod
 				Bounds.ClosestPoint(Bounds.center + (Bounds.center - Ctx.Camera.transform.position)));
 
 			//Calculate InstanceCounts of different LODs (Geometry, BillboardsCrossed, BillboardsScreen)
-			var geometryInstanceCount = (uint) Mathf.Ceil(SingleLerp(Ctx.Settings.LodInstancesGeometry / Ctx.Settings.LodGeometryTransitionSegments, nearestDistance,
-				                            Ctx.Settings.LodDistanceGeometryStart, Ctx.Settings.LodDistanceGeometryEnd)) * Ctx.Settings.LodGeometryTransitionSegments;
-			var billboardCrossedInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardCrossed,
-				nearestDistance,
-				Ctx.Settings.LodDistanceBillboardCrossedStart, Ctx.Settings.LodDistanceBillboardCrossedPeak,
-				Ctx.Settings.LodDistanceBillboardCrossedEnd));
-			var billboardCrossedInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardCrossed,
-				farthestDistance,
-				Ctx.Settings.LodDistanceBillboardCrossedStart, Ctx.Settings.LodDistanceBillboardCrossedPeak,
-				Ctx.Settings.LodDistanceBillboardCrossedEnd));
+			var geometryInstanceCount = (uint) Mathf.Ceil(SingleLerp(
+				                            Ctx.Settings.LodInstancesGeometry / (float) Ctx.Settings.LodGeometryTransitionSegments,
+				                            nearestDistance,
+				                            Ctx.Settings.LodDistanceGeometryStart, Ctx.Settings.LodDistanceGeometryEnd)) *
+			                            Ctx.Settings.LodGeometryTransitionSegments;
+			var billboardCrossedInstanceCount = (uint) Mathf.Ceil(DoubleLerp(
+				                                    Ctx.Settings.LodInstancesBillboardCrossed /
+				                                    (float) Ctx.Settings.LodBillboardCrossedTransitionSegments,
+				                                    nearestDistance,
+				                                    Ctx.Settings.LodDistanceBillboardCrossedStart,
+				                                    Ctx.Settings.LodDistanceBillboardCrossedPeak,
+				                                    Ctx.Settings.LodDistanceBillboardCrossedEnd)) *
+			                                    Ctx.Settings.LodBillboardCrossedTransitionSegments;
+			var billboardCrossedInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(
+				                                     Ctx.Settings.LodInstancesBillboardCrossed /
+				                                     (float) Ctx.Settings.LodBillboardCrossedTransitionSegments,
+				                                     farthestDistance,
+				                                     Ctx.Settings.LodDistanceBillboardCrossedStart,
+				                                     Ctx.Settings.LodDistanceBillboardCrossedPeak,
+				                                     Ctx.Settings.LodDistanceBillboardCrossedEnd)) *
+			                                     Ctx.Settings.LodBillboardCrossedTransitionSegments;
 			billboardCrossedInstanceCount = (uint) Mathf.Max(billboardCrossedInstanceCount, billboardCrossedInstanceCount2);
-			var billboardScreenInstanceCount = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardScreen,
-				nearestDistance,
-				Ctx.Settings.LodDistanceBillboardScreenStart, Ctx.Settings.LodDistanceBillboardScreenPeak,
-				Ctx.Settings.LodDistanceBillboardScreenEnd));
-			var billboardScreenInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(Ctx.Settings.LodInstancesBillboardScreen,
-				farthestDistance,
-				Ctx.Settings.LodDistanceBillboardScreenStart, Ctx.Settings.LodDistanceBillboardScreenPeak,
-				Ctx.Settings.LodDistanceBillboardScreenEnd));
+			var billboardScreenInstanceCount = (uint) Mathf.Ceil(DoubleLerp(
+				                                   Ctx.Settings.LodInstancesBillboardScreen /
+				                                   (float) Ctx.Settings.LodBillboardScreenTransitionSegments,
+				                                   nearestDistance,
+				                                   Ctx.Settings.LodDistanceBillboardScreenStart,
+				                                   Ctx.Settings.LodDistanceBillboardScreenPeak,
+				                                   Ctx.Settings.LodDistanceBillboardScreenEnd)) *
+			                                   Ctx.Settings.LodBillboardScreenTransitionSegments;
+			var billboardScreenInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(
+				                                    Ctx.Settings.LodInstancesBillboardScreen /
+				                                    (float) Ctx.Settings.LodBillboardScreenTransitionSegments,
+				                                    farthestDistance,
+				                                    Ctx.Settings.LodDistanceBillboardScreenStart,
+				                                    Ctx.Settings.LodDistanceBillboardScreenPeak,
+				                                    Ctx.Settings.LodDistanceBillboardScreenEnd)) *
+			                                    Ctx.Settings.LodBillboardScreenTransitionSegments;
 			billboardScreenInstanceCount = (uint) Mathf.Max(billboardScreenInstanceCount, billboardScreenInstanceCount2);
 
 			_argsGeometry[1] = geometryInstanceCount;
@@ -183,14 +203,14 @@ namespace GrassSimulation.Core.Lod
 			_argsBillboardScreenBuffer.SetData(_argsBillboardScreen);
 		}
 
-		private static float SingleLerp(uint value, float cur, float peak, float end)
+		private static float SingleLerp(float value, float cur, float peak, float end)
 		{
 			if (peak >= end) end = peak + 1;
 			var t1 = Mathf.Clamp01((cur - peak) / (end - peak));
 			return Mathf.LerpUnclamped(value, 0, t1);
 		}
 
-		private static float DoubleLerp(uint value, float cur, float start, float peak, float end)
+		private static float DoubleLerp(float value, float cur, float start, float peak, float end)
 		{
 			if (start >= peak) peak = start + 1;
 			if (peak >= end) end = peak + 1;
@@ -393,6 +413,7 @@ namespace GrassSimulation.Core.Lod
 				Gizmos.color = new Color(0f, 0f, 1f, 0.5f);
 				Gizmos.DrawWireCube(_inputBounds.center, _inputBounds.size);
 			}
+
 			if (Ctx.EditorSettings.EnableBladeUpGizmo || Ctx.EditorSettings.EnableFullBladeGizmo)
 			{
 				Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
@@ -425,6 +446,7 @@ namespace GrassSimulation.Core.Lod
 						//Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
 						//Gizmos.DrawLine(pos, pos + camdir);
 					}
+
 					if (Ctx.EditorSettings.EnableBladeUpGizmo)
 					{
 						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);

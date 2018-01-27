@@ -101,7 +101,7 @@ void CalculateBladeDirAndFront(inout float3 bladeUp, in float dirAlpha, out floa
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
 	bladeDir = normalize(cross(bladeUp, tmp));
 	bladeFront = normalize(cross(bladeUp, bladeDir));
-	bladeUp = normalize(bladeUp + SunLight.xyz * SunLight.w);
+	bladeUp = normalize(bladeUp + (SunLight.xyz * SunLight.w) * 0.3);
 }
 
 bool IsNAN(float n)
@@ -193,14 +193,19 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
 	gravity += sign * bladeFront * height * GravityVec.w * 0.25;
 	gravity = gravity * height * bendingFactor * mdt;
-
+    
 	//Wind
-	float windageHeight = abs(dot(normalize(v2), bladeUp)) * invHeight;
-	//float windageHeight = 1;
-	float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2))); //one possible source for v2 being NaN normalize
-	float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
-	float3 wind = WindData.xyz * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
-	
+	float3 wind;
+	if (length(WindData.xyz) > 0)
+	{
+        float windageHeight = abs(dot(normalize(v2), bladeUp)) * invHeight;
+        float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2))); //one possible source for v2 being NaN normalize
+        float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
+        wind = WindData.xyz * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
+	} else
+	{
+	    wind = float3(0, 0, 0);
+	}
 	//Stiffness 
 	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.5) * max(1.0 - collisionForce, 0.0) * mdt;
 

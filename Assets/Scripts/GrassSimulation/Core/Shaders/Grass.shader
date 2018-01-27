@@ -46,6 +46,7 @@ Shader "GrassSimulation/Grass"
             
             //Billboard Generation
             uniform int GrassType;
+            uniform int RenderNormals;
             //Billboard Specific
             uniform float BillboardAspect;
             uniform float BillboardHeightAdjustment;
@@ -94,10 +95,12 @@ Shader "GrassSimulation/Grass"
             #ifdef GRASS_BILLBOARD_SCREEN
                 Texture2DArray GrassBillboards;
                 SamplerState samplerGrassBillboards;
+                Texture2DArray GrassBillboardNormals;
             #endif
             #ifdef GRASS_BILLBOARD_CROSSED
                 Texture2DArray GrassBillboards;
                 SamplerState samplerGrassBillboards;
+                Texture2DArray GrassBillboardNormals;
             #endif
             
             Texture2D GrassMapTexture;
@@ -126,6 +129,7 @@ Shader "GrassSimulation/Grass"
             //Lightning
             uniform float AmbientLightFactor;
             uniform float3 LightDirection;
+            uniform float3 LightColor;
             uniform float LightIntensity;
 
 			
@@ -142,8 +146,6 @@ Shader "GrassSimulation/Grass"
                     transition = DoubleLerp(LodInstancesBillboardScreen * grassMapData.y, distance,
                         LodDistanceBillboardScreenStart, LodDistanceBillboardScreenPeak, LodDistanceBillboardScreenEnd);
                 #else
-                    /*transition = SingleLerp(LodInstancesGeometry * grassMapData.y, distance,
-                        LodDistanceGeometryStart, LodDistanceGeometryEnd);*/
                     transition = SingleLerp(LodInstancesGeometry * grassMapData.y, distance,
                         LodDistanceGeometryStart, LodDistanceGeometryEnd);
                 #endif
@@ -154,7 +156,10 @@ Shader "GrassSimulation/Grass"
                 //Cull if instance should not be visible
                 if (instanceID > transitionInstanceID) return 0;
                 //Cull if transition is too small to reduce aliasing
-                if (instanceID == transitionInstanceID && frac(transition) < TRANSITION_EPSILON) return 0;
+                if (instanceID == transitionInstanceID) {
+                    if (EnableHeightTransition == 0) return 0;
+                    if (smoothstep(0, 1, frac(transition)) < BladeHeightCullingThreshold) return 0;
+                }
                 //Cull if height Modifier is too low ro teduce aliasing
                 if (grassMapData.z < BladeHeightCullingThreshold) return 0;
                 
@@ -178,14 +183,14 @@ Shader "GrassSimulation/Grass"
 				
 				OUT.vertexID = vertexID;
 				#ifdef GRASS_BILLBOARD_CROSSED
-				    OUT.instanceID = instanceID / LodBillboardCrossedTransitionSegments;
 				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID % VertexCount) * RepetitionCount;
+				    OUT.instanceID = instanceID / LodBillboardCrossedTransitionSegments;
 				#elif GRASS_BILLBOARD_SCREEN
-				    OUT.instanceID = instanceID / LodBillboardScreenTransitionSegments;
 				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID * RepetitionCount);
+				    OUT.instanceID = instanceID / LodBillboardScreenTransitionSegments;
 				#else
-				    OUT.instanceID = instanceID / LodGeometryTransitionSegments;
 				    int i = StartIndex + VertexCount * instanceID + vertexID;
+				    OUT.instanceID = instanceID / LodGeometryTransitionSegments;
                 #endif
 				#ifdef BILLBOARD_GENERATION
 				    OUT.type = GrassType;
@@ -283,12 +288,24 @@ Shader "GrassSimulation/Grass"
                     camDir = normalize(camDir);
                     float3 right = cross(camDir, CamUp.xyz);
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, camDir));
+                    
+                    float dirAlpha = OUT.parameters.w;
+                    float sd = sin(dirAlpha);
+                    float cd = cos(dirAlpha); 
+                    float3 tmp = normalize(float3(sd, sd + cd, cd));
+                    OUT.bitangent = normalize(cross(OUT.bladeUp, tmp));
                 #elif GRASS_BILLBOARD_CROSSED
                     float dirAlpha = OUT.parameters.w + PI_2_3 * floor(IN[0].vertexID / VertexCount);
                     float sd = sin(dirAlpha);
                     float cd = cos(dirAlpha); 
                     float3 tmp = normalize(float3(sd, sd + cd, cd));
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, tmp));
+                    
+                    dirAlpha = OUT.parameters.w;
+                    sd = sin(dirAlpha);
+                    cd = cos(dirAlpha); 
+                    tmp = normalize(float3(sd, sd + cd, cd));
+                    OUT.bitangent = normalize(cross(OUT.bladeUp, tmp));
         		#else
                     float dirAlpha = OUT.parameters.w;
                     float sd = sin(dirAlpha);
@@ -421,7 +438,14 @@ Shader "GrassSimulation/Grass"
                     float3 i1 = h1 + v * (h2 - h1);
                     float3 i2 = i1 + off;
                                 
-                    float3 bitangent = bladeDir;
+                    #ifdef GRASS_BILLBOARD_CROSSED
+                        float3 bitangent = IN[0].bitangent;
+                    #elif GRASS_BILLBOARD_SCREEN
+                        float3 bitangent = IN[0].bitangent;
+                    #else
+                        float3 bitangent = bladeDir;
+                    #endif
+                    
                     float3 tangent;
                 
                     float3 h1h2 = h2 - h1;
@@ -439,9 +463,11 @@ Shader "GrassSimulation/Grass"
                     #ifdef GRASS_BILLBOARD_CROSSED
                         OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
                         OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                        OUT.tangent = tangent;
                     #elif GRASS_BILLBOARD_SCREEN
                         OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
                         OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                        OUT.tangent = tangent;
                     #elif GRASS_GEOMETRY
                         float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
                         float3 translation = texSample0.g * normal * width * abs(u - 0.5); //* texSample0.r //position auf der normale verschoben bei mittelachse -> ca rechter winkel (u mit hat function)
@@ -488,6 +514,9 @@ Shader "GrassSimulation/Grass"
 			float4 frag (FSIn IN) : SV_TARGET
 			{
 			    #ifdef BILLBOARD_GENERATION
+			        if (RenderNormals == 1) {
+			            return float4((IN.normal + 1)/2, 1);
+			        }
 			        #ifdef GRASS_GEOMETRY
                         float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
                         return bladeColor;
@@ -511,6 +540,7 @@ Shader "GrassSimulation/Grass"
                     
                     float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
                     bladeColor.xyz *= radiance;
+                    bladeColor.xyz *= LightColor;
                     //bladeColor.xyz = (N + 1)/2;
                     return bladeColor;
                 #elif GRASS_BLOSSOM
@@ -528,16 +558,27 @@ Shader "GrassSimulation/Grass"
                     
                     float4 blossomColor = GrassBlossom1.Sample(samplerGrassBlossom1, IN.uvwd.xyz);
                     blossomColor.xyz *= radiance;
+                    blossomColor.xyz *= LightColor;
                     //blossomColor.xyz = (N + 1)/2;
                     //blossomColor.xyz = L;
                     //blossomColor.xyz = IN.uvwd.xyz;
                     return blossomColor;
                 #else
+                    float3 billboardNormalTangentSpace = 2 * GrassBillboardNormals.Sample(samplerGrassBillboards, IN.uvwd.xyz).xyz - 1.0;
+                    float3 bitangent = normalize(cross(IN.normal, IN.tangent));
+                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.z);
+                    float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.y);
+                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.y + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.z);
+                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.y + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.x);
+                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.y);
+                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.x);
+                    //N = IN.normal;
+                    
                     float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
                     float Kd = bladeLightningData.x;
-                    float Ao = lerp(IN.uvwd.w, 1, clamp(IN.uvwd.y + 0.5, 0, 1));
+                    //float Ao = lerp(IN.uvwd.w, 1, clamp(IN.uvwd.y + 0.5, 0, 1));
+                    float Ao = lerp(IN.uvwd.w, 1, IN.uvwd.y);
                     float Ia = AmbientLightFactor;
-                    float3 N = IN.normal;
                     float3 L = LightDirection;
                     float gamma = bladeLightningData.y;
                     float Id = LightIntensity;
@@ -548,6 +589,7 @@ Shader "GrassSimulation/Grass"
                     
                     float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvwd.xyz);
                     billboardSample.xyz *= radiance;
+                    billboardSample.xyz *= LightColor;
                     //billboardSample.xyz = (N + 1)/2;
                     return billboardSample;
                 #endif

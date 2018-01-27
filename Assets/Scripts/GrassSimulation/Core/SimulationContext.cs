@@ -378,9 +378,11 @@ namespace GrassSimulation.Core
 			GrassSimulationComputeShader.SetTexture(KernelSimulationSetup, "NormalHeightTexture", GrassInstance.NormalHeightTexture);
 			
 			GrassBillboardCrossed.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
+			GrassBillboardCrossed.SetTexture("GrassBillboardNormals", BillboardTexturePatchContainer.BillboardNormals);
 			GrassBillboardCrossed.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
 			GrassBillboardCrossed.SetFloat("RepetitionCount", PositionInput.GetRepetitionCount());
 			GrassBillboardScreen.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
+			GrassBillboardScreen.SetTexture("GrassBillboardNormals", BillboardTexturePatchContainer.BillboardNormals);
 			GrassBillboardScreen.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
 			GrassBillboardScreen.SetFloat("RepetitionCount", PositionInput.GetRepetitionCount());
 			

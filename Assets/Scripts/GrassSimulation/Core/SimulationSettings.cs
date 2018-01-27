@@ -101,6 +101,8 @@ namespace GrassSimulation.Core
 		public float LodDistanceGeometryStart = 1;
 		[Range(0,1024)]
 		public float LodDistanceGeometryEnd = 200;
+		[Range(0,1024)]
+		public float LodDistanceBlossomEnd = 200;
 		[Range(0,2048)]
 		public float LodDistanceBillboardCrossedStart = 150;		
 		[Range(0,2048)]

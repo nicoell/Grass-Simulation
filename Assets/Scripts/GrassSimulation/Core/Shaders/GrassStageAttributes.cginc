@@ -25,6 +25,12 @@ struct HSOut
     float3 v2 : TEXCOORD4;
     float3 bladeDir : TEXCOORD5;
     float4 grassMapData : TEXCOORD6;
+    #ifdef GRASS_BILLBOARD_CROSSED
+        float3 bitangent : TEXCOORD7;
+    #endif
+    #ifdef GRASS_BILLBOARD_SCREEN
+        float3 bitangent : TEXCOORD7;
+    #endif
 };
 
 struct DSOut
@@ -33,6 +39,12 @@ struct DSOut
     //float4 color : COLOR0;
     float4 uvwd : TEXCOORD0;
     float3 normal : NORMAL;
+    #ifdef GRASS_BILLBOARD_CROSSED
+        float3 tangent : TANGENT;
+    #endif
+    #ifdef GRASS_BILLBOARD_SCREEN
+        float3 tangent : TANGENT;
+    #endif
 };
 
 struct FSIn
@@ -41,6 +53,12 @@ struct FSIn
     //float4 color : COLOR0;
     float4 uvwd : TEXCOORD0;
     float3 normal : NORMAL;
+    #ifdef GRASS_BILLBOARD_CROSSED
+        float3 tangent : TANGENT;
+    #endif
+    #ifdef GRASS_BILLBOARD_SCREEN
+        float3 tangent : TANGENT;
+    #endif
 };
 
 #endif //GRASS_SIMULATION_ATTRIBUTES_INCLUDED

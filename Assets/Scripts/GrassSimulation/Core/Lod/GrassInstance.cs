@@ -50,6 +50,7 @@ namespace GrassSimulation.Core.Lod
 					(float) (Ctx.Settings.BladeMinHeight +
 					         Ctx.Random.NextDouble() * (Ctx.Settings.BladeMaxHeight - Ctx.Settings.BladeMinHeight)),
 					(float) (Ctx.Random.NextDouble() * Mathf.PI * 2f));
+					//(float) (Ctx.Random.NextDouble() * Mathf.PI * 2f));
 
 			ParameterTexture.SetPixels(parameterData);
 			ParameterTexture.Apply();

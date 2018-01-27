@@ -9,6 +9,7 @@ namespace GrassSimulation.Core.Billboard
 		private BillboardTexturePatch _billboardTexturePatch;
 		public float BillboardAspect;
 		public Texture2DArray BillboardTextures;
+		public Texture2DArray BillboardNormals;
 
 		public override void Destroy() { _billboardTexturePatch.Destroy(); }
 
@@ -24,12 +25,21 @@ namespace GrassSimulation.Core.Billboard
 			{
 				Ctx.GrassBillboardGeneration.SetInt("GrassType", i);
 				if (Ctx.GrassBlossomBillboardGeneration) Ctx.GrassBlossomBillboardGeneration.SetInt("GrassType", i);
+				//Draw texture
+				Ctx.GrassBillboardGeneration.SetInt("RenderNormals", 0);
 				_billboardTexturePatch.Draw();
-
 				Ctx.BillboardTextureCamera.Render();
 				_billboardTexture.GenerateMips();
 				//TODO: Custom mipmapping and antialiasing
 				for (var m = 0; m < mipMapCount; m++) Graphics.CopyTexture(_billboardTexture, 0, m, BillboardTextures, i, m);
+				
+				Ctx.GrassBillboardGeneration.SetInt("RenderNormals", 1);
+				//Draw normals
+				_billboardTexturePatch.Draw();
+				Ctx.BillboardTextureCamera.Render();
+				_billboardTexture.GenerateMips();
+				//TODO: Custom mipmapping and antialiasing
+				for (var m = 0; m < mipMapCount; m++) Graphics.CopyTexture(_billboardTexture, 0, m, BillboardNormals, i, m);
 			}
 		}
 
@@ -58,6 +68,17 @@ namespace GrassSimulation.Core.Billboard
 				TextureFormat.RGBA32, true, true)
 			{
 				name = "BillboardTextures",
+				wrapMode = TextureWrapMode.Clamp,
+				filterMode = FilterMode.Trilinear,
+				anisoLevel = 16
+			};
+			
+			BillboardNormals = new Texture2DArray(
+				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f),
+				Ctx.Settings.BillboardTextureResolution, Ctx.BladeContainer.GetTypeCount(),
+				TextureFormat.RGBA32, true, true)
+			{
+				name = "BillboardNormals",
 				wrapMode = TextureWrapMode.Clamp,
 				filterMode = FilterMode.Trilinear,
 				anisoLevel = 16
