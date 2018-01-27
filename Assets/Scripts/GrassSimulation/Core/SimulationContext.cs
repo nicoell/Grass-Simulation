@@ -291,7 +291,7 @@ namespace GrassSimulation.Core
 			GrassBillboardCrossed.SetOverrideTag("RenderType", "TransparentCutout");
 			GrassBillboardCrossed.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
 			GrassBillboardCrossed.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-			GrassBillboardCrossed.SetInt("_ZWrite", 0);
+			//GrassBillboardCrossed.SetInt("_ZWrite", 0);
 			GrassBillboardCrossed.SetInt("_AlphaToMask", 1);
 			GrassBillboardCrossed.renderQueue = 3000;
 			GrassBillboardCrossed.DisableKeyword("GRASS_GEOMETRY");
@@ -314,7 +314,7 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen.SetOverrideTag("RenderType", "TransparentCutout");
 			GrassBillboardScreen.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
 			GrassBillboardScreen.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-			GrassBillboardScreen.SetInt("_ZWrite", 0);
+			//GrassBillboardScreen.SetInt("_ZWrite", 0);
 			GrassBillboardScreen.SetInt("_AlphaToMask", 1);
 			GrassBillboardScreen.renderQueue = 2900;
 			GrassBillboardScreen.DisableKeyword("GRASS_GEOMETRY");

@@ -47,6 +47,7 @@ Shader "GrassSimulation/Grass"
             //Billboard Generation
             uniform int GrassType;
             uniform int RenderNormals;
+            uniform float MinGrassBladeWidth;
             //Billboard Specific
             uniform float BillboardAspect;
             uniform float BillboardHeightAdjustment;
@@ -414,7 +415,11 @@ Shader "GrassSimulation/Grass"
                     #ifdef GRASS_GEOMETRY
                         float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
                         float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
-                        float width = IN[0].parameters.x;
+                        #ifdef BILLBOARD_GENERATION
+                            float width = max(MinGrassBladeWidth, IN[0].parameters.x);
+                        #else
+                            float width = IN[0].parameters.x;
+                         #endif
                     #else
                         float3 v1 = pos + BillboardHeightAdjustment * IN[0].v1 * IN[0].transitionFactor;
                         float3 v2 = pos + BillboardHeightAdjustment * IN[0].v2 * IN[0].transitionFactor;
@@ -519,6 +524,7 @@ Shader "GrassSimulation/Grass"
 			        }
 			        #ifdef GRASS_GEOMETRY
                         float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
+                        bladeColor.a = 1;
                         return bladeColor;
                     #else // GRASS_BLOSSOM
                         float4 blossomColor = GrassBlossom1.Sample(samplerGrassBlossom1, IN.uvwd.xyz);
@@ -566,8 +572,8 @@ Shader "GrassSimulation/Grass"
                 #else
                     float3 billboardNormalTangentSpace = 2 * GrassBillboardNormals.Sample(samplerGrassBillboards, IN.uvwd.xyz).xyz - 1.0;
                     float3 bitangent = normalize(cross(IN.normal, IN.tangent));
-                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.z);
-                    float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.y);
+                    float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.z);
+                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.y);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.y + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.z);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.y + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.x);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.y);
