@@ -19,7 +19,6 @@ namespace GrassSimulation.Core
 		public Camera Camera;
 		public Light SunLight;
 		public ComputeShader GrassSimulationComputeShader;
-		public ComputeShader RenderTextureVolumeToSlice;
 		public Shader CollisionDepthShader;
 		[HideInInspector]
 		public CollisionTextureRenderer CollisionTextureRenderer;
@@ -55,6 +54,8 @@ namespace GrassSimulation.Core
 		public Texture2DArray BlossomTexture2DArray0;
 		[HideInInspector]
 		public Texture2DArray BlossomTexture2DArray1;
+		[NonSerialized]
+		public int BlossomCount;
 		
 		[Header("PatchContainer")]
 		
@@ -147,13 +148,12 @@ namespace GrassSimulation.Core
 			BillboardTexturePatchContainer = CreateInstance<BillboardTexturePatchContainer>();
 			
 			if (BladeContainer == null) BladeContainer = CreateInstance<BladeContainer>();
-			BladeContainer.Init(this);
+			BladeContainer.Init(this);			
 			BladeTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(0);
 			BladeTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(2);
 			BlossomTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(1);
 			BlossomTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(3);
-			var blossomCount = BladeContainer.GetBlossomCount();
-			Debug.Log("blossomCount " + blossomCount);
+			BlossomCount = BladeContainer.GetBlossomCount();
 			if (!Transform || !Camera || !CollisionCamera || !BillboardTextureCamera || !GrassSimulationComputeShader || !CollisionDepthShader || !GrassSimulationShader || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
@@ -190,7 +190,7 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen = new Material(GrassGeometry);
 
 
-			if (blossomCount > 0)
+			if (BlossomCount > 0)
 			{
 				GrassBlossom = new Material(GrassGeometry);
 				GrassBlossomBillboardGeneration = new Material(GrassGeometry);
@@ -202,7 +202,7 @@ namespace GrassSimulation.Core
 				GrassBlossom.SetTexture("GrassBlossom1", BlossomTexture2DArray1);
 				GrassBlossom.SetInt("EnableHeightTransition", Settings.EnableHeightTransition ? 1 : 0);
 				GrassBlossom.SetInt("VertexCount", (int) Settings.GetMinAmountBladesPerPatch());
-				GrassBlossom.SetInt("BlossomCount", blossomCount);
+				GrassBlossom.SetInt("BlossomCount", BlossomCount);
 				GrassBlossom.SetFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
 				GrassBlossom.SetFloat("BladeHeightCullingThreshold", Settings.BladeHeightCullingThreshold);
 				GrassBlossom.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
@@ -225,7 +225,7 @@ namespace GrassSimulation.Core
 				GrassBlossomBillboardGeneration.SetTexture("GrassBlossom1", BlossomTexture2DArray1);
 				GrassBlossomBillboardGeneration.SetInt("EnableHeightTransition", Settings.EnableHeightTransition ? 1 : 0);
 				GrassBlossomBillboardGeneration.SetInt("VertexCount", (int) Settings.BillboardGrassCount);
-				GrassBlossomBillboardGeneration.SetInt("BlossomCount", blossomCount);
+				GrassBlossomBillboardGeneration.SetInt("BlossomCount", BlossomCount);
 				GrassBlossomBillboardGeneration.SetFloat("BladeTextureMaxMipmapLevel", Settings.BladeTextureMaxMipmapLevel);
 				GrassBlossomBillboardGeneration.SetFloat("BladeHeightCullingThreshold", Settings.BladeHeightCullingThreshold);
 				GrassBlossomBillboardGeneration.SetFloat("LodTessellationMax", Settings.LodTessellationMax);

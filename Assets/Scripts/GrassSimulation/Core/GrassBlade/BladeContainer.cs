@@ -69,18 +69,13 @@ namespace GrassSimulation.Core.GrassBlade
 		{
 			int i = Array.BinarySearch(BladeDistribution, x);
 			if (i >= 0) return i;
-			return ~i - 1;
+			i = ~i;
+			return i;
 		}
 		
 		public int GetBlossomCount()
 		{
-			var blossomCount = 0;
-			for (var i = 0; i < Blades.Length; i++)
-			{
-				if (!Blades[blossomCount].HasBlossom) break;
-				blossomCount++;
-			}
-			return blossomCount;
+			return Blades.TakeWhile(t => t.HasBlossom).Count();
 		}
 
 		public Texture2DArray GetGeoemetryTexture2DArray(int id)
