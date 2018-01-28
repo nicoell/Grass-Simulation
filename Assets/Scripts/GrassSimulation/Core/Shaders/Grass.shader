@@ -172,7 +172,7 @@ Shader "GrassSimulation/Grass"
                     {
                         return 0;
                     }
-                    return round(SingleLerpMinMax(1, 8, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
+                    return round(SingleLerpMinMax(2, 8, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
                 #else
                     return 1.0;
                 #endif
@@ -314,23 +314,29 @@ Shader "GrassSimulation/Grass"
                     float3 tmp = normalize(float3(sd, sd + cd, cd));
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, tmp));
                	#endif
+                OUT.grassMapData.x = IN[0].type;
+
+               	OUT.grassMapData.yzw = grassMapData.yzw;
                	//We do not need dirAlpha in domainshader so we can use OUT.parameters for something else
                	//Calculate mipmaplevel for grass texture lookup based on tessellationfactor 
                	#ifdef GRASS_GEOMETRY
                     float tesslevel = SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / LodTessellationMax));
                 #elif GRASS_BLOSSOM
-                    float tesslevel = round(SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
+                    float tesslevel = round(SingleLerpMinMax(2, 8, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / 8));
                     OUT.parameters.y = tesslevel;
+                    #ifdef BILLBOARD_GENERATION
+                        OUT.grassMapData.z = 1;
+                    #else
+                        OUT.grassMapData.z = SingleLerpMinMax(1, 0, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
+                    #endif
+                    //OUT.grassMapData.z = 0;
                	    //OUT.parameters.w = 0;
                	#else
                	    OUT.parameters.w = 0;
                	#endif
                	
-                OUT.grassMapData.x = IN[0].type;
-
-               	OUT.grassMapData.yzw = grassMapData.yzw;
                   
         		return OUT;
             }
@@ -348,9 +354,9 @@ Shader "GrassSimulation/Grass"
                     float3 v1 = IN[0].v1 * IN[0].transitionFactor;
                     float3 v2 = IN[0].v2 * IN[0].transitionFactor;
                     float width = IN[0].parameters.x;
-                    float height = IN[0].parameters.z  * IN[0].transitionFactor;
+                    float height = IN[0].parameters.z * IN[0].transitionFactor;
                     
-                    float3 tangent = normalize(v2 - v1);
+                    float3 tangent = normalize(lerp(normalize(v2 - v1), normalize(CamPos - (pos + v2)), IN[0].grassMapData.z));
                     float3 normal = normalize(cross(tangent, bladeDir));
                     float3 bitangent = cross(tangent, normal);
                     
@@ -370,27 +376,31 @@ Shader "GrassSimulation/Grass"
                     float beta = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, betaT), IN[0].grassMapData.x), IN[0].parameters.w).r;
                     float gamma0 = blossomData0.g; // Translation Factor along uvDirection
                     float delta0 = blossomData0.b; // Translation Factor along tangent
-                    
+                    delta0 *= height / 3; 
                     
                     float2 uvDirection0 = uvDirection * gamma0 * width;
                     
-                    delta0 *= height / 3; 
-                    
                     float3 offset0 = (uvDirection0.x * normal + uvDirection0.y * bitangent + delta0 * tangent);
-                    
-                    
-                    
                     pos = pos + v2 + beta * offset0;
-                    //pos = pos + v2 + float3(uv.x, 0, uv.y);
                     
-                    OUT.pos = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
+                    //ScreenSpace Size correction 
+                   float3 wcOffset = (-uvDirection0.x * normal + (-uvDirection0.y) * bitangent + delta0 * tangent); // offset in opposite direction 
+                   float4 wcPosOpposite = mul(ViewProjMatrix, float4(IN[0].pos + v2 + beta * wcOffset, 1.0));
+                   wcPosOpposite /= wcPosOpposite.w;
+                   float4 wcPosOriginal = mul(ViewProjMatrix, float4(pos, 1.0));
+                   wcPosOriginal /= wcPosOriginal.w;
+                   float4 screenSpaceVec = wcPosOpposite - wcPosOriginal;
+                   float2 screenSpaceSize = float2(screenSpaceVec.x * _ScreenParams.x * 0.5, screenSpaceVec.y * _ScreenParams.y * 0.5); 
+                   float2 sizeCorrectionFactor = float2(0,0);
+                   sizeCorrectionFactor.x = screenSpaceSize.x < 1 ? (1 - screenSpaceSize.x) / (_ScreenParams.x * 0.5) : 0;
+                   sizeCorrectionFactor.y = screenSpaceSize.y < 1 ? (1 - screenSpaceSize.y) / (_ScreenParams.y * 0.5) : 0;
+                   //sizeCorrectionFactor = sizeCorrectionFactor < 1 ? 1 / sizeCorrectionFactor : 0;
+                   
+                   
+                    
+                    OUT.pos = mul(UNITY_MATRIX_VP, float4(pos, 1.0));// + float4(sizeCorrectionFactor.xy, 0, 0);
                     OUT.uvwd = float4(uv, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
-                    
-                    /*if(dot(derivate, derivate) < 1e-3)
-                    {
-                        OUT.normal = length(uvDirection) == 0 ? tangent : tangent;
-                    } else 
-                    {*/
+
                     if (length(uvDirection) == 0 || abs(delta0) < 1e-3) //test for delta instead
                     {
                         OUT.normal = tangent;

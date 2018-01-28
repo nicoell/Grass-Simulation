@@ -28,6 +28,7 @@ namespace GrassSimulation.Core.GrassBlade
 		{
 			var output = new Color(0, 0, 0, 0);
 			var count = 0;
+			
 			for (var l = sampleLoc - sampleSize; l < sampleLoc + sampleSize; l += SampleStep)
 			{
 				var t = Mathf.Clamp01(l + SampleStep / 2f);
@@ -41,6 +42,9 @@ namespace GrassSimulation.Core.GrassBlade
 		{
 			var output = 0.0f;
 			var count = 0;
+			return curve.Evaluate(sampleLoc);
+			if (sampleLoc == 0) return curve.Evaluate(0);
+			if (sampleLoc == 1) return curve.Evaluate(1f);
 			for (var l = sampleLoc - sampleSize; l < sampleLoc + sampleSize; l += SampleStep)
 			{
 				var t = Mathf.Clamp01(l + SampleStep / 2f);
@@ -141,7 +145,7 @@ namespace GrassSimulation.Core.GrassBlade
 				{
 					mipWidth = Mathf.Max(1, tex2DArray.width >> miplevel);
 					mipHeight = Mathf.Max(1, tex2DArray.height >> miplevel);
-					var samplingInterval = 1.0f / mipHeight;
+					var samplingInterval = 1f / mipHeight;
 
 					var uvCenter = new Vector2(0.5f / mipWidth, 0.5f / mipHeight);
 					var colors = new Color[mipHeight * mipWidth];
@@ -150,13 +154,16 @@ namespace GrassSimulation.Core.GrassBlade
 					{
 //TODO: Add multisampling of animationcurve
 						float r = 0, g = 0, b = 0, a = 0;
+						float sampleLoc;
 						switch (id)
 						{
 							case 0: //GrassBlade Data
-								var edgeCurve = blade.EdgeCurve.Evaluate((float) y / mipHeight) * blade.WidthModifier;
+								sampleLoc = mipHeight == 1 ? 0.5f : (float) y / (mipHeight - 1);
+								
+								var edgeCurve = blade.EdgeCurve.Evaluate(sampleLoc) * blade.WidthModifier;
 								edgeCurve = Mathf.SmoothStep(edgeCurve, blade.WidthModifier,
 									miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-								var midTranslation = blade.MidTranslation.Evaluate((float) y / mipHeight) * blade.WidthModifier;
+								var midTranslation = blade.MidTranslation.Evaluate(sampleLoc) * blade.WidthModifier;
 								midTranslation = Mathf.SmoothStep(midTranslation, 0.0f, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 
 
@@ -171,13 +178,14 @@ namespace GrassSimulation.Core.GrassBlade
 									miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 								var blossomGamma = blade.BlossomGamma.Evaluate((float) y / mipHeight);
 								var blossomDelta = blade.BlossomDelta.Evaluate((float) y / mipHeight);*/
+
+								sampleLoc = mipHeight == 1 ? 0.5f : (float) y / (mipHeight - 1);
 								
-								
-								var blossomBeta = MultiSampleAnimationCurve(blade.BlossomBeta, (float) y / mipHeight, samplingInterval);
+								var blossomBeta = MultiSampleAnimationCurve(blade.BlossomBeta, sampleLoc, samplingInterval);
 								blossomBeta = Mathf.SmoothStep(blossomBeta, 1, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-								var blossomGamma = MultiSampleAnimationCurve(blade.BlossomGamma, (float) y / mipHeight, samplingInterval);
+								var blossomGamma = MultiSampleAnimationCurve(blade.BlossomGamma, sampleLoc, samplingInterval);
 								//blossomGamma = Mathf.SmoothStep(blossomGamma, blossomGammaAverage, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
-								var blossomDelta = MultiSampleAnimationCurve(blade.BlossomDelta, (float) y / mipHeight, samplingInterval);
+								var blossomDelta = MultiSampleAnimationCurve(blade.BlossomDelta, sampleLoc, samplingInterval);
 								//blossomDelta = Mathf.SmoothStep(blossomDelta, blossomDeltaAverage, miplevel / _ctx.Settings.BladeTextureMaxMipmapLevel);
 								
 								r = blossomBeta;
