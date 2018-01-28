@@ -287,7 +287,7 @@ Shader "GrassSimulation/Grass"
         		
         		#ifdef GRASS_BILLBOARD_SCREEN
                     camDir = normalize(camDir);
-                    float3 right = cross(camDir, CamUp.xyz);
+                    //float3 right = cross(camDir, CamUp.xyz);
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, camDir));
                     
                     float dirAlpha = OUT.parameters.w;
@@ -295,6 +295,11 @@ Shader "GrassSimulation/Grass"
                     float cd = cos(dirAlpha); 
                     float3 tmp = normalize(float3(sd, sd + cd, cd));
                     OUT.bitangent = normalize(cross(OUT.bladeUp, tmp));
+                    //camDir = normalize(camDir);
+                    //float3 right = cross(camDir, CamUp.xyz);
+                    //float3 sunright = normalize(cross(normalize(LightDirection), OUT.bladeUp));
+                    //OUT.bitangent = sunright;
+                    //OUT.bitangent = normalize(cross(OUT.bladeUp, camDir));
                 #elif GRASS_BILLBOARD_CROSSED
                     float dirAlpha = OUT.parameters.w + PI_2_3 * floor(IN[0].vertexID / VertexCount);
                     float sd = sin(dirAlpha);
@@ -306,13 +311,36 @@ Shader "GrassSimulation/Grass"
                     sd = sin(dirAlpha);
                     cd = cos(dirAlpha); 
                     tmp = normalize(float3(sd, sd + cd, cd));
-                    OUT.bitangent = normalize(cross(OUT.bladeUp, tmp));
+                    OUT.bitangent = OUT.bladeDir; //normalize(cross(OUT.bladeUp, tmp));
+                    /*camDir = normalize(camDir);
+                    float3 right = cross(camDir, CamUp.xyz);
+                    OUT.bitangent = normalize(cross(OUT.bladeUp, camDir));*/
+                    //float3 sunright = normalize(cross(normalize(LightDirection), OUT.bladeUp));
+                    //OUT.bitangent = sunright;
         		#else
                     float dirAlpha = OUT.parameters.w;
                     float sd = sin(dirAlpha);
                     float cd = cos(dirAlpha); 
                     float3 tmp = normalize(float3(sd, sd + cd, cd));
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, tmp));
+                    float dirFactor = SingleLerpMinMax(1, 0, distance, LodDistanceGeometryStart, LodDistanceGeometryEnd);
+                    #ifdef BILLBOARD_GENERATION
+                        tmp = float3(1, 0, 0);
+                    #else
+                        tmp = normalize(cross(OUT.bladeUp, camDir));
+                    #endif
+                        
+                    OUT.bladeDir = normalize(lerp(OUT.bladeDir, tmp, dirFactor));
+                    
+                    /*camDir = normalize(camDir);
+                    float3 right = cross(camDir, CamUp.xyz);
+                    OUT.bitangent = normalize(cross(OUT.bladeUp, camDir));*/
+                    /*#ifdef BILLBOARD_GENERATION
+                        OUT.bitangent = float3(1, 0, 0);
+                    #else
+                        float3 sunright = normalize(cross(normalize(LightDirection), OUT.bladeUp));
+                        OUT.bitangent = sunright;
+                    #endif*/
                	#endif
                 OUT.grassMapData.x = IN[0].type;
 
@@ -377,28 +405,16 @@ Shader "GrassSimulation/Grass"
                     float gamma0 = blossomData0.g; // Translation Factor along uvDirection
                     float delta0 = blossomData0.b; // Translation Factor along tangent
                     delta0 *= height / 3; 
+                    #ifdef BILLBOARD_GENERATION
+                        delta0 *= -1;
+                    #endif
                     
                     float2 uvDirection0 = uvDirection * gamma0 * width;
                     
                     float3 offset0 = (uvDirection0.x * normal + uvDirection0.y * bitangent + delta0 * tangent);
                     pos = pos + v2 + beta * offset0;
                     
-                    //ScreenSpace Size correction 
-                   float3 wcOffset = (-uvDirection0.x * normal + (-uvDirection0.y) * bitangent + delta0 * tangent); // offset in opposite direction 
-                   float4 wcPosOpposite = mul(ViewProjMatrix, float4(IN[0].pos + v2 + beta * wcOffset, 1.0));
-                   wcPosOpposite /= wcPosOpposite.w;
-                   float4 wcPosOriginal = mul(ViewProjMatrix, float4(pos, 1.0));
-                   wcPosOriginal /= wcPosOriginal.w;
-                   float4 screenSpaceVec = wcPosOpposite - wcPosOriginal;
-                   float2 screenSpaceSize = float2(screenSpaceVec.x * _ScreenParams.x * 0.5, screenSpaceVec.y * _ScreenParams.y * 0.5); 
-                   float2 sizeCorrectionFactor = float2(0,0);
-                   sizeCorrectionFactor.x = screenSpaceSize.x < 1 ? (1 - screenSpaceSize.x) / (_ScreenParams.x * 0.5) : 0;
-                   sizeCorrectionFactor.y = screenSpaceSize.y < 1 ? (1 - screenSpaceSize.y) / (_ScreenParams.y * 0.5) : 0;
-                   //sizeCorrectionFactor = sizeCorrectionFactor < 1 ? 1 / sizeCorrectionFactor : 0;
-                   
-                   
-                    
-                    OUT.pos = mul(UNITY_MATRIX_VP, float4(pos, 1.0));// + float4(sizeCorrectionFactor.xy, 0, 0);
+                    OUT.pos = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
                     OUT.uvwd = float4(uv, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
 
                     if (length(uvDirection) == 0 || abs(delta0) < 1e-3) //test for delta instead
@@ -409,7 +425,10 @@ Shader "GrassSimulation/Grass"
                         float4 blossomData1 = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t + h), IN[0].grassMapData.x), IN[0].parameters.w);
                         float gamma1 = blossomData1.g;
                         float delta1 = blossomData1.b;  
-                        delta1 *= height / 3; 
+                        delta1 *= height / 3;
+                        #ifdef BILLBOARD_GENERATION
+                            delta1 *= -1;
+                        #endif
                         float2 uvDirection1 = uvDirection * gamma1 * width;
                         
                         float3 offset1 = (uvDirection1.x * normal + uvDirection1.y * bitangent + delta1 * tangent);
@@ -434,15 +453,16 @@ Shader "GrassSimulation/Grass"
                             float width = IN[0].parameters.x;
                          #endif
                     #else
+                        //float3 v1 = pos + IN[0].v1 * IN[0].transitionFactor;
+                        //float3 v2 = pos + IN[0].v2 * IN[0].transitionFactor;
                         float3 v1 = pos + BillboardHeightAdjustment * IN[0].v1 * IN[0].transitionFactor;
                         float3 v2 = pos + BillboardHeightAdjustment * IN[0].v2 * IN[0].transitionFactor;
                         float width = length(IN[0].v2) * BillboardAspect * IN[0].transitionFactor;
                     #endif
     
                     float u = uv.x;
-                    float omu = 1.0 - u;
                     float v = uv.y;
-                    float omv = 1.0 - v;
+                    
                     
                     float3 off = bladeDir * width;
                     float3 off2 = off * 0.5;
@@ -458,24 +478,27 @@ Shader "GrassSimulation/Grass"
                                 
                     #ifdef GRASS_BILLBOARD_CROSSED
                         float3 bitangent = IN[0].bitangent;
+                        float3 tangent = uv.y == 0 ? normalize(IN[0].v1) : normalize(IN[0].v2);
                     #elif GRASS_BILLBOARD_SCREEN
                         float3 bitangent = IN[0].bitangent;
+                        float3 tangent = uv.y == 0 ? normalize(IN[0].v1) : normalize(IN[0].v2);
+                        //float3 tangent = uv.y == 0 ? normalize(IN[0].v1) : normalize(IN[0].v2);
                     #else
-                        float3 bitangent = bladeDir;
+                        float3 bitangent = IN[0].bladeDir;
+                        float3 tangent;
+                    
+                        float3 h1h2 = h2 - h1;
+                        if(dot(h1h2, h1h2) < 1e-3)
+                        {
+                            tangent = up;
+                            //tangent = normalize(cross(normalize(v2 - pos), bitangent));
+                        }
+                        else
+                        {
+                            tangent = normalize(h1h2);
+                        }
                     #endif
-                    
-                    float3 tangent;
                 
-                    float3 h1h2 = h2 - h1;
-                    if(dot(h1h2, h1h2) < 1e-3)
-                    {
-                        tangent = up;
-                    }
-                    else
-                    {
-                        tangent = normalize(h1h2);
-                    }
-                    
                     float3 normal = normalize(cross(tangent, bitangent));
     
                     #ifdef GRASS_BILLBOARD_CROSSED
@@ -591,6 +614,7 @@ Shader "GrassSimulation/Grass"
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.y + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.x);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.y);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.x);
+                    //N = IN.normal;
                     //N = IN.normal;
                     
                     float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;

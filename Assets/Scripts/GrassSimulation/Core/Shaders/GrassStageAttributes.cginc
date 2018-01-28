@@ -25,6 +25,8 @@ struct HSOut
     float3 v2 : TEXCOORD4;
     float3 bladeDir : TEXCOORD5;
     float4 grassMapData : TEXCOORD6;
+    //float3 bitangent : TEXCOORD7;
+    
     #ifdef GRASS_BILLBOARD_CROSSED
         float3 bitangent : TEXCOORD7;
     #endif
