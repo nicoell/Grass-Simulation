@@ -10,6 +10,8 @@ namespace GrassSimulation.Core.GrassBlade
 		private const int TextureHeight = 64;
 		private const int GrassTextureWidth = 128;
 		private const int GrassTextureHeight = 1024;
+		private const int BlossomTextureWidth = 512;
+		private const int BlossomTextureHeight = 512;
 		private const float SampleStep = 1f / TextureHeight;
 		private SimulationContext _ctx;
 		[SerializeField]
@@ -97,8 +99,8 @@ namespace GrassSimulation.Core.GrassBlade
 					height = GrassTextureHeight;
 					break;
 				case 3:
-					width = GrassTextureWidth;
-					height = GrassTextureHeight;
+					width = BlossomTextureWidth;
+					height = BlossomTextureWidth;
 					break;
 				default:
 					width = GrassTextureWidth;

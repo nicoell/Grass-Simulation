@@ -172,7 +172,7 @@ Shader "GrassSimulation/Grass"
                     {
                         return 0;
                     }
-                    return round(SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
+                    return round(SingleLerpMinMax(1, 8, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
                 #else
                     return 1.0;
                 #endif
@@ -322,6 +322,7 @@ Shader "GrassSimulation/Grass"
                 #elif GRASS_BLOSSOM
                     float tesslevel = round(SingleLerpMinMax(1, 4, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / 8));
+                    OUT.parameters.y = tesslevel;
                	    //OUT.parameters.w = 0;
                	#else
                	    OUT.parameters.w = 0;
@@ -359,8 +360,10 @@ Shader "GrassSimulation/Grass"
                     float uParam = abs((uv.x - 0.5) * 2);
                     float vParam = abs((uv.y - 0.5) * 2);
                     
-                    float h = (IN[0].parameters.w + 1.0) / 16;
-                    float t = lerp(h, 1, max(uParam, vParam));
+                    //float h = (IN[0].parameters.w + 1.0) / 16;
+                    float t = lerp(0, 1, max(uParam, vParam));
+                    float h = 0.5 / IN[0].parameters.y;
+                    h = t == 1 ? -h : h;
                     float betaT = length(uvDirection) == 0 ? 0 : atan2(uvDirection.x, uvDirection.y) * PI_1_PI + 1;//1 - cos(uv.x * PI_1_2) * cos(uv.y * PI_1_2);
                     float4 blossomData0 = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t), IN[0].grassMapData.x), IN[0].parameters.w);
 
@@ -393,14 +396,14 @@ Shader "GrassSimulation/Grass"
                         OUT.normal = tangent;
                     } else 
                     {
-                        float4 blossomData1 = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t - h), IN[0].grassMapData.x), IN[0].parameters.w);
+                        float4 blossomData1 = GrassBlossom0.SampleLevel(samplerGrassBlossom0, float3(float2(0, t + h), IN[0].grassMapData.x), IN[0].parameters.w);
                         float gamma1 = blossomData1.g;
                         float delta1 = blossomData1.b;  
                         delta1 *= height / 3; 
                         float2 uvDirection1 = uvDirection * gamma1 * width;
                         
                         float3 offset1 = (uvDirection1.x * normal + uvDirection1.y * bitangent + delta1 * tangent);
-                        float3 derivate = normalize(offset1 - offset0);
+                        float3 derivate = t == 1 ? normalize(offset1 - offset0) : normalize(offset0 - offset1);
                         
                         float3 newTangent = normalize(uvDirection.x * normal + uvDirection.y * bitangent) * sign(delta0); 
                         float3 bitangentNew = normalize(cross(derivate, newTangent));
