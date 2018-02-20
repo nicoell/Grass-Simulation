@@ -8,6 +8,14 @@
 
 #include "GrassFuncs.cginc"
 
+static const float PI = 3.141592;
+
+struct WindLayer {
+    int WindType;
+    float4 WindData;
+    float4 WindData2;
+};
+
 //Once
 float4x4 CollisionViewProj;
 float3 CollisionVolumeSize;
@@ -32,7 +40,6 @@ float ParameterOffsetX;
 float ParameterOffsetY;
 float4x4 PatchModelMatrix;
 float4 PatchTexCoord; //x: xStart, y: yStart, z: width, w:height
-int StartIndex;
 
 Texture2D<float4> CollisionDepthTexture; //up.xyz, pos.y
 SamplerState samplerCollisionDepthTexture;
@@ -42,12 +49,14 @@ RWTexture2D<float4> SimulationTexture0; //v1.xyz, collisionForce;
 RWTexture2D<float4> SimulationTexture1; //v2.xyz, distance;
 
 //Per Frame
+int WindLayerCount;
+StructuredBuffer<WindLayer> WindLayerBuffer;
 float3 CamPos;
 float DeltaTime;
 float4x4 ViewProjMatrix;
 float4 GravityVec;
 float4 SunLight; //Direction towards sun and Influence
-float4 WindData;
+float4 WindDataTest;
 
 float4 LocalToWorldPos(float4 pos){ return mul(PatchModelMatrix, pos); }
 float4 LocalToWorldPos(float3 pos){ return mul(PatchModelMatrix, float4(pos, 1.0)); }
@@ -194,14 +203,41 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	gravity += sign * bladeFront * height * GravityVec.w * 0.25;
 	gravity = gravity * height * bendingFactor * mdt;
     
+    float4 WindData = float4(0,0,0,0);
+    
+    for(int i = 0; i < WindLayerCount; i++)
+    {
+        WindLayer layer = WindLayerBuffer[i];
+        if (layer.WindType < 0) break;
+        if (layer.WindType == 0)
+        {
+            float windInfluence = 1.0f - max((cos((v0.x + v0.z) * layer.WindData2.x + layer.WindData.w) + sin((v0.x + v0.y) * layer.WindData2.y + layer.WindData.w) + sin((v0.y + v0.z) * layer.WindData2.z + layer.WindData.w)) / 3.0f, 0.0f);
+            WindData += layer.WindData * windInfluence;
+        } else if (layer.WindType == 1)
+        {
+            float3 vecToWind = layer.WindData.xyz - v0;
+            if (length(vecToWind) == 0) continue;
+            
+            float windInfluence = lerp(1, 0, saturate(length(vecToWind) / layer.WindData.w));
+            if (length(vecToWind) < layer.WindData.w)
+            { 
+                vecToWind = normalize(-vecToWind);
+                //WindData.xyz += float3(-sin(vecToWind.x * PI), -sin(vecToWind.y * PI), cos(vecToWind.z * PI));
+                //WindData.xz += float2(-sin(vecToWind.x * PI), cos(vecToWind.z * PI));
+                WindData.xz += (0.75 * float2(vecToWind.z, -vecToWind.x) + 0.25 * vecToWind.xz) * windInfluence * layer.WindData2.x;
+                //WindData.xyz += vecToWind;
+            }
+        }
+    }
+        
 	//Wind
 	float3 wind;
 	if (length(WindData.xyz) > 0)
 	{
         float windageHeight = abs(dot(normalize(v2), bladeUp)) * invHeight;
         float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2))); //one possible source for v2 being NaN normalize
-        float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
-        wind = WindData.xyz * windageDir * windageHeight * windPos * windPos * bendingFactor * mdt;
+        //float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
+        wind = WindData.xyz * windageDir * windageHeight * bendingFactor * mdt;
 	} else
 	{
 	    wind = float3(0, 0, 0);

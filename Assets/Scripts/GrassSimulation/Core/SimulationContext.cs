@@ -22,8 +22,10 @@ namespace GrassSimulation.Core
 		public Shader CollisionDepthShader;
 		[HideInInspector]
 		public CollisionTextureRenderer CollisionTextureRenderer;
-		[HideInInspector]
-		public ProceduralWind ProceduralWind;
+		//[HideInInspector]
+		//public ProceduralWind ProceduralWind;
+		[NonSerialized]
+		public WindManager WindManager; 
 
 		public Shader GrassSimulationShader;
 		[NonSerialized]
@@ -333,6 +335,7 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen.SetFloat("LodDistanceBillboardScreenPeak", Settings.LodDistanceBillboardScreenPeak);
 			GrassBillboardScreen.SetFloat("LodDistanceBillboardScreenEnd", Settings.LodDistanceBillboardScreenEnd);
 			
+			GrassSimulationComputeShader.SetInt("WindLayerCount", Settings.WindLayerCount);
 			GrassSimulationComputeShader.SetFloat("GrassDataResolution", Settings.GrassDataResolution);
 			GrassSimulationComputeShader.SetFloat("BladeHeightCullingThreshold", Settings.BladeHeightCullingThreshold);
 			GrassSimulationComputeShader.SetFloat("RecoveryFactor", Settings.RecoveryFactor);
@@ -365,8 +368,16 @@ namespace GrassSimulation.Core
 			PatchContainer.SetupContainer();
 			
 			CollisionTextureRenderer = new CollisionTextureRenderer(this, PatchContainer.GetBounds());
-			ProceduralWind = new ProceduralWind(this);
-			ProceduralWind.Update();
+			if (WindManager == null)
+			{
+				WindManager = new WindManager(this);
+			} else
+			{
+				WindManager.InitBuffer();
+			}
+			WindManager.Update();
+			//ProceduralWind = new ProceduralWind(this);
+			//ProceduralWind.Update();
 
 			//Create Billboard Textures
 			BillboardTexturePatchContainer.Init(this);

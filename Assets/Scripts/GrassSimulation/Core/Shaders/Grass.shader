@@ -350,6 +350,11 @@ Shader "GrassSimulation/Grass"
                	#ifdef GRASS_GEOMETRY
                     float tesslevel = SingleLerpMinMax(LodTessellationMin, LodTessellationMax, distance, LodDistanceTessellationMin, LodDistanceTessellationMax);
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / LodTessellationMax));
+                    #ifdef BILLBOARD_GENERATION
+                        OUT.parameters.w = BladeTextureMaxMipmapLevel;
+                    #else
+                        OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / LodTessellationMax));
+                    #endif
                 #elif GRASS_BLOSSOM
                     float tesslevel = round(SingleLerpMinMax(2, 8, distance, LodDistanceTessellationMin, LodDistanceTessellationMax)) * 2;
                     OUT.parameters.w = lerp(BladeTextureMaxMipmapLevel, 0.0, saturate(tesslevel / 8));
@@ -503,11 +508,11 @@ Shader "GrassSimulation/Grass"
     
                     #ifdef GRASS_BILLBOARD_CROSSED
                         OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                        OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                        OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.9, 0.2, IN[0].grassMapData.y));
                         OUT.tangent = tangent;
                     #elif GRASS_BILLBOARD_SCREEN
                         OUT.pos = mul(UNITY_MATRIX_VP, float4(lerp(i1, i2, u), 1.0));
-                        OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.8, 0.2, IN[0].grassMapData.y));
+                        OUT.uvwd = float4(uv.xy, IN[0].grassMapData.x, lerp(0.9, 0.2, IN[0].grassMapData.y));
                         OUT.tangent = tangent;
                     #elif GRASS_GEOMETRY
                         float4 texSample0 = GrassBlades0.SampleLevel(samplerGrassBlades0, float3(uv.xy, IN[0].grassMapData.x), IN[0].parameters.w);
@@ -608,14 +613,14 @@ Shader "GrassSimulation/Grass"
                 #else
                     float3 billboardNormalTangentSpace = 2 * GrassBillboardNormals.Sample(samplerGrassBillboards, IN.uvwd.xyz).xyz - 1.0;
                     float3 bitangent = normalize(cross(IN.normal, IN.tangent));
-                    float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.z);
+                    //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.z);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.x + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.y);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.y + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.z);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.y + bitangent * billboardNormalTangentSpace.z + IN.normal * billboardNormalTangentSpace.x);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.y);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.x);
                     //N = IN.normal;
-                    //N = IN.normal;
+                    N = IN.normal;
                     
                     float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
                     float Kd = bladeLightningData.x;

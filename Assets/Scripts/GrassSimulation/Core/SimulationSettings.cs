@@ -50,18 +50,10 @@ namespace GrassSimulation.Core
 		[Range(0.01f, 10f)]
 		public float RecoveryFactor = 0.1f;
 
-		[Header("Procedural Wind")]
-		[Range(0, 32)]
-		public float WindFrequencyDirMin = 5f;
-		[Range(0, 32)]
-		public float WindFrequencyDirMax = 8f;
-		[Range(0, 32)]
-		public float WindFrequencyMagMin = 1f;
-		[Range(0, 32)]
-		public float WindFrequencyMagMax = 2f;
-		[Range(0, 1024)]
-		public float WindMagnitudeMax = 8f;
-
+		[Header("Layered Wind")]
+		[Range(1, 256)]
+		public int WindLayerCount;
+		
 		[Header("Texture Resolutions")]
 		//TODO: Handle width and height seperately for non-quad containers
 		public int GrassMapResolution = 256;

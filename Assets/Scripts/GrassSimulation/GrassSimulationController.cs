@@ -39,7 +39,8 @@ namespace GrassSimulation
 			if (Context.IsReady)
 			{
 				Context.CollisionTextureRenderer.UpdateDepthTexture();
-				Context.ProceduralWind.Update();
+				Context.WindManager.Update();
+				//Context.ProceduralWind.Update();
 				//Context.WindFieldRenderer.Update();
 				Context.PatchContainer.Draw();
 				//Context.BillboardTexturePatchContainer.Draw();
