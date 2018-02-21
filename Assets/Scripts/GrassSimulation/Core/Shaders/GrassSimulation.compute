@@ -110,7 +110,7 @@ void CalculateBladeDirAndFront(inout float3 bladeUp, in float dirAlpha, out floa
 	float3 tmp = normalize(float3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
 	bladeDir = normalize(cross(bladeUp, tmp));
 	bladeFront = normalize(cross(bladeUp, bladeDir));
-	bladeUp = normalize(bladeUp + (SunLight.xyz * SunLight.w) * 0.3);
+	bladeUp = normalize(bladeUp - (GravityVec.xyz * GravityVec.w) * 0.5);
 }
 
 bool IsNAN(float n)

@@ -620,7 +620,7 @@ Shader "GrassSimulation/Grass"
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.x + IN.normal * billboardNormalTangentSpace.y);
                     //float3 N = normalize(IN.tangent * billboardNormalTangentSpace.z + bitangent * billboardNormalTangentSpace.y + IN.normal * billboardNormalTangentSpace.x);
                     //N = IN.normal;
-                    N = IN.normal;
+                    float3 N = IN.normal;
                     
                     float2 bladeLightningData = GrassBlades0.Sample(samplerGrassBlades0, IN.uvwd.xyz).ba;
                     float Kd = bladeLightningData.x;
