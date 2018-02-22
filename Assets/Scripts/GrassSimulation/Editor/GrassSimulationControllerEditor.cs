@@ -19,6 +19,8 @@ namespace GrassSimulation.Editor
 			
 			if (GUILayout.Button("Prepare Simulation"))
 				controller.PrepareSimulation();
+			if (GUILayout.Button("Print Debug Info"))
+				controller.Context.PrintDebugInfo();
 			
 			serializedObject.ApplyModifiedProperties();
 		}

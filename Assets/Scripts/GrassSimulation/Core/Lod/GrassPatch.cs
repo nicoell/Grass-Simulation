@@ -18,12 +18,13 @@ namespace GrassSimulation.Core.Lod
 	 */
 	public class GrassPatch : Patch
 	{
-		private readonly uint[] _argsBillboardCrossed = {0, 0, 0, 0, 0};
+		public readonly uint[] _argsBillboardCrossed = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsBillboardCrossedBuffer;
-		private readonly uint[] _argsBillboardScreen = {0, 0, 0, 0, 0};
+		public readonly uint[] _argsBillboardScreen = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsBillboardScreenBuffer;
-		private readonly uint[] _argsGeometry = {0, 0, 0, 0, 0};
+		public readonly uint[] _argsGeometry = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsGeometryBuffer;
+
 
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 
@@ -69,9 +70,10 @@ namespace GrassSimulation.Core.Lod
 			//_boundsVertices = new Bounds.BoundsVertices(bounds);
 			_patchTexCoord = patchTexCoord;
 			var maxElementsUsed = Mathf.Max(Ctx.Settings.GetMaxAmountBladesPerPatch(),
-				Ctx.Settings.GetMinAmountBillboardsPerPatch() * 3 * Ctx.PositionInput.GetRepetitionCount());
+				Ctx.Settings.GetMaxAmountBillboardsPerPatch() * Ctx.PositionInput.GetRepetitionCount());
 			_startIndex = Ctx.Random.Next(0,
 				(int) (Ctx.GetBufferLength() - maxElementsUsed));
+			//_startIndex = 0;
 			_materialPropertyBlock = new MaterialPropertyBlock();
 			_parameterOffsetX = (float) Ctx.Random.NextDouble();
 			_parameterOffsetY = (float) Ctx.Random.NextDouble();

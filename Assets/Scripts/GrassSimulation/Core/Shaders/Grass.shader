@@ -20,7 +20,7 @@ Shader "GrassSimulation/Grass"
 			
 			#pragma target 5.0
 			#pragma only_renderers d3d11
-			//#pragma enable_d3d11_debug_symbols
+			#pragma enable_d3d11_debug_symbols
 			#pragma vertex vert
 			#pragma hull hull
 			#pragma domain domain
@@ -51,7 +51,7 @@ Shader "GrassSimulation/Grass"
             //Billboard Specific
             uniform float BillboardAspect;
             uniform float BillboardHeightAdjustment;
-            uniform float RepetitionCount;
+            uniform int RepetitionCount;
             
             //Once
             uniform float BillboardAlphaCutoff;
@@ -151,15 +151,17 @@ Shader "GrassSimulation/Grass"
                         LodDistanceGeometryStart, LodDistanceGeometryEnd);
                 #endif
                 
-
-                uint transitionInstanceID = floor(transition);
+                //instanceID *= 0.5;
+                uint transitionInstanceID = (transition);
                 
                 //Cull if instance should not be visible
-                if (instanceID > transitionInstanceID) return 0;
+                if (transition < instanceID) return 0;
+                //if (instanceID < transitionInstanceID) return 0;
                 //Cull if transition is too small to reduce aliasing
                 if (instanceID == transitionInstanceID) {
                     if (EnableHeightTransition == 0) return 0;
-                    if (smoothstep(0, 1, frac(transition)) < BladeHeightCullingThreshold) return 0;
+                    //if (smoothstep(0, 1, frac(transition)) < BladeHeightCullingThreshold) return 0;
+                    if (lerp(0, 1, frac(transition)) < BladeHeightCullingThreshold) return 0;
                 }
                 //Cull if height Modifier is too low ro teduce aliasing
                 if (grassMapData.z < BladeHeightCullingThreshold) return 0;
@@ -269,10 +271,10 @@ Shader "GrassSimulation/Grass"
                 
         		//TODO: Compare performance of condition
         		//TODO: Check if height transition is disabled
-        		uint instanceID = floor(transition);
+        		uint instanceID = (transition);
         		if (instanceID == IN[0].instanceID){
-        		    OUT.transitionFactor = smoothstep(0, 1, frac(transition)) * EnableHeightTransition;
-        		    //OUT.transitionFactor = lerp(0, 1, frac(transition)) * EnableHeightTransition;
+        		    //OUT.transitionFactor = smoothstep(0, 1, frac(transition)) * EnableHeightTransition;
+        		    OUT.transitionFactor = lerp(0, 1, frac(transition)) * EnableHeightTransition;
         		} else {
         		    OUT.transitionFactor = 1;
         		}
@@ -567,7 +569,8 @@ Shader "GrassSimulation/Grass"
                         float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
                         bladeColor.a = 1;
                         return bladeColor;
-                    #else // GRASS_BLOSSOM
+                    #else 
+                        // GRASS_BLOSSOM
                         float4 blossomColor = GrassBlossom1.Sample(samplerGrassBlossom1, IN.uvwd.xyz);
                         return blossomColor;
                     #endif

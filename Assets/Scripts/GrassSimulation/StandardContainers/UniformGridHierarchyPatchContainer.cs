@@ -154,5 +154,34 @@ namespace GrassSimulation.StandardContainers
 				foreach (var childPatch in childPatches) if (childPatch != null) TestViewFrustum(childPatch);
 			}
 		}
+
+		public override void GetDebugInfo(ref int visiblePatchCount, ref int simulatedGrassCount, ref int geometryGrassCount, ref int crossedBillboardGrassCount, ref int screenBillboardGrassCount)
+		{
+			foreach (var visiblePatch in _visiblePatches)
+			{
+				visiblePatchCount++;
+				simulatedGrassCount += Ctx.Settings.GrassDataResolution * Ctx.Settings.GrassDataResolution;
+				geometryGrassCount += (int) visiblePatch._argsGeometry[1] * (int) Ctx.Settings.GetMinAmountBladesPerPatch();
+				if (visiblePatch._argsGeometry[1] > 0)
+				{
+					geometryGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBladesPerPatch() *
+					                      (int) Ctx.Settings.LodGeometryTransitionSegments * 0.5f);
+				}
+				crossedBillboardGrassCount += (int) visiblePatch._argsBillboardCrossed[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
+				if (visiblePatch._argsBillboardCrossed[1] > 0)
+				{
+					crossedBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() *
+					                            (int) Ctx.Settings.LodBillboardCrossedTransitionSegments * 0.5f);
+				}
+				screenBillboardGrassCount += (int) visiblePatch._argsBillboardScreen[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
+				if (visiblePatch._argsBillboardScreen[1] > 0)
+				{
+					screenBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() *
+					                            (int) Ctx.Settings.LodBillboardScreenTransitionSegments * 0.5f);
+				}
+			}
+			
+			
+		}
 	}
 }

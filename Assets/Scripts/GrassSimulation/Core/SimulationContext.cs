@@ -391,11 +391,11 @@ namespace GrassSimulation.Core
 			GrassBillboardCrossed.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
 			GrassBillboardCrossed.SetTexture("GrassBillboardNormals", BillboardTexturePatchContainer.BillboardNormals);
 			GrassBillboardCrossed.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
-			GrassBillboardCrossed.SetFloat("RepetitionCount", PositionInput.GetRepetitionCount());
+			GrassBillboardCrossed.SetInt("RepetitionCount", (int) PositionInput.GetRepetitionCount());
 			GrassBillboardScreen.SetTexture("GrassBillboards", BillboardTexturePatchContainer.BillboardTextures);
 			GrassBillboardScreen.SetTexture("GrassBillboardNormals", BillboardTexturePatchContainer.BillboardNormals);
 			GrassBillboardScreen.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
-			GrassBillboardScreen.SetFloat("RepetitionCount", PositionInput.GetRepetitionCount());
+			GrassBillboardScreen.SetInt("RepetitionCount", (int) PositionInput.GetRepetitionCount());
 			
 			//Everything is ready.
 			IsReady = true;
@@ -411,6 +411,34 @@ namespace GrassSimulation.Core
 		public void OnGUI()
 		{
 			PatchContainer.OnGUI();
+		}
+
+		public void PrintDebugInfo()
+		{
+			int visiblePatchCount = 0;
+			int simulatedGrassCount = 0;
+			int geometryGrassCount = 0;
+			int blossomCount = 0;
+			int crossedBillboardGrassCount = 0;
+			int screenBillboardGrassCount = 0;
+			PatchContainer.GetDebugInfo(ref visiblePatchCount, ref simulatedGrassCount, ref geometryGrassCount, ref crossedBillboardGrassCount, ref screenBillboardGrassCount);
+			
+			float[] dist = BladeContainer.GetBladeDistribution();
+			float blossomChance = 0f;
+			for (int i = 0; i < BladeContainer.GetBlossomCount(); i++)
+			{
+				blossomChance += dist[i];
+			}
+
+			blossomCount = (int) (geometryGrassCount * blossomChance);
+			
+			Debug.Log("#Debug Info:");
+			Debug.Log("visiblePatchCount: " + visiblePatchCount);
+			Debug.Log("simulatedGrassCount: " + simulatedGrassCount);
+			Debug.Log("geometryGrassCount: " + geometryGrassCount);
+			Debug.Log("blossomGrassCount: " + blossomCount);
+			Debug.Log("crossedBillboardGrassCount: " + crossedBillboardGrassCount);
+			Debug.Log("screenBillboardGrassCount: " + screenBillboardGrassCount);
 		}
 	}
 }

@@ -267,6 +267,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
      * x,y are brought in range 0..1 so they can be used as texture coordinates 
      * z is depth, with 1 at near plane (ground level) and 0 at far plane
      */
+
     float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz);
     cV2.xy = (cV2.xy + 1) / 2;
     // Get collider data at v2

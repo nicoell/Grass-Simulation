@@ -90,5 +90,10 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassSimulationComputeShader.SetVector("SunLight", new Vector4(-Ctx.SunLight.transform.forward.x, -Ctx.SunLight.transform.forward.y, -Ctx.SunLight.transform.forward.z, Ctx.SunLight.intensity));
 			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
 		}
+
+		public virtual void GetDebugInfo(ref int visiblePatchCount, ref int simulatedGrassCount, ref int geometryGrassCount, ref int crossedBillboardGrassCount, ref int screenBillboardGrassCount)
+		{
+			
+		}
 	}
 }
