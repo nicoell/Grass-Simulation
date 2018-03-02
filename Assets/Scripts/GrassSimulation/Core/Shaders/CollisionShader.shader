@@ -2,6 +2,9 @@
 
 Shader "GrassSimulation/CollisionShader"
 {
+    Properties {
+        _CollisionVelocity ("Collision Velocity", Vector) = (0, 0, 0, 0)
+    }
     SubShader
     {
         Tags { "RenderType" = "Opaque" }
