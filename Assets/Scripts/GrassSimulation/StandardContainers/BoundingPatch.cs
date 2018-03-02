@@ -43,15 +43,26 @@ namespace GrassSimulation.StandardContainers
 			Bounds = tempBounds;
 		}
 
-		public override void DrawGizmo()
+		public override void DrawGizmo(int level = 0)
 		{
 			if (!Ctx.EditorSettings.EnableHierarchyGizmo) return;
-			
-			Gizmos.color = new Color(1f, 0f, 0f, 0.2f);
-			Gizmos.DrawWireSphere(Bounds.center, 0.5f);
+			float fac = 0f, fac2 = 0f, fac3 = 0f;
+			switch (level)
+			{
+					case 0: fac = 1.0f; fac2 = 0.0f; fac3 = 0.0f; break;
+					case 1: fac = 0.0f; fac2 = 1.0f; fac3 = 0.0f; break;
+					case 2: fac = 1.0f; fac2 = 1.0f; fac3 = 0.0f;  break;
+					default: fac = 0.6f; break;
+			}
+			Debug.Log(level);
+			Gizmos.color = new Color(fac, fac2, fac3, 0.04f);
+			//Gizmos.DrawWireSphere(Bounds.center, 0.5f);
+			Gizmos.DrawCube(Bounds.center, Bounds.size);
+			Gizmos.color = new Color(fac, fac2, fac3, 0.5f);
 			Gizmos.DrawWireCube(Bounds.center, Bounds.size);
+			level++;
 			foreach (var child in ChildPatches)
-				if (child != null && !child.IsLeaf) child.DrawGizmo();
+				if (child != null && !child.IsLeaf) child.DrawGizmo(level);
 		}
 	}
 }

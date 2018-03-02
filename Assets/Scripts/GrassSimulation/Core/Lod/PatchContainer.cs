@@ -54,6 +54,7 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 			Ctx.GrassGeometry.SetVector("LightDirection", Ctx.SunLight.transform.forward);
 			Ctx.GrassGeometry.SetVector("LightColor", Ctx.SunLight.color);
+			Ctx.GrassGeometry.SetVector("GravityVec", Ctx.Settings.Gravity);
 			Ctx.GrassGeometry.SetFloat("LightIntensity", Ctx.SunLight.intensity);
 			Ctx.GrassGeometry.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 
@@ -64,12 +65,14 @@ namespace GrassSimulation.Core.Lod
 				Ctx.GrassBlossom.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 				Ctx.GrassBlossom.SetVector("LightDirection", Ctx.SunLight.transform.forward);
 				Ctx.GrassBlossom.SetVector("LightColor", Ctx.SunLight.color);
+				Ctx.GrassBlossom.SetVector("GravityVec", Ctx.Settings.Gravity);
 				Ctx.GrassBlossom.SetFloat("LightIntensity", Ctx.SunLight.intensity);
 				Ctx.GrassBlossom.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			}
 			Ctx.GrassBillboardCrossed.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassBillboardCrossed.SetVector("LightDirection", Ctx.SunLight.transform.forward);
 			Ctx.GrassBillboardCrossed.SetVector("LightColor", Ctx.SunLight.color);
+			Ctx.GrassBillboardCrossed.SetVector("GravityVec", Ctx.Settings.Gravity);
 			Ctx.GrassBillboardCrossed.SetFloat("LightIntensity", Ctx.SunLight.intensity);
 			Ctx.GrassBillboardCrossed.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
@@ -77,6 +80,7 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassBillboardScreen.SetVector("CamUp", Ctx.Camera.transform.up);
 			Ctx.GrassBillboardScreen.SetVector("LightDirection", Ctx.SunLight.transform.forward);
 			Ctx.GrassBillboardScreen.SetVector("LightColor", Ctx.SunLight.color);
+			Ctx.GrassBillboardScreen.SetVector("GravityVec", Ctx.Settings.Gravity);
 			Ctx.GrassBillboardScreen.SetFloat("LightIntensity", Ctx.SunLight.intensity);
 			Ctx.GrassBillboardScreen.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			

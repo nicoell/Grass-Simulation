@@ -133,6 +133,7 @@ Shader "GrassSimulation/Grass"
             uniform float3 LightColor;
             uniform float LightIntensity;
 
+            uniform float4 GravityVec;
 			
 			float GetTessellationLevel(float distance, uint instanceID, float2 uv, int type)
 			{
@@ -246,8 +247,8 @@ Shader "GrassSimulation/Grass"
     		{
         		HSOut OUT = (HSOut)0;
                 
-        		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
         	    float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
+        		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
         		float4 SimulationData0 = SimulationTexture0.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
 				float4 SimulationData1 = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
@@ -281,7 +282,8 @@ Shader "GrassSimulation/Grass"
 
         		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
         		OUT.parameters.x -= OUT.parameters.x * GRASSMAP_WIDTH_INFLUENCE * (1 - grassMapData.z);
-        		OUT.bladeUp = normalize(normalHeight.xyz);
+        		//OUT.bladeUp = normalize(normalHeight.xyz);
+        		OUT.bladeUp = normalize(normalHeight.xyz - (GravityVec.xyz * GravityVec.w) * 0.5);
         		OUT.v1 = SimulationData0.xyz;
         		OUT.v2 = SimulationData1.xyz;
         		
@@ -325,14 +327,14 @@ Shader "GrassSimulation/Grass"
                     float cd = cos(dirAlpha); 
                     float3 tmp = normalize(float3(sd, sd + cd, cd));
                     OUT.bladeDir = normalize(cross(OUT.bladeUp, tmp));
-                    float dirFactor = SingleLerpMinMax(1, 0, distance, LodDistanceGeometryStart, LodDistanceGeometryEnd);
+                    //float dirFactor = SingleLerpMinMax(1, 0, distance, LodDistanceGeometryStart, LodDistanceGeometryEnd);
                     #ifdef BILLBOARD_GENERATION
                         tmp = float3(1, 0, 0);
                     #else
                         tmp = normalize(cross(OUT.bladeUp, camDir));
                     #endif
                         
-                    OUT.bladeDir = normalize(lerp(OUT.bladeDir, tmp, dirFactor));
+                    //OUT.bladeDir = normalize(lerp(OUT.bladeDir, tmp, dirFactor));
                     
                     /*camDir = normalize(camDir);
                     float3 right = cross(camDir, CamUp.xyz);

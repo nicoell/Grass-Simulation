@@ -127,7 +127,7 @@ namespace GrassSimulation.Core.Billboard
 			return retBounds;
 		}
 
-		public override void DrawGizmo()
+		public override void DrawGizmo(int level = 0)
 		{
 			base.DrawGizmo();
 

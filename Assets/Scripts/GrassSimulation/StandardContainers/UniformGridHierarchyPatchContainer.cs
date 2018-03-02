@@ -122,7 +122,7 @@ namespace GrassSimulation.StandardContainers
 		protected override void DrawGizmoImpl()
 		{
 			//Draw Gizmos for Hierchical Patches
-			_rootPatch.DrawGizmo();
+			_rootPatch.DrawGizmo(0);
 			//Draw Gizmos for visible Leaf Patches
 			foreach (var visiblePatch in _visiblePatches) visiblePatch.DrawGizmo();
 		}

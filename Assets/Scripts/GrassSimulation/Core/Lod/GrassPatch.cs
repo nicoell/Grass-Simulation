@@ -38,6 +38,7 @@ namespace GrassSimulation.Core.Lod
 		private Mesh _dummyMeshBillboardScreen;
 		private Bounds _inputBounds;
 		private Texture2D _normalHeightTexture;
+		private int _threadGroupX, _threadGroupY, _threadGroupZ;
 
 		/*
 		 * _patchModelMatrix Notes:
@@ -67,6 +68,7 @@ namespace GrassSimulation.Core.Lod
 			boundsCorrected.size += new Vector3(Ctx.Settings.BladeMaxHeight * 2, Ctx.Settings.BladeMaxHeight * 2,
 				Ctx.Settings.BladeMaxHeight * 2);
 			Bounds = boundsCorrected;
+
 			//_boundsVertices = new Bounds.BoundsVertices(bounds);
 			_patchTexCoord = patchTexCoord;
 			var maxElementsUsed = Mathf.Max(Ctx.Settings.GetMaxAmountBladesPerPatch(),
@@ -157,43 +159,34 @@ namespace GrassSimulation.Core.Lod
 
 			//Calculate InstanceCounts of different LODs (Geometry, BillboardsCrossed, BillboardsScreen)
 			var geometryInstanceCount = (uint) Mathf.Ceil(SingleLerp(
-				                            Ctx.Settings.LodInstancesGeometry / (float) Ctx.Settings.LodGeometryTransitionSegments,
+				                            Ctx.Settings.LodInstancesGeometry,
 				                            nearestDistance,
-				                            Ctx.Settings.LodDistanceGeometryStart, Ctx.Settings.LodDistanceGeometryEnd)) *
-			                            Ctx.Settings.LodGeometryTransitionSegments;
+				                            Ctx.Settings.LodDistanceGeometryStart, Ctx.Settings.LodDistanceGeometryEnd));
 			var billboardCrossedInstanceCount = (uint) Mathf.Ceil(DoubleLerp(
-				                                    Ctx.Settings.LodInstancesBillboardCrossed /
-				                                    (float) Ctx.Settings.LodBillboardCrossedTransitionSegments,
+				                                    Ctx.Settings.LodInstancesBillboardCrossed,
 				                                    nearestDistance,
 				                                    Ctx.Settings.LodDistanceBillboardCrossedStart,
 				                                    Ctx.Settings.LodDistanceBillboardCrossedPeak,
-				                                    Ctx.Settings.LodDistanceBillboardCrossedEnd)) *
-			                                    Ctx.Settings.LodBillboardCrossedTransitionSegments;
+				                                    Ctx.Settings.LodDistanceBillboardCrossedEnd));
 			var billboardCrossedInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(
-				                                     Ctx.Settings.LodInstancesBillboardCrossed /
-				                                     (float) Ctx.Settings.LodBillboardCrossedTransitionSegments,
+				                                     Ctx.Settings.LodInstancesBillboardCrossed,
 				                                     farthestDistance,
 				                                     Ctx.Settings.LodDistanceBillboardCrossedStart,
 				                                     Ctx.Settings.LodDistanceBillboardCrossedPeak,
-				                                     Ctx.Settings.LodDistanceBillboardCrossedEnd)) *
-			                                     Ctx.Settings.LodBillboardCrossedTransitionSegments;
+				                                     Ctx.Settings.LodDistanceBillboardCrossedEnd));
 			billboardCrossedInstanceCount = (uint) Mathf.Max(billboardCrossedInstanceCount, billboardCrossedInstanceCount2);
 			var billboardScreenInstanceCount = (uint) Mathf.Ceil(DoubleLerp(
-				                                   Ctx.Settings.LodInstancesBillboardScreen /
-				                                   (float) Ctx.Settings.LodBillboardScreenTransitionSegments,
+				                                   Ctx.Settings.LodInstancesBillboardScreen,
 				                                   nearestDistance,
 				                                   Ctx.Settings.LodDistanceBillboardScreenStart,
 				                                   Ctx.Settings.LodDistanceBillboardScreenPeak,
-				                                   Ctx.Settings.LodDistanceBillboardScreenEnd)) *
-			                                   Ctx.Settings.LodBillboardScreenTransitionSegments;
+				                                   Ctx.Settings.LodDistanceBillboardScreenEnd));
 			var billboardScreenInstanceCount2 = (uint) Mathf.Ceil(DoubleLerp(
-				                                    Ctx.Settings.LodInstancesBillboardScreen /
-				                                    (float) Ctx.Settings.LodBillboardScreenTransitionSegments,
-				                                    farthestDistance,
-				                                    Ctx.Settings.LodDistanceBillboardScreenStart,
-				                                    Ctx.Settings.LodDistanceBillboardScreenPeak,
-				                                    Ctx.Settings.LodDistanceBillboardScreenEnd)) *
-			                                    Ctx.Settings.LodBillboardScreenTransitionSegments;
+				Ctx.Settings.LodInstancesBillboardScreen,
+				farthestDistance,
+				Ctx.Settings.LodDistanceBillboardScreenStart,
+				Ctx.Settings.LodDistanceBillboardScreenPeak,
+				Ctx.Settings.LodDistanceBillboardScreenEnd));
 			billboardScreenInstanceCount = (uint) Mathf.Max(billboardScreenInstanceCount, billboardScreenInstanceCount2);
 
 			_argsGeometry[1] = geometryInstanceCount;
@@ -368,11 +361,12 @@ namespace GrassSimulation.Core.Lod
 			uint threadGroupX, threadGroupY, threadGroupZ;
 			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelSimulationSetup, out threadGroupX,
 				out threadGroupY, out threadGroupZ);
+			_threadGroupX = (int) (Ctx.Settings.GrassDataResolution / threadGroupX);
+			_threadGroupY = (int) (Ctx.Settings.GrassDataResolution / threadGroupY);
+			_threadGroupZ = 1;
 
 			//Run Physics Simulation
-			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelSimulationSetup,
-				(int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY),
-				1);
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelSimulationSetup, _threadGroupX, _threadGroupY, _threadGroupZ);
 		}
 
 		private void RunSimulationComputeShader()
@@ -393,25 +387,23 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture1", _simulationTexture1);
 			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", _normalHeightTexture);
 
-			uint threadGroupX, threadGroupY, threadGroupZ;
-			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelPhysics, out threadGroupX, out threadGroupY,
-				out threadGroupZ);
+			//uint threadGroupX, threadGroupY, threadGroupZ;
+			//Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelPhysics, out threadGroupX, out threadGroupY, out threadGroupZ);
 
 			//Run Physics Simulation
-			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, (int) (Ctx.Settings.GrassDataResolution / threadGroupX),
-				(int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, _threadGroupX, _threadGroupY, _threadGroupZ);
 		}
 
 		public override void OnGUI() { }
 
 #if UNITY_EDITOR
-		public override void DrawGizmo()
+		public override void DrawGizmo(int level = 0)
 		{
 			if (Ctx.EditorSettings.EnablePatchGizmo)
 			{
 				Gizmos.color = new Color(0f, 0f, 1f, 0.2f);
-				Gizmos.DrawWireSphere(Bounds.center, 0.5f);
-				Gizmos.DrawWireCube(Bounds.center, Bounds.size);
+				//Gizmos.DrawWireSphere(Bounds.center, 0.5f);
+				Gizmos.DrawCube(Bounds.center, Bounds.size);
 				Gizmos.color = new Color(0f, 0f, 1f, 0.5f);
 				Gizmos.DrawWireCube(_inputBounds.center, _inputBounds.size);
 			}

@@ -69,7 +69,7 @@ float3 GetV1(in float3 v2, in float3 bladeUp, in float height, in float invHeigh
     float3 g = v2 - dot(v2, bladeUp) * bladeUp;
     float v2ratio = abs(length(g) * invHeight);
     float fac = max(1.0 - v2ratio, 0.05 * max(v2ratio, 1.0));
-    return bladeUp * height * 0.5 * fac;
+    return bladeUp * height * fac;
 }
 
 void AdjustBezierArcLength(inout float3 v1, inout float3 v2, in float height)
@@ -97,10 +97,10 @@ void ValidateV2Tex(inout float3 v2, in float3 v0)
 	v2.y = max(v0.y + v2.y, height) - v0.y;
 }
 
-void ValidateV2(inout float3 v2, in float3 bladeUp)
+void ValidateV2(inout float3 v2, in float3 terrainNormal)
 {
     //Ensure valid v2 position (not under ground plane)
-	v2 += bladeUp * -min(dot(bladeUp, v2) - 0.01, 0);
+	v2 += terrainNormal * -min(dot(terrainNormal, v2) - 0.01, 0);
 }
 
 void CalculateBladeDirAndFront(inout float3 bladeUp, in float dirAlpha, out float3 bladeDir, out float3 bladeFront)
@@ -138,12 +138,12 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
     float dirAlpha = parameters.w;
     float3 bladeDir;
 	float3 bladeFront;
+    float3 terrainNormal = normalize(normalHeight.xyz);
     float3 bladeUp = normalize(normalHeight.xyz);
-    float3 bladeNormal = normalize(normalHeight.xyz);
-    CalculateBladeDirAndFront(bladeNormal, dirAlpha, bladeDir, bladeFront);
+    CalculateBladeDirAndFront(bladeUp, dirAlpha, bladeDir, bladeFront);
     float height = parameters.z;
-    float3 v2 = bladeNormal * height;
-    float3 v1 = GetV1(v2, bladeNormal, height, 1.0 / height);
+    float3 v2 = bladeUp * height;
+    float3 v1 = GetV1(v2, bladeUp, height, 1.0 / height);
     
     AdjustBezierArcLength(v1, v2, height);
 
@@ -187,21 +187,26 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float dirAlpha = parameters.w;
 	float3 localV0 = float3(uvLocal.x, normalHeight.w, uvLocal.y);
 	float3 v0 = LocalToWorldPos(localV0).xyz;
-	float3 bladeUp = normalize(normalHeight.xyz);
-	float3 bladeNormal = normalize(normalHeight.xyz); //Normal gets altered by negative gravity, so that it grows away
+	float3 terrainNormal = normalize(normalHeight.xyz);
+	float3 bladeUp = normalize(normalHeight.xyz); //Normal gets altered by negative gravity, so that it grows away
 	float3 bladeDir;
 	float3 bladeFront;
-	CalculateBladeDirAndFront(bladeNormal, dirAlpha, bladeDir, bladeFront);
+	CalculateBladeDirAndFront(bladeUp, dirAlpha, bladeDir, bladeFront);
 	float mdt = min(DeltaTime, 1.0);
-	float3 idleV2 = bladeNormal * height;
+	float3 idleV2 = bladeUp * height;
 	float3 v2 = simulationData1.xyz;
 	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * RecoveryFactor * mdt, 0.0);
 
 	//Gravity
+	//float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
+	//float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
+	//gravity += sign * bladeFront * height * GravityVec.w * 0.25;
+	//gravity = gravity * height * bendingFactor;
+	
 	float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
-	float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
-	gravity += sign * bladeFront * height * GravityVec.w * 0.25;
-	gravity = gravity * height * bendingFactor * mdt;
+	//float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
+	float3 gravFront = bladeFront * GravityVec.w * 0.25;
+	gravity = (gravity + gravFront) * height * bendingFactor;
     
     float4 WindData = float4(0,0,0,0);
     
@@ -234,26 +239,28 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 wind;
 	if (length(WindData.xyz) > 0)
 	{
-        float windageHeight = abs(dot(normalize(v2), bladeUp)) * invHeight;
-        float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2))); //one possible source for v2 being NaN normalize
+        float windageHeight = abs(dot(normalize(v2), terrainNormal));
+        //float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2))); //one possible source for v2 being NaN normalize
+        float3 projWind = WindData.xyz - dot(WindData.xyz, bladeUp) * bladeUp;
+        float windageDir = abs(dot(normalize(projWind.xyz), normalize(bladeFront))); //one possible source for v2 being NaN normalize
         //float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
-        wind = WindData.xyz * windageDir * windageHeight * bendingFactor * mdt;
+        wind = WindData.xyz * windageDir * windageHeight * bendingFactor;
 	} else
 	{
 	    wind = float3(0, 0, 0);
 	}
 	//Stiffness 
-	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.5) * max(1.0 - collisionForce, 0.0) * mdt;
+	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.5) * max(1.0 - collisionForce, 0.0);
 
 	//apply new forces
     //v2 += wind + stiffness;
 	//v2 += gravity + stiffness;
 	//v2 += gravity + wind;
-	v2 += gravity + wind + stiffness;
+	v2 += (gravity + wind + stiffness) * mdt;
 
 	//ValidateV2Tex(v2, v0);
-	ValidateV2(v2, bladeUp);
-    float3 v1 = GetV1(v2, bladeNormal, height, invHeight);
+	ValidateV2(v2, terrainNormal);
+    float3 v1 = GetV1(v2, bladeUp, height, invHeight);
     AdjustBezierArcLength(v1, v2, height);
     
     // Collisions
@@ -306,7 +313,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
             // Determine the exact pressure the gets applied on v2 (the downward delta) in relative space
             float pressureAtMidPoint = collisionDepthAtMidPoint;
             // and in worldSpace, multiply with 4, because only v2 gets altered
-            float worldSpacePressureAtMidPoint = 4 * min(pressureAtMidPoint * CollisionVolumeSize.y, height);
+            float worldSpacePressureAtMidPoint = 4 * min(pressureAtMidPoint * CollisionVolumeSize.y, height * 0.5f);
             
             // Apply a collision to v2 control point
             // First apply colliders velocity to grass
@@ -323,8 +330,8 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     if (dataDirty)
     {
         //ValidateV2Tex(v2, v0);
-        ValidateV2(v2, bladeUp);
-        v1 = GetV1(v2, bladeNormal, height, invHeight);
+        ValidateV2(v2, terrainNormal);
+        v1 = GetV1(v2, bladeUp, height, invHeight);
         AdjustBezierArcLength(v1, v2, height);
     }
     
