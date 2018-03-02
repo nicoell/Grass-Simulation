@@ -267,7 +267,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     bool dataDirty = false;
     //float3 cV0 = (GetCollisionVolumePos(v0).xyz);
     //cV0.xy = (cV0.xy + 1) / 2;
-    
+    float3 v2Before = v2;
     //Test collision with v2
     /* 
      * Get v2 position in collider Volume
@@ -296,7 +296,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
         v2 += normalize(GravityVec.xyz) * GravityVec.w * worldSpacePressureAtV2;
 
         // Determine the force of the collision. Depends on pressure and colliders velocity;
-        collisionForce += worldSpacePressureAtV2;
+        //collisionForce += bendingFactor * colliderDataAtV2.xyz * worldSpacePressureAtV2;
     } else 
     {
         //Test collision with beziers midPoint
@@ -322,7 +322,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
             v2 += normalize(GravityVec.xyz) * GravityVec.w * worldSpacePressureAtMidPoint;
     
             // Determine the force of the collision. Depends on pressure and colliders velocity;
-            collisionForce += worldSpacePressureAtMidPoint;
+            //collisionForce += bendingFactor * colliderDataAtMidPoint.xyz * worldSpacePressureAtMidPoint;
         }
     }
     
@@ -333,6 +333,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
         ValidateV2(v2, terrainNormal);
         v1 = GetV1(v2, bladeUp, height, invHeight);
         AdjustBezierArcLength(v1, v2, height);
+        collisionForce += length(v2 - v2Before);
     }
     
     float3 camDir = v0 - CamPos;
