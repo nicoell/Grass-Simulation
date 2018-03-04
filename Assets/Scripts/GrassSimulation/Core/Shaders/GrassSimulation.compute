@@ -287,7 +287,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
         // Determine the exact pressure the gets applied on midPoint (the downward delta) in relative space
         float pressureAtV2 = collisionDepthAtV2;
         // and in worldSpace
-        float worldSpacePressureAtV2 = min(pressureAtV2 * CollisionVolumeSize.y, height);
+        float worldSpacePressureAtV2 = min(pressureAtV2 * CollisionVolumeSize.y, height) / height;
         
         // Apply a collision to v2 control point
         // First apply colliders velocity to grass
@@ -313,7 +313,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
             // Determine the exact pressure the gets applied on v2 (the downward delta) in relative space
             float pressureAtMidPoint = collisionDepthAtMidPoint;
             // and in worldSpace, multiply with 4, because only v2 gets altered
-            float worldSpacePressureAtMidPoint = 4 * min(pressureAtMidPoint * CollisionVolumeSize.y, height * 0.5f);
+            float worldSpacePressureAtMidPoint = 4 * (min(pressureAtMidPoint * CollisionVolumeSize.y, height * 0.5) / height * 0.5);
             
             // Apply a collision to v2 control point
             // First apply colliders velocity to grass
