@@ -11,7 +11,7 @@ namespace GrassSimulation.Core.Lod
 			Ctx = context;
 		}
 
-		public abstract void Destroy();
+		public abstract void Unload();
 
 		public abstract Bounds GetBounds();
 

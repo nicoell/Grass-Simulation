@@ -18,13 +18,12 @@ namespace GrassSimulation.Core.Lod
 	 */
 	public class GrassPatch : Patch
 	{
-		public readonly uint[] _argsBillboardCrossed = {0, 0, 0, 0, 0};
+		public uint[] _argsBillboardCrossed = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsBillboardCrossedBuffer;
-		public readonly uint[] _argsBillboardScreen = {0, 0, 0, 0, 0};
+		public uint[] _argsBillboardScreen = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsBillboardScreenBuffer;
-		public readonly uint[] _argsGeometry = {0, 0, 0, 0, 0};
+		public uint[] _argsGeometry = {0, 0, 0, 0, 0};
 		private readonly ComputeBuffer _argsGeometryBuffer;
-
 
 		private readonly MaterialPropertyBlock _materialPropertyBlock;
 
@@ -37,7 +36,6 @@ namespace GrassSimulation.Core.Lod
 		private Mesh _dummyMeshBillboardCrossed;
 		private Mesh _dummyMeshBillboardScreen;
 		private Bounds _inputBounds;
-		private Texture2D _normalHeightTexture;
 		private int _threadGroupX, _threadGroupY, _threadGroupZ;
 
 		/*
@@ -107,6 +105,7 @@ namespace GrassSimulation.Core.Lod
 
 			CreateGrassDataTexture();
 			CreateDummyMesh();
+			//CreateBlossomBuffer();
 			CreateDummyMeshBillboardCrossed();
 			CreateDummyMeshBillboardScreen();
 			SetupMaterialPropertyBlock();
@@ -114,12 +113,16 @@ namespace GrassSimulation.Core.Lod
 
 		public override bool IsLeaf { get { return true; } }
 
-		public void Destroy()
+		public override void Unload()
 		{
-			//TODO: Clean up buffers and textures
 			_argsBillboardCrossedBuffer.Release();
 			_argsBillboardScreenBuffer.Release();
 			_argsGeometryBuffer.Release();
+			Object.DestroyImmediate(_dummyMesh);
+			Object.DestroyImmediate(_dummyMeshBillboardCrossed);
+			Object.DestroyImmediate(_dummyMeshBillboardScreen);
+			Object.DestroyImmediate(_simulationTexture0);
+			Object.DestroyImmediate(_simulationTexture1);
 		}
 
 		public void Draw()
@@ -216,44 +219,6 @@ namespace GrassSimulation.Core.Lod
 
 		private void CreateGrassDataTexture()
 		{
-			_normalHeightTexture = new Texture2D(Ctx.Settings.GetPerPatchTextureWidthHeight(),
-				Ctx.Settings.GetPerPatchTextureWidthHeight(),
-				TextureFormat.RGBAFloat, false, true)
-			{
-				filterMode = FilterMode.Bilinear,
-				wrapMode = TextureWrapMode.Clamp
-			};
-			var textureData = new Color[Ctx.Settings.GetPerPatchTextureLength()];
-			var i = 0;
-			var uvLocal = new Vector2(0, 0);
-			var uvGlobal = new Vector2(0, 0);
-			var uvStep = Ctx.Settings.GetPerPatchTextureUvStep();
-			var uvNarrowed = Ctx.Settings.GetPerPatchTextureUvStepNarrowed();
-			//TODO: Something feels off here... why is it even necessary to work around like this..
-			for (var y = 0; y < Ctx.Settings.GetPerPatchTextureWidthHeight(); y++)
-			{
-				uvLocal.y = Mathf.Lerp(-uvNarrowed, 1 + uvNarrowed, (y + 0.5f) * uvStep);
-
-				uvGlobal.y = Mathf.Clamp(Mathf.LerpUnclamped(_patchTexCoord.y, _patchTexCoord.y + _patchTexCoord.w, uvLocal.y), 0,
-					1f);
-
-				for (var x = 0; x < Ctx.Settings.GetPerPatchTextureWidthHeight(); x++)
-				{
-					uvLocal.x = Mathf.Lerp(-uvNarrowed, 1 + uvNarrowed, (x + 0.5f) * uvStep);
-					uvGlobal.x = Mathf.Clamp(Mathf.LerpUnclamped(_patchTexCoord.x, _patchTexCoord.x + _patchTexCoord.z, uvLocal.x), 0,
-						1f);
-
-					var posY = Ctx.HeightInput.GetHeight(uvGlobal.x, uvGlobal.y);
-					var up = Ctx.NormalInput.GetNormal(uvGlobal.x, uvGlobal.y);
-
-					textureData[i] = new Color(up.x, up.y, up.z, posY);
-					i++;
-				}
-			}
-
-			_normalHeightTexture.SetPixels(textureData);
-			_normalHeightTexture.Apply();
-
 			_simulationTexture0 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
 				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
 				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
@@ -406,47 +371,6 @@ namespace GrassSimulation.Core.Lod
 				Gizmos.DrawCube(Bounds.center, Bounds.size);
 				Gizmos.color = new Color(0f, 0f, 1f, 0.5f);
 				Gizmos.DrawWireCube(_inputBounds.center, _inputBounds.size);
-			}
-
-			if (Ctx.EditorSettings.EnableBladeUpGizmo || Ctx.EditorSettings.EnableFullBladeGizmo)
-			{
-				Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
-
-				for (var i = 0; i < _argsGeometry[0] * _argsGeometry[1]; i++)
-				{
-					var uvLocal = Ctx.GrassInstance.UvData[_startIndex + i].Position;
-					var uvGlobal = new Vector2(_parameterOffsetX, _parameterOffsetY) + uvLocal;
-					var normalHeight = _normalHeightTexture.GetPixelBilinear(uvLocal.x, uvLocal.y);
-					var pos = new Vector3(uvLocal.x, normalHeight.a, uvLocal.y);
-					var bladeUp = new Vector3(normalHeight.r, normalHeight.g, normalHeight.b).normalized;
-					pos = _patchModelMatrix.MultiplyPoint3x4(pos);
-					var parameters = Ctx.GrassInstance.ParameterTexture.GetPixelBilinear(uvGlobal.x, uvGlobal.y);
-
-					if (Ctx.EditorSettings.EnableFullBladeGizmo)
-					{
-						var sd = Mathf.Sin(parameters.a);
-						var cd = Mathf.Cos(parameters.a);
-						var tmp = new Vector3(sd, sd + cd, cd).normalized;
-						var bladeDir = Vector3.Cross(bladeUp, tmp).normalized;
-						var bladeFront = Vector3.Cross(bladeUp, bladeDir).normalized;
-						//var camdir = (pos - Ctx.Camera.transform.position).normalized;
-
-						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
-						Gizmos.DrawLine(pos, pos + bladeUp);
-						Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
-						Gizmos.DrawLine(pos, pos + bladeDir);
-						Gizmos.color = new Color(0f, 0f, 1f, 0.8f);
-						Gizmos.DrawLine(pos, pos + bladeFront);
-						//Gizmos.color = new Color(1f, 0f, 1f, 0.8f);
-						//Gizmos.DrawLine(pos, pos + camdir);
-					}
-
-					if (Ctx.EditorSettings.EnableBladeUpGizmo)
-					{
-						Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
-						Gizmos.DrawLine(pos, pos + bladeUp);
-					}
-				}
 			}
 		}
 #endif

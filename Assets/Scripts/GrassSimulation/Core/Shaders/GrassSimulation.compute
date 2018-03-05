@@ -1,8 +1,8 @@
 ﻿#pragma kernel PhysicsMain
 #pragma kernel SimulationSetup
 
-#define physicsNumThreadsX 16
-#define physicsNumThreadsY 16
+#define physicsNumThreadsX 8
+#define physicsNumThreadsY 8
 #define physicsNumThreadsZ 1
 #define physicsThreadCount physicsNumThreadsX * physicsNumThreadsY * physicsNumThreadsZ
 
@@ -193,6 +193,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float3 bladeFront;
 	CalculateBladeDirAndFront(bladeUp, dirAlpha, bladeDir, bladeFront);
 	float mdt = min(DeltaTime, 1.0);
+	if (BillboardGeneration) mdt = DeltaTime;
 	float3 idleV2 = bladeUp * height;
 	float3 v2 = simulationData1.xyz;
 	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * RecoveryFactor * mdt, 0.0);

@@ -151,6 +151,12 @@ namespace GrassSimulation.Core.Lod
 
 		public UvData[] UvData { get; private set; }
 
-		public void Destroy() { UvBuffer.Release(); }
+		public void Unload()
+		{
+			UvBuffer.Release();
+			Object.DestroyImmediate(GrassMapTexture);
+			Object.DestroyImmediate(NormalHeightTexture);
+			Object.DestroyImmediate(ParameterTexture);
+		}
 	}
 }

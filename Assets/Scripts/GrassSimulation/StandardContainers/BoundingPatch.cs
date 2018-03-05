@@ -64,5 +64,7 @@ namespace GrassSimulation.StandardContainers
 			foreach (var child in ChildPatches)
 				if (child != null && !child.IsLeaf) child.DrawGizmo(level);
 		}
+
+		public override void Unload() { return; }
 	}
 }

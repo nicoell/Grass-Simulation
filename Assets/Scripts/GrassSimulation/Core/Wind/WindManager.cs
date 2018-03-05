@@ -56,5 +56,11 @@ namespace GrassSimulation.Core.Wind {
 		}
 
 		public void CleanLayers() { _windLayers.RemoveAll(layer => layer == null || !layer.IsActive); }
+
+		public void Unload()
+		{
+			WindLayerBuffer.Release();
+			_windLayers.ForEach(Object.DestroyImmediate);
+		}
 	}
 }

@@ -53,10 +53,15 @@ namespace GrassSimulation.Core.Billboard
 
 		public override bool IsLeaf { get { return true; } }
 
-		public void Destroy()
+		public override void Unload()
 		{
-			//TODO: Clean up buffers and textures
 			_argsGeometryBuffer.Release();
+			Object.DestroyImmediate(_boundsTexture0);
+			Object.DestroyImmediate(_boundsTexture1);
+			Object.DestroyImmediate(_normalHeightTexture);
+			Object.DestroyImmediate(_simulationTexture0);
+			Object.DestroyImmediate(_simulationTexture1);
+			Object.DestroyImmediate(_dummyMesh);
 		}
 
 		public void Draw()
@@ -100,10 +105,22 @@ namespace GrassSimulation.Core.Billboard
 				var v0 = _patchModelMatrix.MultiplyPoint(localV0);
 				var v1Sample = _boundsTexture0.GetPixelBilinear(localV0.x, localV0.z);
 				var v2Sample = _boundsTexture1.GetPixelBilinear(localV0.x, localV0.z);
-				var v1 = v0 + new Vector3(v1Sample.r, v1Sample.g, v1Sample.b);
-				var v2 = v0 + new Vector3(v2Sample.r, v2Sample.g, v2Sample.b);
-				min = Vector3.Min(min, Vector3.Min(Vector3.Min(v0, v1), v2));
-				max = Vector3.Max(max, Vector3.Max(Vector3.Max(v0, v1), v2));
+				var v1 = new Vector3(v1Sample.r, v1Sample.g, v1Sample.b);
+				var v2 = new Vector3(v2Sample.r, v2Sample.g, v2Sample.b);
+				
+				//Sample Curve
+				for (float t = 0; t <= 1; t+=0.01f)
+				{
+					var h1 = v0 + t * v1;
+					var h2 = v0 + v1 + t * (v2 - v1);
+					var c = h1 + t * (h2 - h1);
+					min = Vector3.Min(min, c);
+					max = Vector3.Max(max, c);
+				}
+				
+				min = Vector3.Min(min, v0);
+				max = Vector3.Max(max, v0);
+				
 				/*
 				debug += "\n#### Loop#" + (i - _startIndex);
 				debug += "\n\tlocalV0 = " + localV0;
@@ -120,8 +137,8 @@ namespace GrassSimulation.Core.Billboard
 			var retBounds = new Bounds();
 			var bladeWidthCorrection = new Vector3(Ctx.Settings.BladeMaxWidth * Ctx.Settings.BillboardGrassWidthCorrectionFactor,
 				0, Ctx.Settings.BladeMaxWidth * Ctx.Settings.BillboardGrassWidthCorrectionFactor);
-			var bladeHeightCorrection = new Vector3(0, Ctx.Settings.BladeMaxHeight / 3, 0);
-			retBounds.SetMinMax(min - bladeWidthCorrection, max + bladeWidthCorrection);// + bladeHeightCorrection);
+			var bladeHeightCorrection = new Vector3(0, max.y*0.05f, 0);
+			retBounds.SetMinMax(min - bladeWidthCorrection, max + bladeWidthCorrection + bladeHeightCorrection);
 
 			Bounds = retBounds;
 			return retBounds;
@@ -129,7 +146,7 @@ namespace GrassSimulation.Core.Billboard
 
 		public override void DrawGizmo(int level = 0)
 		{
-			base.DrawGizmo();
+			//base.DrawGizmo();
 
 			if (!_boundsTexture0 || !_boundsTexture1) return;
 
@@ -142,20 +159,41 @@ namespace GrassSimulation.Core.Billboard
 				var v0 = _patchModelMatrix.MultiplyPoint(localV0);
 				var v1Sample = _boundsTexture0.GetPixelBilinear(localV0.x, localV0.z);
 				var v2Sample = _boundsTexture1.GetPixelBilinear(localV0.x, localV0.z);
-				var v1 = v0 + new Vector3(v1Sample.r, v1Sample.g, v1Sample.b);
-				var v2 = v0 + new Vector3(v2Sample.r, v2Sample.g, v2Sample.b);
+				var v1 = new Vector3(v1Sample.r, v1Sample.g, v1Sample.b);
+				var v2 = new Vector3(v2Sample.r, v2Sample.g, v2Sample.b);
 
-				min = Vector3.Min(min, Vector3.Min(Vector3.Min(v0, v1), v2));
-				max = Vector3.Max(max, Vector3.Max(Vector3.Max(v0, v1), v2));
+				var cOld = v0;
+				var colorA = new Color(0.77f, 0.64f, 0.05f);
+				var colorB = new Color(0.78f, 0.43f, 0.66f);
+				
+				//Sample Curve
+				for (float t = 0; t <= 1; t+=0.01f)
+				{
+					var h1 = v0 + t * v1;
+					var h2 = v0 + v1 + t * (v2 - v1);
+					var c = h1 + t * (h2 - h1);
+					
+					min = Vector3.Min(min, c);
+					max = Vector3.Max(max, c);
+					
+					Gizmos.color = Color.Lerp(colorA, colorB, t);
+					Gizmos.DrawLine(cOld, c);
 
-				Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
-				Gizmos.DrawLine(v0, v1);
-				Gizmos.color = new Color(0f, 1f, 0.5f, 0.8f);
-				Gizmos.DrawLine(v1, v2);
+					cOld = c;
+				}
+				
+				min = Vector3.Min(min, v0);
+				max = Vector3.Max(max, v0);
+
+				//Gizmos.color = new Color(0f, 1f, 0f, 0.8f);
+				//Gizmos.DrawLine(v0, v1);
+				//Gizmos.color = new Color(0f, 1f, 0.5f, 0.8f);
+				//Gizmos.DrawLine(v1, v2);
 			}
 
 			var retBounds = new Bounds();
 			retBounds.SetMinMax(min, max);
+			retBounds = GetBillboardBounding();
 
 			Gizmos.color = new Color(1f, 0.4f, 0.2f, 0.8f);
 			Gizmos.DrawWireCube(retBounds.center, retBounds.size);

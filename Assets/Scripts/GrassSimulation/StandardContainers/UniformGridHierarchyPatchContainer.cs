@@ -12,9 +12,11 @@ namespace GrassSimulation.StandardContainers
 		private BoundingPatch _rootPatch;
 		private List<GrassPatch> _visiblePatches;
 
-		public override void Destroy()
+		public override void Unload()
 		{
-			foreach (var grassPatch in _grassPatches) grassPatch.Destroy();
+			if (_grassPatches != null) foreach (var grassPatch in _grassPatches) grassPatch.Unload();
+			if (_visiblePatches != null) _visiblePatches.Clear();
+			_grassPatches = null;
 		}
 
 		public override Bounds GetBounds() { return _rootPatch.Bounds; }
@@ -127,10 +129,7 @@ namespace GrassSimulation.StandardContainers
 			foreach (var visiblePatch in _visiblePatches) visiblePatch.DrawGizmo();
 		}
 
-		public override void OnGUI()
-		{
-			if (_visiblePatches.Count > 0) _visiblePatches[0].OnGUI();
-		}
+		public override void OnGUI() {  }
 
 		private void CullViewFrustum()
 		{
@@ -164,20 +163,17 @@ namespace GrassSimulation.StandardContainers
 				geometryGrassCount += (int) visiblePatch._argsGeometry[1] * (int) Ctx.Settings.GetMinAmountBladesPerPatch();
 				if (visiblePatch._argsGeometry[1] > 0)
 				{
-					geometryGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBladesPerPatch() *
-					                      (int) Ctx.Settings.LodGeometryTransitionSegments * 0.5f);
+					geometryGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBladesPerPatch() * 0.5f);
 				}
 				crossedBillboardGrassCount += (int) visiblePatch._argsBillboardCrossed[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
 				if (visiblePatch._argsBillboardCrossed[1] > 0)
 				{
-					crossedBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() *
-					                            (int) Ctx.Settings.LodBillboardCrossedTransitionSegments * 0.5f);
+					crossedBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
 				}
 				screenBillboardGrassCount += (int) visiblePatch._argsBillboardScreen[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
 				if (visiblePatch._argsBillboardScreen[1] > 0)
 				{
-					screenBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() *
-					                            (int) Ctx.Settings.LodBillboardScreenTransitionSegments * 0.5f);
+					screenBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
 				}
 			}
 			

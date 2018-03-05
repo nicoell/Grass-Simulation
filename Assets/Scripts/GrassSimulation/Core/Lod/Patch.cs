@@ -20,5 +20,7 @@ namespace GrassSimulation.Core.Lod
 		}
 
 		public virtual void OnGUI() { }
+
+		public abstract void Unload();
 	}
 }

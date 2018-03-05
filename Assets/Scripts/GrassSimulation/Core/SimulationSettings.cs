@@ -93,8 +93,6 @@ namespace GrassSimulation.Core
 		public float LodDistanceGeometryStart = 1;
 		[Range(0,1024)]
 		public float LodDistanceGeometryEnd = 200;
-		[Range(0,1024)]
-		public float LodDistanceBlossomEnd = 200;
 		[Range(0,2048)]
 		public float LodDistanceBillboardCrossedStart = 150;		
 		[Range(0,2048)]
@@ -143,6 +141,77 @@ namespace GrassSimulation.Core
 
 		public float GetPerPatchTextureUvStep() { return 1f / GetPerPatchTextureWidthHeight(); }
 		public float GetPerPatchTextureUvStepNarrowed() { return 0.5f / GetPerPatchTextureWidthHeight(); }
+
+		public void LogSettings()
+		{
+			var logString = "### Settings ###" + "\n";
+			
+			logString += "General Settings" + "\n";
+			logString += "\t RandomSeed: " + RandomSeed + "\n";
+			
+			logString += "Grass Settings" + "\n";
+			logString += "\t Min Bend: " + BladeMinBend + "\n";
+			logString += "\t Max Bend: " + BladeMaxBend + "\n";
+			logString += "\t Min Height: " + BladeMinHeight + "\n";
+			logString += "\t Max Height: " + BladeMaxHeight + "\n";
+			logString += "\t Min Width: " + BladeMinWidth + "\n";
+			logString += "\t Max Width: " + BladeMaxWidth + "\n";
+			logString += "\t Texture Max Mipmap Level: " + BladeTextureMaxMipmapLevel + "\n";
+			
+			logString += "Billboard Grass Settings" + "\n";
+			logString += "\t Alpha Threshold: " + BillboardAlphaCutoff + "\n";
+			logString += "\t Texture Grass Count: " + BillboardGrassCount + "\n";
+			logString += "\t Texture Spacing Factor: " + BillboardGrassSpacingFactor + "\n";
+			logString += "\t Texture Volume Correction Factor: " + BillboardGrassWidthCorrectionFactor + "\n";
+			
+			logString += "Lighting Settings" + "\n";
+			logString += "\t Ambient Light Intensity: " + AmbientLightFactor + "\n";
+			
+			logString += "Gravity" + "\n";
+			logString += "\t Direction: " + Vector3.Normalize(new Vector3(Gravity.x, Gravity.y, Gravity.z)) + "\n";
+			logString += "\t Strength: " + Gravity.w + "\n";
+			
+			logString += "Wind Settings" + "\n";
+			logString += "\t Layer Count: " + WindLayerCount + "\n";
+			
+			logString += "Texture Resolutions" + "\n";
+			logString += "\t Grass Map Resolution: " + GrassMapResolution + "\n";
+			logString += "\t Collision Map Resolution: " + CollisionDepthResolution + "\n";
+			logString += "\t Grass Data Resolution: " + GrassDataResolution + "\n";
+			logString += "\t Billboard Texture Resolution: " + BillboardTextureResolution + "\n";
+			
+			logString += "Lod Settings" + "\n";
+			logString += "\t Blade Height Culling Threshold: " + BladeHeightCullingThreshold + "\n";
+			logString += "\t Patch Size: " + PatchSize + "\n";
+			logString += "\t Parameter Variance: " + ParameterVariance + "\n";
+			logString += "\t Tesselation Min: " + LodTessellationMin + "\n";
+			logString += "\t Tesselation Max: " + LodTessellationMax + "\n";
+			logString += "\t Distance Tessellation Min: " + LodDistanceTessellationMin + "\n";
+			logString += "\t Distance Tessellation Max: " + LodDistanceTessellationMax + "\n";
+			logString += "\t Geometry Instances: " + LodInstancesGeometry + "\n";
+			logString += "\t Geometry Transition Segments: " + LodGeometryTransitionSegments + "\n";
+			logString += "\t Geometry Distance Start: " + LodDistanceGeometryStart + "\n";
+			logString += "\t Geometry Distance End: " + LodDistanceGeometryEnd + "\n";
+			logString += "\t CrossedBillboard Instances: " + LodInstancesBillboardCrossed + "\n";
+			logString += "\t CrossedBillboard Transition Segments: " + LodBillboardCrossedTransitionSegments + "\n";
+			logString += "\t CrossedBillboard Distance Start: " + LodDistanceBillboardCrossedStart + "\n";
+			logString += "\t CrossedBillboard Distance Peak: " + LodDistanceBillboardCrossedPeak + "\n";
+			logString += "\t CrossedBillboard Distance End: " + LodDistanceBillboardCrossedEnd + "\n";
+			logString += "\t ScreenBillboard Instances: " + LodInstancesBillboardScreen + "\n";
+			logString += "\t ScreenBillboard Transition Segments: " + LodBillboardScreenTransitionSegments + "\n";
+			logString += "\t ScreenBillboard Distance Start: " + LodDistanceBillboardScreenStart + "\n";
+			logString += "\t ScreenBillboard Distance Peak: " + LodDistanceBillboardScreenPeak + "\n";
+			logString += "\t ScreenBillboard Distance End: " + LodDistanceBillboardScreenEnd + "\n";
+			
+			logString += "Derived Data" + "\n";
+			logString += "\t Grass Blades per Instance: " + GetMinAmountBladesPerPatch() + "\n";
+			logString += "\t Billboards per Instance: " + GetMinAmountBillboardsPerPatch()+ "\n";
+			logString += "\t Max Grass Blades per Patch: " + GetMaxAmountBladesPerPatch()+ "\n";
+			logString += "\t Max CrossedBillboards per Patch: " + (GetMinAmountBillboardsPerPatch() * LodInstancesBillboardCrossed) + "\n";
+			logString += "\t Max ScreenBillboards per Patch: " + (GetMinAmountBillboardsPerPatch() * LodInstancesBillboardScreen) + "\n";
+			
+			Debug.Log(logString);
+		}
 	}
 	
 	[Serializable]

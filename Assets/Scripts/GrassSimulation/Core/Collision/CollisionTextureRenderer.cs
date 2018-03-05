@@ -30,7 +30,9 @@ namespace GrassSimulation.Core.Collision
 			Ctx.CollisionCamera.useOcclusionCulling = false;
 			Ctx.CollisionCamera.depthTextureMode = DepthTextureMode.Depth;
 			Ctx.CollisionCamera.SetReplacementShader(Ctx.CollisionDepthShader, "RenderType");
+			Ctx.CollisionCamera.forceIntoRenderTexture = true;
 			Ctx.CollisionCamera.targetTexture = CollisionDepthTexture;
+			Ctx.CollisionCamera.enabled = true;
 			
 			var position = bounds.center - new Vector3(0, bounds.extents.y, 0);
 			var rotation = Quaternion.LookRotation(Ctx.Transform.up, Ctx.Transform.forward);
@@ -52,6 +54,15 @@ namespace GrassSimulation.Core.Collision
 		public void OnGUI()
 		{
 			
+		}
+
+		public void Unload()
+		{
+			Ctx.CollisionCamera.forceIntoRenderTexture = false;
+			Ctx.CollisionCamera.targetTexture = null;
+			Ctx.CollisionCamera.enabled = false;
+			
+			Object.DestroyImmediate(CollisionDepthTexture);
 		}
 	}
 }

@@ -142,6 +142,9 @@ namespace GrassSimulation.Core
 
 		public void Init()
 		{
+			var timeNow = DateTime.Now;
+			Debug.Log("##### Start preparing simulation #####");
+			
 			if (Settings == null) Settings = new SimulationSettings();
 			if (EditorSettings == null) EditorSettings = new EditorSettings();
 			if (CollisionCamera == null) CollisionCamera = GameObject.FindWithTag("GrassSimulationCollisionCamera").GetComponent<Camera>();
@@ -151,11 +154,13 @@ namespace GrassSimulation.Core
 			
 			if (BladeContainer == null) BladeContainer = CreateInstance<BladeContainer>();
 			BladeContainer.Init(this);			
+			BlossomCount = BladeContainer.GetBlossomCount();
+			var timeTextureArrays = DateTime.Now;
 			BladeTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(0);
 			BladeTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(2);
 			BlossomTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(1);
 			BlossomTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(3);
-			BlossomCount = BladeContainer.GetBlossomCount();
+			Debug.Log("\t Created Texture Arrays for LookUp- and Surface-Textures for " +BladeContainer.Blades.Length + " Blades and "+ BlossomCount + " Blossoms in " + (int) (DateTime.Now - timeTextureArrays).TotalMilliseconds + "ms");
 			if (!Transform || !Camera || !CollisionCamera || !BillboardTextureCamera || !GrassSimulationComputeShader || !CollisionDepthShader || !GrassSimulationShader || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
@@ -363,9 +368,11 @@ namespace GrassSimulation.Core
 
 
 			GrassInstance = new GrassInstance(this);
-			
+
+			var timePatchConstruction = DateTime.Now;
 			PatchContainer.Init(this);
 			PatchContainer.SetupContainer();
+			Debug.Log("\t Created and initialized " + (Settings.PatchSize * Settings.PatchSize) + " patches and hierarchy in " + (int) (DateTime.Now - timePatchConstruction).TotalMilliseconds + "ms");
 			
 			CollisionTextureRenderer = new CollisionTextureRenderer(this, PatchContainer.GetBounds());
 			if (WindManager == null)
@@ -378,11 +385,14 @@ namespace GrassSimulation.Core
 			WindManager.Update();
 			//ProceduralWind = new ProceduralWind(this);
 			//ProceduralWind.Update();
-
+	
+			var timeBillboardTextures = DateTime.Now;
 			//Create Billboard Textures
 			BillboardTexturePatchContainer.Init(this);
 			BillboardTexturePatchContainer.SetupContainer();
 			BillboardTexturePatchContainer.Draw();
+	
+			Debug.Log("\t Rendered Billboard Textures in " + (int) (DateTime.Now - timeBillboardTextures).TotalMilliseconds + "ms");
 			
 			//Needs to be reset here, since BillboardTexturePatchContainer sets its own NormalHeightTexture
 			GrassSimulationComputeShader.SetTexture(KernelPhysics, "NormalHeightTexture", GrassInstance.NormalHeightTexture);
@@ -396,6 +406,10 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen.SetTexture("GrassBillboardNormals", BillboardTexturePatchContainer.BillboardNormals);
 			GrassBillboardScreen.SetFloat("BillboardAspect", BillboardTexturePatchContainer.BillboardAspect);
 			GrassBillboardScreen.SetInt("RepetitionCount", (int) PositionInput.GetRepetitionCount());
+			
+			Debug.Log("\t Finished Simulation Preperation in " + (int) (DateTime.Now - timeNow).TotalMilliseconds + "ms");
+			
+			Settings.LogSettings();
 			
 			//Everything is ready.
 			IsReady = true;
@@ -413,7 +427,21 @@ namespace GrassSimulation.Core
 			PatchContainer.OnGUI();
 		}
 
-		public void PrintDebugInfo()
+		public void Destroy()
+		{
+			IsReady = false;
+			DestroyImmediate(BladeTexture2DArray0);
+			DestroyImmediate(BladeTexture2DArray1);
+			DestroyImmediate(BlossomTexture2DArray0);
+			DestroyImmediate(BlossomTexture2DArray1);
+			if (GrassInstance!=null) GrassInstance.Unload();
+			if (BillboardTexturePatchContainer!=null) BillboardTexturePatchContainer.Unload();
+			if (CollisionTextureRenderer!=null) CollisionTextureRenderer.Unload();
+			if (PatchContainer!=null) PatchContainer.Unload();
+			if (WindManager!=null) WindManager.Unload();
+		}
+
+		public string PrintDebugInfo()
 		{
 			int visiblePatchCount = 0;
 			int simulatedGrassCount = 0;
@@ -432,13 +460,17 @@ namespace GrassSimulation.Core
 
 			blossomCount = (int) (geometryGrassCount * blossomChance);
 			
-			Debug.Log("#Debug Info:");
-			Debug.Log("visiblePatchCount: " + visiblePatchCount);
-			Debug.Log("simulatedGrassCount: " + simulatedGrassCount);
-			Debug.Log("geometryGrassCount: " + geometryGrassCount);
-			Debug.Log("blossomGrassCount: " + blossomCount);
-			Debug.Log("crossedBillboardGrassCount: " + crossedBillboardGrassCount);
-			Debug.Log("screenBillboardGrassCount: " + screenBillboardGrassCount);
+			var debugString = "";
+			debugString += "#Debug Info:\n";
+			debugString += "\t Visible Patches: " + visiblePatchCount.ToString("N") + "\n";
+			debugString += "\t Simulated Grass Count: " + simulatedGrassCount.ToString("N") + "\n";
+			debugString += "\t Geometric Grass Count: " + geometryGrassCount.ToString("N") + "\n";
+			debugString += "\t Blossom Count: " + blossomCount.ToString("N") + "\n";
+			debugString += "\t Crossed Billboard Count: " + crossedBillboardGrassCount.ToString("N") + "\n";
+			debugString += "\t Screen Facing Billboard Count: " + screenBillboardGrassCount.ToString("N") + "\n";
+			
+			Debug.Log(debugString);
+			return debugString;
 		}
 	}
 }
