@@ -27,7 +27,7 @@ GameObject:
   - component: {fileID: 64790643695106312}
   m_Layer: 8
   m_Name: TestBunnyCollider
-  m_TagString: Untagged
+  m_TagString: BunnyCollider
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

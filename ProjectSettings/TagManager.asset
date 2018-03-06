@@ -6,6 +6,9 @@ TagManager:
   tags:
   - GrassSimulationCollisionCamera
   - BillboardTextureCamera
+  - SphereCollider
+  - CubeCollider
+  - BunnyCollider
   layers:
   - Default
   - TransparentFX
