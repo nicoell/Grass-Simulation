@@ -442,15 +442,20 @@ namespace GrassSimulation.Core
 		}
 
 		public string PrintDebugInfo()
-		{
+		{			
 			int visiblePatchCount = 0;
 			int simulatedGrassCount = 0;
 			int geometryGrassCount = 0;
+			int geometryPatchCount = 0;
 			int blossomCount = 0;
 			int crossedBillboardGrassCount = 0;
+			int crossedBillboardPatchCount = 0;
 			int screenBillboardGrassCount = 0;
-			PatchContainer.GetDebugInfo(ref visiblePatchCount, ref simulatedGrassCount, ref geometryGrassCount, ref crossedBillboardGrassCount, ref screenBillboardGrassCount);
-			
+			int screenBillboardPatchCount = 0;
+			PatchContainer.GetDebugInfo(ref visiblePatchCount, ref simulatedGrassCount, ref geometryGrassCount,
+				ref crossedBillboardGrassCount, ref screenBillboardGrassCount,
+				ref geometryPatchCount, ref crossedBillboardPatchCount, ref screenBillboardPatchCount);
+
 			float[] dist = BladeContainer.GetBladeDistribution();
 			float blossomChance = 0f;
 			for (int i = 0; i < BladeContainer.GetBlossomCount(); i++)
@@ -459,15 +464,28 @@ namespace GrassSimulation.Core
 			}
 
 			blossomCount = (int) (geometryGrassCount * blossomChance);
+
+			var colliderLayers = new[] {"SphereCollider", "CubeCollider", "BunnyCollider"};
+			var colliderCount = new int[3];
 			
+			for (int i = 0; i < 3; i++) {
+				colliderCount[i] = GameObject.FindGameObjectsWithTag(colliderLayers[i]).Length;
+			}
+
 			var debugString = "";
 			debugString += "#Debug Info:\n";
 			debugString += "\t Visible Patches: " + visiblePatchCount.ToString("N") + "\n";
+			debugString += "\t Geometric Grass  Patches: " + geometryPatchCount.ToString("N") + "\n";
+			debugString += "\t Crossed Billboard  Patches: " + crossedBillboardPatchCount.ToString("N") + "\n";
+			debugString += "\t Screen Facing Billboard   Patches: " + screenBillboardPatchCount.ToString("N") + "\n";
 			debugString += "\t Simulated Grass Count: " + simulatedGrassCount.ToString("N") + "\n";
 			debugString += "\t Geometric Grass Count: " + geometryGrassCount.ToString("N") + "\n";
 			debugString += "\t Blossom Count: " + blossomCount.ToString("N") + "\n";
 			debugString += "\t Crossed Billboard Count: " + crossedBillboardGrassCount.ToString("N") + "\n";
 			debugString += "\t Screen Facing Billboard Count: " + screenBillboardGrassCount.ToString("N") + "\n";
+			for (int i = 0; i < 3; i++) { 
+				debugString += "\t " + colliderLayers[i] + " Count: " + colliderCount[i].ToString("N") + "\n";
+			}
 			
 			Debug.Log(debugString);
 			return debugString;

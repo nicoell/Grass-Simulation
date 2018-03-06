@@ -60,7 +60,7 @@ namespace GrassSimulation.Core.Wind {
 		public void Unload()
 		{
 			WindLayerBuffer.Release();
-			_windLayers.ForEach(Object.DestroyImmediate);
+			//_windLayers.ForEach(Object.DestroyImmediate);
 		}
 	}
 }

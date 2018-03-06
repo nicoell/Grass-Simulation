@@ -1,8 +1,12 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using GrassSimulation.Core;
+using GrassSimulation.Core.Inputs;
 using GrassSimulation.Core.Utils;
+using GrassSimulation.StandardInputs;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.UI;
 
 /* TODO:
@@ -35,8 +39,13 @@ namespace GrassSimulation
 		};
 		private int _simulationTextureResolution = 32;
 		private KeyCode _toggleBlossoms = KeyCode.B;
+		private bool _debugColors = false;
+		private KeyCode _toggleDebugColors = KeyCode.V;
 		private KeyCode _toggleTerrain = KeyCode.T;
 		private KeyCode _switchCamera = KeyCode.C;
+		private KeyCode _switchGrassMapInput = KeyCode.G;
+		private ClassTypeReference _textureGrassMapInputType;
+		private GrassMapInput _textureGrassMapInput;
 		private KeyCode _printDebugInfo = KeyCode.P;
 		private Vector3 _cameraBackupPos;
 		private Quaternion _cameraBackupRot;
@@ -119,6 +128,12 @@ namespace GrassSimulation
 				UpdateDebugInfo(Context.BladeContainer.Blades[0].HasBlossom ? "Deactivate Blossoms" : "Activate Blossoms");
 				Context.BladeContainer.Blades[0].HasBlossom = !Context.BladeContainer.Blades[0].HasBlossom;
 			}
+
+			if (Input.GetKeyDown(_toggleDebugColors))
+			{
+				_debugColors = !_debugColors;
+				Shader.SetGlobalInt("RenderDebugColor", _debugColors ? 1 : 0);
+			}
 			if (Input.GetKeyDown(_toggleTerrain))
 			{
 				FindObjectOfType<Terrain>().enabled = !FindObjectOfType<Terrain>().enabled;
@@ -136,10 +151,26 @@ namespace GrassSimulation
 				}
 				Context.Camera.GetComponent<Animator>().enabled = !Context.Camera.GetComponent<Animator>().enabled;
 			}
-			
+
+			if (Input.GetKeyDown(_switchGrassMapInput))
+			{
+				if (Context.GrassMapInput.GetType() == typeof(RandomGrassMapInput))
+				{
+					UpdateDebugInfo("Switch to Texture GrassMap Input");
+					Context.GrassMapInput = _textureGrassMapInput;
+					Context.GrassMapInputType.Type = _textureGrassMapInputType;
+				} else
+				{
+					UpdateDebugInfo("Switch to Uniform GrassMap Input");
+					_textureGrassMapInput = Context.GrassMapInput;
+					_textureGrassMapInputType = Context.GrassMapInputType;
+					
+					Context.GrassMapInput = Activator.CreateInstance(typeof(RandomGrassMapInput)) as RandomGrassMapInput;
+					Context.GrassMapInputType.Type = typeof(RandomGrassMapInput);
+				}
+			}
 		}
-
-
+		
 		private void InitLogWriter()
 		{
 			_writer = File.AppendText("log.txt");

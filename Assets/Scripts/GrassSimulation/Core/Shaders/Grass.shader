@@ -79,6 +79,7 @@ Shader "GrassSimulation/Grass"
             uniform int VertexCount;
             uniform int BlossomCount;
             uniform int EnableHeightTransition;
+            uniform int RenderDebugColor;
             
             #ifdef GRASS_BLOSSOM
                 Texture2DArray<float4> GrassBlossom0;
@@ -594,6 +595,9 @@ Shader "GrassSimulation/Grass"
                     float radiance = GetRadiance(Kd, Ao, Ia, N, L, gamma, Id, d, beta);
                     
                     float4 bladeColor = GrassBlades1.Sample(samplerGrassBlades1, IN.uvwd.xyz);
+                    if (RenderDebugColor == 1) {
+                        bladeColor.xyz = float3(0.86, 0.35, 0.27);
+                    }
                     bladeColor.xyz *= radiance;
                     bladeColor.xyz *= LightColor;
                     //bladeColor.xyz = (N + 1)/2;
@@ -612,6 +616,9 @@ Shader "GrassSimulation/Grass"
                     float radiance = GetRadiance(Kd, Ao, Ia, N, L, gamma, Id, d, beta);
                     
                     float4 blossomColor = GrassBlossom1.Sample(samplerGrassBlossom1, IN.uvwd.xyz);
+                    if (RenderDebugColor == 1) {
+                        blossomColor.xyz = float3(0.86, 0.49, 0);
+                    }
                     blossomColor.xyz *= radiance;
                     blossomColor.xyz *= LightColor;
                     //blossomColor.xyz = (N + 1)/2;
@@ -644,6 +651,13 @@ Shader "GrassSimulation/Grass"
                     float radiance = GetRadiance(Kd, Ao, Ia, N, L, gamma, Id, d, beta);
                     
                     float4 billboardSample = GrassBillboards.Sample(samplerGrassBillboards, IN.uvwd.xyz);
+                    if (RenderDebugColor == 1) {
+                        #ifdef GRASS_BILLBOARD_CROSSED
+                            billboardSample.xyz = float3(0.23, 0.31, 0.72);
+                        #else
+                            billboardSample.xyz = float3(0.65, 0.87, 0.4);
+                        #endif
+                    }
                     billboardSample.xyz *= radiance;
                     billboardSample.xyz *= LightColor;
                     //billboardSample.xyz = (N + 1)/2;

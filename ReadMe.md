@@ -15,9 +15,11 @@ Run with "Custom" Graphics Quality for 8xMSAA.
 	Numpad2	Load Normal Settings and Reload Simulation
 	Numpad3	Load Low Settings and Reload Simulation
 	T 		Toggle Terrain Rendering
+	V		Toggle Debug LOD Colors
 	
 ### This ones only take effect after simulation reload:
 	B 		Toggle Blossoms for next Simulation Reload
+	G 		Switch between Texture GrassMap Input and Uniform GrassMap Input
 	Numpad4 Set SimulationTexture Resolution to 8
 	Numpad5 Set SimulationTexture Resolution to 16
 	Numpad6 Set SimulationTexture Resolution to 32
