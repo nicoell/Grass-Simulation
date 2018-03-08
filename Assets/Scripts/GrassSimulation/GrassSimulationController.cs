@@ -32,13 +32,14 @@ namespace GrassSimulation
 		private StreamWriter _writer;
 		private string _logOutput = "";
 		private KeyCode[] _testSettings = {
-			KeyCode.Keypad1, KeyCode.Keypad2, KeyCode.Keypad3
+			KeyCode.Keypad1, KeyCode.Keypad2, KeyCode.Keypad3, KeyCode.Keypad4, KeyCode.Keypad5
 		};
 		private KeyCode[] _switchSimulationTexture = {
-			KeyCode.Keypad4, KeyCode.Keypad5, KeyCode.Keypad6, KeyCode.Keypad7
+			KeyCode.Keypad6, KeyCode.Keypad7, KeyCode.Keypad8, KeyCode.Keypad9
 		};
 		private int _simulationTextureResolution = 32;
 		private KeyCode _toggleBlossoms = KeyCode.B;
+		private KeyCode _forceBlossoms = KeyCode.N;
 		private bool _debugColors = false;
 		private KeyCode _toggleDebugColors = KeyCode.V;
 		private KeyCode _toggleTerrain = KeyCode.T;
@@ -127,6 +128,26 @@ namespace GrassSimulation
 			{
 				UpdateDebugInfo(Context.BladeContainer.Blades[0].HasBlossom ? "Deactivate Blossoms" : "Activate Blossoms");
 				Context.BladeContainer.Blades[0].HasBlossom = !Context.BladeContainer.Blades[0].HasBlossom;
+			}
+			if (Input.GetKeyDown(_forceBlossoms))
+			{
+
+				if (!Context.BladeContainer.Blades[0].HasBlossom)
+				{
+					if (Context.BlossomCount == 0)
+					{
+						UpdateDebugInfo("Force Blossoms rendering.");
+						Context.BlossomCount = 1;
+					} else
+					{
+						UpdateDebugInfo("Deactivate force Blossoms rendering.");
+						Context.BlossomCount = 0;
+					}
+					
+				} else
+				{
+					UpdateDebugInfo("Cannot Force Blossoms because there are blossoms.");
+				}
 			}
 
 			if (Input.GetKeyDown(_toggleDebugColors))
@@ -261,6 +282,56 @@ namespace GrassSimulation
 					Context.Settings.LodDistanceBillboardScreenStart = 40;
 					Context.Settings.LodDistanceBillboardScreenPeak = 56;
 					Context.Settings.LodDistanceBillboardScreenEnd = 256;
+					break;
+				case 3:
+					UpdateDebugInfo("Loading Test Settings " + i + " (Extreme Tessellation) ");
+					Debug.Log("Loading Test Settings " + i + " (Extreme Tessellation) ");
+					Context.Settings.GrassDataResolution = _simulationTextureResolution;
+					Context.Settings.CollisionDepthResolution = 1024;
+					Context.Settings.BillboardTextureResolution = 128;
+					Context.Settings.LodTessellationMin = 64;
+					Context.Settings.LodTessellationMax = 64;
+					Context.Settings.LodDistanceTessellationMin = 4;
+					Context.Settings.LodDistanceTessellationMax = 32;
+					Context.Settings.LodInstancesGeometry = 512;
+					Context.Settings.LodInstancesBillboardCrossed = 16;
+					Context.Settings.LodInstancesBillboardScreen = 16;
+					Context.Settings.LodGeometryTransitionSegments = 32;
+					Context.Settings.LodBillboardCrossedTransitionSegments = 8;
+					Context.Settings.LodBillboardScreenTransitionSegments = 8;
+					Context.Settings.LodDistanceGeometryStart = 48;
+					Context.Settings.LodDistanceGeometryEnd = 64;
+					Context.Settings.LodDistanceBillboardCrossedStart = 64;
+					Context.Settings.LodDistanceBillboardCrossedPeak = 96;
+					Context.Settings.LodDistanceBillboardCrossedEnd = 144;
+					Context.Settings.LodDistanceBillboardScreenStart = 96;
+					Context.Settings.LodDistanceBillboardScreenPeak = 128;
+					Context.Settings.LodDistanceBillboardScreenEnd = 512;
+					break;
+				case 4:
+					UpdateDebugInfo("Loading Test Settings " + i + " (Low Tessellation) ");
+					Debug.Log("Loading Test Settings " + i + " (Low Tessellation) ");
+					Context.Settings.GrassDataResolution = _simulationTextureResolution;
+					Context.Settings.CollisionDepthResolution = 1024;
+					Context.Settings.BillboardTextureResolution = 128;
+					Context.Settings.LodTessellationMin = 8;
+					Context.Settings.LodTessellationMax = 8;
+					Context.Settings.LodDistanceTessellationMin = 4;
+					Context.Settings.LodDistanceTessellationMax = 32;
+					Context.Settings.LodInstancesGeometry = 512;
+					Context.Settings.LodInstancesBillboardCrossed = 16;
+					Context.Settings.LodInstancesBillboardScreen = 16;
+					Context.Settings.LodGeometryTransitionSegments = 32;
+					Context.Settings.LodBillboardCrossedTransitionSegments = 8;
+					Context.Settings.LodBillboardScreenTransitionSegments = 8;
+					Context.Settings.LodDistanceGeometryStart = 48;
+					Context.Settings.LodDistanceGeometryEnd = 64;
+					Context.Settings.LodDistanceBillboardCrossedStart = 64;
+					Context.Settings.LodDistanceBillboardCrossedPeak = 96;
+					Context.Settings.LodDistanceBillboardCrossedEnd = 144;
+					Context.Settings.LodDistanceBillboardScreenStart = 96;
+					Context.Settings.LodDistanceBillboardScreenPeak = 128;
+					Context.Settings.LodDistanceBillboardScreenEnd = 512;
 					break;
 				default: 
 					return;

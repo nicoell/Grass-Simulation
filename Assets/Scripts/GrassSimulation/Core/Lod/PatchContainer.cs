@@ -58,7 +58,7 @@ namespace GrassSimulation.Core.Lod
 			Ctx.GrassGeometry.SetFloat("LightIntensity", Ctx.SunLight.intensity);
 			Ctx.GrassGeometry.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 
-			if (Ctx.GrassBlossom)
+			if (Ctx.BlossomCount > 0)
 			{
 				Ctx.GrassBlossom.SetVector("CamPos", Ctx.Camera.transform.position);
 				Ctx.GrassBlossom.SetVector("viewDir", Ctx.Camera.transform.forward);

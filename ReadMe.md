@@ -14,16 +14,19 @@ Run with "Custom" Graphics Quality for 8xMSAA.
 	Numpad1	Load High Settings and Reload Simulation
 	Numpad2	Load Normal Settings and Reload Simulation
 	Numpad3	Load Low Settings and Reload Simulation
+	Numpad4	Load Tessellation High Settings and Reload 
+	Numpad5	Load Tessellation Low Settings and Reload 
 	T 		Toggle Terrain Rendering
 	V		Toggle Debug LOD Colors
+	N 		Force blossom rendering if blossoms are off. Only useful for debugging.
 	
 ### This ones only take effect after simulation reload:
-	B 		Toggle Blossoms for next Simulation Reload
+	B 		Toggle Blossoms
 	G 		Switch between Texture GrassMap Input and Uniform GrassMap Input
-	Numpad4 Set SimulationTexture Resolution to 8
-	Numpad5 Set SimulationTexture Resolution to 16
-	Numpad6 Set SimulationTexture Resolution to 32
-	Numpad7 Set SimulationTexture Resolution to 64
+	Numpad6 Set SimulationTexture Resolution to 8
+	Numpad7 Set SimulationTexture Resolution to 16
+	Numpad8 Set SimulationTexture Resolution to 32
+	Numpad9 Set SimulationTexture Resolution to 64
 
 ## Collision Interaction
 	F 		Throw random sized Sphere from Camera Position

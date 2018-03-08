@@ -197,8 +197,8 @@ namespace GrassSimulation.Core
 			GrassBillboardScreen = new Material(GrassGeometry);
 
 
-			if (BlossomCount > 0)
-			{
+			//if (BlossomCount > 0)
+			//{
 				GrassBlossom = new Material(GrassGeometry);
 				GrassBlossomBillboardGeneration = new Material(GrassGeometry);
 				GrassBlossom.EnableKeyword("GRASS_BLOSSOM");
@@ -246,11 +246,11 @@ namespace GrassSimulation.Core
 				GrassBlossomBillboardGeneration.SetFloat("LodTessellationMax", Settings.LodTessellationMax);
 				GrassBlossomBillboardGeneration.SetFloat("LodDistanceTessellationMin", Settings.LodDistanceTessellationMin);
 				GrassBlossomBillboardGeneration.SetFloat("LodDistanceTessellationMax", Settings.LodDistanceTessellationMax);
-			} else
+			/*} else
 			{
 				GrassBlossom = null;
 				GrassBlossomBillboardGeneration = null;
-			}
+			}*/
 
 			GrassGeometry.EnableKeyword("GRASS_GEOMETRY");
 			GrassGeometry.DisableKeyword("GRASS_BLOSSOM");

@@ -1,4 +1,8 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Diagnostics;
+using UnityEngine;
+using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
 
 namespace GrassSimulation.Core.Lod
 {
@@ -136,7 +140,7 @@ namespace GrassSimulation.Core.Lod
 			{
 				Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassGeometry, Bounds, _argsGeometryBuffer, 0,
 					_materialPropertyBlock);
-				if (Ctx.GrassBlossom)
+				if (Ctx.BlossomCount > 0)
 					Graphics.DrawMeshInstancedIndirect(_dummyMesh, 0, Ctx.GrassBlossom, Bounds, _argsGeometryBuffer, 0,
 						_materialPropertyBlock);
 			}
@@ -199,6 +203,7 @@ namespace GrassSimulation.Core.Lod
 			_argsGeometryBuffer.SetData(_argsGeometry);
 			_argsBillboardCrossedBuffer.SetData(_argsBillboardCrossed);
 			_argsBillboardScreenBuffer.SetData(_argsBillboardScreen);
+
 		}
 
 		private static float SingleLerp(float value, float cur, float peak, float end)
