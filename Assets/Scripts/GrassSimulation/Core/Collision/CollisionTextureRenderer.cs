@@ -30,19 +30,20 @@ namespace GrassSimulation.Core.Collision
 			Ctx.CollisionCamera.useOcclusionCulling = false;
 			Ctx.CollisionCamera.depthTextureMode = DepthTextureMode.Depth;
 			Ctx.CollisionCamera.SetReplacementShader(Ctx.CollisionDepthShader, "RenderType");
+			Ctx.CollisionCamera.forceIntoRenderTexture = true;
 			Ctx.CollisionCamera.targetTexture = CollisionDepthTexture;
+			Ctx.CollisionCamera.enabled = true;
 			
 			var position = bounds.center - new Vector3(0, bounds.extents.y, 0);
 			var rotation = Quaternion.LookRotation(Ctx.Transform.up, Ctx.Transform.forward);
 			Ctx.CollisionCamera.transform.SetPositionAndRotation(position, rotation);
 			
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "CollisionDepthTexture", CollisionDepthTexture);
-			Ctx.WindFluidSimulation.SetTexture(Ctx.KernelUpdateField, "CollisionDepthTexture", CollisionDepthTexture);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeSize", bounds.size.x, bounds.size.y, bounds.size.z);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMin", bounds.min.x, bounds.min.y, bounds.min.z);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMax", bounds.max.x, bounds.max.y, bounds.max.z);
-			Ctx.GrassSimulationComputeShader.SetMatrix("CollisionViewProj", Ctx.CollisionCamera.projectionMatrix * Ctx.CollisionCamera.worldToCameraMatrix);
-			Ctx.WindFluidSimulation.SetMatrix("CollisionViewProj", Ctx.CollisionCamera.projectionMatrix * Ctx.CollisionCamera.worldToCameraMatrix);
+			var proj = GL.GetGPUProjectionMatrix(Ctx.CollisionCamera.projectionMatrix, false);
+			Ctx.GrassSimulationComputeShader.SetMatrix("CollisionViewProj", proj * Ctx.CollisionCamera.worldToCameraMatrix);
 		}
 
 		public void UpdateDepthTexture()
@@ -53,6 +54,15 @@ namespace GrassSimulation.Core.Collision
 		public void OnGUI()
 		{
 			
+		}
+
+		public void Unload()
+		{
+			Ctx.CollisionCamera.forceIntoRenderTexture = false;
+			Ctx.CollisionCamera.targetTexture = null;
+			Ctx.CollisionCamera.enabled = false;
+			
+			Object.DestroyImmediate(CollisionDepthTexture);
 		}
 	}
 }

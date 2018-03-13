@@ -18,5 +18,7 @@ namespace GrassSimulation.StandardInputs
 		{
 			return new Vector2((float) _random.NextDouble(), (float) _random.NextDouble());
 		}
+
+		public override uint GetRepetitionCount() { return 1; }
 	}
 }

@@ -11,7 +11,7 @@ namespace GrassSimulation.Core.Lod
 			Ctx = context;
 		}
 
-		public abstract void Destroy();
+		public abstract void Unload();
 
 		public abstract Bounds GetBounds();
 
@@ -49,38 +49,55 @@ namespace GrassSimulation.Core.Lod
 		protected virtual void UpdatePerFrameData()
 		{
 			//TODO: Maybe outsource all the computeshader data settings to its own class
-			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);
 			Ctx.GrassGeometry.SetVector("CamPos", Ctx.Camera.transform.position);
-			Ctx.GrassGeometry.SetFloat("specular", Ctx.Settings.Specular);
-			Ctx.GrassGeometry.SetFloat("gloss", Ctx.Settings.Gloss);
 			Ctx.GrassGeometry.SetVector("viewDir", Ctx.Camera.transform.forward);
-			Ctx.GrassGeometry.SetVector("lightDir", Ctx.Light.transform.forward);
-			Ctx.GrassGeometry.SetVector("lightColor", Ctx.Light.color);
+			Ctx.GrassGeometry.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassGeometry.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+			Ctx.GrassGeometry.SetVector("LightColor", Ctx.SunLight.color);
+			Ctx.GrassGeometry.SetVector("GravityVec", Ctx.Settings.Gravity);
+			Ctx.GrassGeometry.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+			Ctx.GrassGeometry.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 
+			if (Ctx.BlossomCount > 0)
+			{
+				Ctx.GrassBlossom.SetVector("CamPos", Ctx.Camera.transform.position);
+				Ctx.GrassBlossom.SetVector("viewDir", Ctx.Camera.transform.forward);
+				Ctx.GrassBlossom.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+				Ctx.GrassBlossom.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+				Ctx.GrassBlossom.SetVector("LightColor", Ctx.SunLight.color);
+				Ctx.GrassBlossom.SetVector("GravityVec", Ctx.Settings.Gravity);
+				Ctx.GrassBlossom.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+				Ctx.GrassBlossom.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
+			}
 			Ctx.GrassBillboardCrossed.SetVector("CamPos", Ctx.Camera.transform.position);
-			Ctx.GrassBillboardCrossed.SetFloat("specular", Ctx.Settings.Specular);
-			Ctx.GrassBillboardCrossed.SetFloat("gloss", Ctx.Settings.Gloss);
-			Ctx.GrassBillboardCrossed.SetVector("viewDir", Ctx.Camera.transform.forward);
-			Ctx.GrassBillboardCrossed.SetVector("lightDir", Ctx.Light.transform.forward);
-			Ctx.GrassBillboardCrossed.SetVector("lightColor", Ctx.Light.color);
+			Ctx.GrassBillboardCrossed.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+			Ctx.GrassBillboardCrossed.SetVector("LightColor", Ctx.SunLight.color);
+			Ctx.GrassBillboardCrossed.SetVector("GravityVec", Ctx.Settings.Gravity);
+			Ctx.GrassBillboardCrossed.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+			Ctx.GrassBillboardCrossed.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
 			Ctx.GrassBillboardScreen.SetVector("CamPos", Ctx.Camera.transform.position);
 			Ctx.GrassBillboardScreen.SetVector("CamUp", Ctx.Camera.transform.up);
-			Ctx.GrassBillboardScreen.SetFloat("specular", Ctx.Settings.Specular);
-			Ctx.GrassBillboardScreen.SetFloat("gloss", Ctx.Settings.Gloss);
-			Ctx.GrassBillboardScreen.SetVector("viewDir", Ctx.Camera.transform.forward);
-			Ctx.GrassBillboardScreen.SetVector("lightDir", Ctx.Light.transform.forward);
-			Ctx.GrassBillboardScreen.SetVector("lightColor", Ctx.Light.color);
+			Ctx.GrassBillboardScreen.SetVector("LightDirection", Ctx.SunLight.transform.forward);
+			Ctx.GrassBillboardScreen.SetVector("LightColor", Ctx.SunLight.color);
+			Ctx.GrassBillboardScreen.SetVector("GravityVec", Ctx.Settings.Gravity);
+			Ctx.GrassBillboardScreen.SetFloat("LightIntensity", Ctx.SunLight.intensity);
+			Ctx.GrassBillboardScreen.SetFloat("AmbientLightFactor", Ctx.Settings.AmbientLightFactor);
 			
-			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", Time.deltaTime);
-			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
+			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", false);
+			//Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", Time.deltaTime);
+			//Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
 			Ctx.GrassSimulationComputeShader.SetFloats("CamPos", Ctx.Camera.transform.position.x,
 				Ctx.Camera.transform.position.y, Ctx.Camera.transform.position.z);
-			
-			Ctx.GrassSimulationComputeShader.SetFloat("WindAmplitude", Ctx.Settings.WindAmplitude);
+			Ctx.GrassSimulationComputeShader.SetVector("SunLight", new Vector4(-Ctx.SunLight.transform.forward.x, -Ctx.SunLight.transform.forward.y, -Ctx.SunLight.transform.forward.z, Ctx.SunLight.intensity));
 			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
+		}
+
+		public virtual void GetDebugInfo(ref int visiblePatchCount, ref int simulatedGrassCount, ref int geometryGrassCount, ref int crossedBillboardGrassCount, ref int screenBillboardGrassCount, ref int geometryPatchCount, ref int crossedBillboardPatchCount, ref int screenBillboardPatchCount)
+		{
+			
 		}
 	}
 }

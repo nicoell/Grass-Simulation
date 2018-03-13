@@ -1,5 +1,10 @@
-﻿Shader "GrassSimulation/CollisionShader"
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+Shader "GrassSimulation/CollisionShader"
 {
+    Properties {
+        _CollisionVelocity ("Collision Velocity", Vector) = (0, 0, 0, 0)
+    }
     SubShader
     {
         Tags { "RenderType" = "Opaque" }
@@ -27,7 +32,7 @@
             
             fixed4 frag (VSOut IN) : SV_Target
             {
-                return fixed4(collisionVelocity.xyz, IN.vertex.z);
+                return float4(collisionVelocity.xyz, IN.vertex.z);
             }
             ENDCG
         }

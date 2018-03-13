@@ -12,7 +12,7 @@ namespace GrassSimulation.Core.Lod
 
 		public abstract bool IsLeaf { get; }
 
-		public virtual void DrawGizmo()
+		public virtual void DrawGizmo(int level = 0)
 		{
 			Gizmos.color = Color.red;
 			Gizmos.DrawWireSphere(Bounds.center, 0.5f);
@@ -20,5 +20,7 @@ namespace GrassSimulation.Core.Lod
 		}
 
 		public virtual void OnGUI() { }
+
+		public abstract void Unload();
 	}
 }

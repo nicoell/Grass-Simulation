@@ -7,7 +7,7 @@ namespace GrassSimulation.Core.Inputs
 		/// <summary>
 		///     <para>Gets the height value at point x,y.</para>
 		/// </summary>
-		/// <returns>A float height value in range 0..1</returns>
+		/// <returns>A float height value in range 0..Max Height, can be greater than 1</returns>
 		/// <param name="x">x coordinate in range 0..1</param>
 		/// <param name="y">y coordnate in range 0..1</param>
 		public abstract float GetHeight(float x, float y);

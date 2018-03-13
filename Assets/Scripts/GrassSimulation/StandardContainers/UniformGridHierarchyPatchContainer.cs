@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using GrassSimulation.Core.Lod;
 using UnityEngine;
+using UnityEngine.Assertions.Comparers;
 
 namespace GrassSimulation.StandardContainers
 {
@@ -12,19 +12,19 @@ namespace GrassSimulation.StandardContainers
 		private BoundingPatch _rootPatch;
 		private List<GrassPatch> _visiblePatches;
 
-		public override void Destroy()
+		public override void Unload()
 		{
-			foreach (var grassPatch in _grassPatches) grassPatch.Destroy();
+			if (_grassPatches != null) foreach (var grassPatch in _grassPatches) grassPatch.Unload();
+			if (_visiblePatches != null) _visiblePatches.Clear();
+			_grassPatches = null;
 		}
 
-		public override Bounds GetBounds()
-		{
-			return _rootPatch.Bounds;
-		}
+		public override Bounds GetBounds() { return _rootPatch.Bounds; }
 
 		protected override void DrawImpl()
 		{
 			CullViewFrustum();
+			foreach (var grassPatch in _grassPatches) grassPatch.DeltaTime += Time.deltaTime;
 			foreach (var visiblePatch in _visiblePatches) visiblePatch.Draw();
 		}
 
@@ -44,7 +44,6 @@ namespace GrassSimulation.StandardContainers
 			var terrainBoundsWorldCenter = localToWorldMatrix.MultiplyPoint3x4(Ctx.DimensionsInput.GetBounds().center);
 			//Prepare some measurements
 			var terrainSize = new Vector2(Ctx.DimensionsInput.GetWidth(), Ctx.DimensionsInput.GetDepth());
-			var terrainLevel = Ctx.DimensionsInput.GetHeight();
 			var heightSamplingRate = Ctx.HeightInput.GetSamplingRate();
 			var patchQuantity = new Vector2Int((int) (terrainSize.x / Ctx.Settings.PatchSize),
 				(int) (terrainSize.y / Ctx.Settings.PatchSize));
@@ -69,8 +68,8 @@ namespace GrassSimulation.StandardContainers
 				patchBoundsCenter.x += x * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 				patchBoundsCenter.z += y * Ctx.Settings.PatchSize + Ctx.Settings.PatchSize / 2;
 
-				var minHeight = 1f;
-				var maxHeight = 0f;
+				var minHeight = float.PositiveInfinity;
+				var maxHeight = float.NegativeInfinity;
 				for (var j = patchTexCoord.x; j < patchTexCoord.x + patchTexCoord.z; j += heightSamplingRate.x)
 				for (var k = patchTexCoord.y; k < patchTexCoord.y + patchTexCoord.w; k += heightSamplingRate.y)
 				{
@@ -80,8 +79,8 @@ namespace GrassSimulation.StandardContainers
 				}
 
 				//We can now calculate the center.y and height of BoundingBox
-				patchBoundsCenter.y += (minHeight + (maxHeight - minHeight) / 2) * terrainLevel;
-				patchBoundsSize.y = (maxHeight - minHeight) * terrainLevel;
+				patchBoundsCenter.y += minHeight + (maxHeight - minHeight) / 2;
+				patchBoundsSize.y = maxHeight - minHeight;
 
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Ctx, patchTexCoord,
@@ -125,15 +124,12 @@ namespace GrassSimulation.StandardContainers
 		protected override void DrawGizmoImpl()
 		{
 			//Draw Gizmos for Hierchical Patches
-			_rootPatch.DrawGizmo();
+			_rootPatch.DrawGizmo(0);
 			//Draw Gizmos for visible Leaf Patches
 			foreach (var visiblePatch in _visiblePatches) visiblePatch.DrawGizmo();
 		}
 
-		public override void OnGUI()
-		{
-			if (_visiblePatches.Count > 0) _visiblePatches[0].OnGUI();
-		}
+		public override void OnGUI() {  }
 
 		private void CullViewFrustum()
 		{
@@ -156,6 +152,36 @@ namespace GrassSimulation.StandardContainers
 				if (childPatches == null) return;
 				foreach (var childPatch in childPatches) if (childPatch != null) TestViewFrustum(childPatch);
 			}
+		}
+
+		public override void GetDebugInfo(ref int visiblePatchCount, ref int simulatedGrassCount, ref int geometryGrassCount, ref int crossedBillboardGrassCount, ref int screenBillboardGrassCount, ref int geometryPatchCount, ref int crossedBillboardPatchCount, ref int screenBillboardPatchCount)		{
+			foreach (var visiblePatch in _visiblePatches)
+			{
+				visiblePatchCount++;
+				simulatedGrassCount += Ctx.Settings.GrassDataResolution * Ctx.Settings.GrassDataResolution;
+				geometryGrassCount += (int) visiblePatch._argsGeometry[1] * (int) Ctx.Settings.GetMinAmountBladesPerPatch();
+				if (visiblePatch._argsGeometry[1] > 0)
+				{
+					geometryPatchCount += 1;
+					geometryGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBladesPerPatch() * 0.5f);
+				}
+
+				crossedBillboardGrassCount += (int) visiblePatch._argsBillboardCrossed[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
+				if (visiblePatch._argsBillboardCrossed[1] > 0)
+				{
+					crossedBillboardPatchCount += 1;
+					crossedBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
+				}
+
+				screenBillboardGrassCount += (int) visiblePatch._argsBillboardScreen[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
+				if (visiblePatch._argsBillboardScreen[1] > 0)
+				{
+					screenBillboardPatchCount += 1;
+					screenBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
+				}
+			}
+			
+			
 		}
 	}
 }

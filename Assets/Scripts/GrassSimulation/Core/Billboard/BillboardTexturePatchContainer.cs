@@ -5,48 +5,59 @@ namespace GrassSimulation.Core.Billboard
 {
 	public sealed class BillboardTexturePatchContainer : PatchContainer
 	{
-		private BillboardTexturePatch _billboardTexturePatch;
 		private RenderTexture _billboardTexture;
-		public Texture2DArray BillboardTextures;
+		private BillboardTexturePatch _billboardTexturePatch;
 		public float BillboardAspect;
+		public Texture2DArray BillboardTextures;
+		public Texture2DArray BillboardNormals;
 
-		public override void Destroy()
+		public override void Unload()
 		{
-			_billboardTexturePatch.Destroy();
+			_billboardTexturePatch.Unload();
+			Object.DestroyImmediate(_billboardTexture);
+			Object.DestroyImmediate(BillboardTextures);
+			Object.DestroyImmediate(BillboardNormals);
 		}
 
-		public override Bounds GetBounds()
-		{
-			return _billboardTexturePatch.Bounds;
-		}
+		public override Bounds GetBounds() { return _billboardTexturePatch.Bounds; }
 
 		protected override void DrawImpl()
 		{
-			//TODO: Calculate boundingbox/orthographic frustum in computeshader, save it to a buffer and read it on the cpu, set the camera accordingly.
-			//Evoila, we have a perfect fitting texture.
 			_billboardTexturePatch.RunSimulationComputeShader();
 
 			SetupBounding();
 			var mipMapCount = 1 + Mathf.FloorToInt(Mathf.Log(Mathf.Max(_billboardTexture.width, _billboardTexture.height), 2));
 			for (var i = 0; i < Ctx.BladeContainer.GetTypeCount(); i++)
 			{
-				Ctx.GrassBillboardGeneration.SetFloat("GrassType", i);
-				_billboardTexturePatch.Draw();
+				Ctx.GrassBillboardGeneration.SetInt("GrassType", i);
+				if (Ctx.GrassBlossomBillboardGeneration) Ctx.GrassBlossomBillboardGeneration.SetInt("GrassType", i);
 				
+				Ctx.GrassBillboardGeneration.SetInt("RenderNormals", 1);
+				//Draw normals
+				_billboardTexturePatch.Draw();
 				Ctx.BillboardTextureCamera.Render();
 				_billboardTexture.GenerateMips();
-				//TODO Custom mipmapping and antialiasing
-				for (int m = 0; m < mipMapCount; m++)
-					Graphics.CopyTexture(_billboardTexture, 0, m, BillboardTextures, i, m);
+				//TODO: Custom mipmapping and antialiasing
+				for (var m = 0; m < mipMapCount; m++) Graphics.CopyTexture(_billboardTexture, 0, m, BillboardNormals, i, m);
+				
+				//Draw texture
+				Ctx.GrassBillboardGeneration.SetInt("RenderNormals", 0);
+				_billboardTexturePatch.Draw();
+				Ctx.BillboardTextureCamera.Render();
+				//_billboardTexture.GenerateMips();
+				GenerateMipMapsAlphaPreserving();
+				//TODO: Custom mipmapping and antialiasing
+				for (var m = 0; m < mipMapCount; m++) Graphics.CopyTexture(_billboardTexture, 0, m, BillboardTextures, i, m);
+				
+				
 			}
-			
 		}
 
 		private void SetupBounding()
 		{
 			var bounds = _billboardTexturePatch.GetBillboardBounding();
-			
-			Ctx.BillboardTextureCamera.orthographic = true; 
+
+			Ctx.BillboardTextureCamera.orthographic = true;
 			Ctx.BillboardTextureCamera.nearClipPlane = 0;
 			Ctx.BillboardTextureCamera.farClipPlane = bounds.size.z;
 			Ctx.BillboardTextureCamera.useOcclusionCulling = false;
@@ -54,15 +65,16 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.BillboardTextureCamera.enabled = false;
 			Ctx.BillboardTextureCamera.aspect = bounds.extents.x / bounds.extents.y;
 			Ctx.BillboardTextureCamera.orthographicSize = bounds.extents.y;
-			
+
 			var position = bounds.center - new Vector3(0, 0, bounds.extents.z);
 			var rotation = Quaternion.LookRotation(Ctx.Transform.forward, Ctx.Transform.up);
 			Ctx.BillboardTextureCamera.transform.SetPositionAndRotation(position, rotation);
 
 			BillboardAspect = Ctx.BillboardTextureCamera.aspect;
-			
-			BillboardTextures = new Texture2DArray(Ctx.Settings.BillboardTextureResolution,
-				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f), Ctx.BladeContainer.GetTypeCount(),
+
+			BillboardTextures = new Texture2DArray(
+				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f),
+				Ctx.Settings.BillboardTextureResolution, Ctx.BladeContainer.GetTypeCount(),
 				TextureFormat.RGBA32, true, true)
 			{
 				name = "BillboardTextures",
@@ -70,55 +82,105 @@ namespace GrassSimulation.Core.Billboard
 				filterMode = FilterMode.Trilinear,
 				anisoLevel = 16
 			};
+			
+			BillboardNormals = new Texture2DArray(
+				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f),
+				Ctx.Settings.BillboardTextureResolution, Ctx.BladeContainer.GetTypeCount(),
+				TextureFormat.RGBA32, true, true)
+			{
+				name = "BillboardNormals",
+				wrapMode = TextureWrapMode.Clamp,
+				filterMode = FilterMode.Trilinear,
+				anisoLevel = 16
+			};
 
-			_billboardTexture = new RenderTexture(Ctx.Settings.BillboardTextureResolution,
-				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f), 0,
+			_billboardTexture = new RenderTexture(
+				(int) (Ctx.Settings.BillboardTextureResolution * Ctx.BillboardTextureCamera.aspect + 0.5f),
+				Ctx.Settings.BillboardTextureResolution, 0,
 				RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
 			{
 				filterMode = FilterMode.Trilinear,
 				wrapMode = TextureWrapMode.Clamp,
 				//antiAliasing = 8,
 				useMipMap = true,
-				autoGenerateMips = false
+				autoGenerateMips = false,
+				mipMapBias = -0.5f
 			};
 			_billboardTexture.Create();
-			
+
 			Ctx.BillboardTextureCamera.targetTexture = _billboardTexture;
 		}
 
-		public override void SetupContainer()
+		private void GenerateMipMapsAlphaPreserving()
 		{
-			_billboardTexturePatch = new BillboardTexturePatch(Ctx);
-		}
+			var tempTex2D =
+				Utils.RenderTextureUtils.GetRenderTextureAsTexture2D(_billboardTexture, TextureFormat.ARGB32, true, true);
+			
+			var mipMapCount = 1 + Mathf.FloorToInt(Mathf.Log(Mathf.Max(_billboardTexture.width, _billboardTexture.height), 2));
+			int miplevel = 1, mipWidth, mipHeight;
+			
+			do
+			{
+				mipWidth = Mathf.Max(1, _billboardTexture.width >> miplevel);
+				mipHeight = Mathf.Max(1, _billboardTexture.height >> miplevel);
 
-		protected override void DrawGizmoImpl()
-		{
-			_billboardTexturePatch.DrawGizmo();
-		}
+				var uvCenter = new Vector2(0.5f / mipWidth, 0.5f / mipHeight);
+				var colors = new Color[mipHeight * mipWidth];
+				for (var y = 0; y < mipHeight; y++)
+				for (var x = 0; x < mipWidth; x++)
+				{
+					float r = 0, g = 0, b = 0, a = 0;
+					
+					var uv = new Vector2((float) x / mipWidth + uvCenter.x, (float) y / mipHeight + uvCenter.y);
+					var color = tempTex2D.GetPixelBilinear(uv.x, uv.y);
+					r = color.r;
+					g = color.g;
+					b = color.b;
+					a = color.a >= Ctx.Settings.BillboardAlphaCutoff ? 1 : color.a;
+							
 
-		public override void OnGUI()
-		{
+					var index = mipWidth * y + x;
+					colors[index] = new Color(r, g, b, a);
+				}
+				tempTex2D.SetPixels(colors, miplevel);
+
+				miplevel++;
+			} while (mipHeight != 1 || mipWidth != 1);
+			
+			tempTex2D.Apply(false);
+			
+			for (var m = 1; m < mipMapCount; m++) Graphics.CopyTexture(tempTex2D, 0, m, _billboardTexture, 0, m);
 		}
+		
+		public override void SetupContainer() { _billboardTexturePatch = new BillboardTexturePatch(Ctx); }
+
+		protected override void DrawGizmoImpl() { _billboardTexturePatch.DrawGizmo(); }
+
+		public override void OnGUI() { }
 
 		protected override void UpdatePerFrameData()
 		{
-			Ctx.GrassSimulationComputeShader.SetBool("ApplyTransition", Ctx.Settings.EnableHeightTransition);
 			Ctx.GrassBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
-			
-			Ctx.GrassBillboardGeneration.SetFloat("specular", Ctx.Settings.Specular);
-			Ctx.GrassBillboardGeneration.SetFloat("gloss", Ctx.Settings.Gloss);
-			Ctx.GrassBillboardGeneration.SetVector("viewDir", Ctx.Camera.transform.forward);
-			Ctx.GrassBillboardGeneration.SetVector("lightDir", Ctx.Light.transform.forward);
-			Ctx.GrassBillboardGeneration.SetVector("lightColor", Ctx.Light.color);
-			
-			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 1f);
+			Ctx.GrassBillboardGeneration.SetMatrix("ViewProjMatrix", Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+			Ctx.GrassBillboardGeneration.SetFloat("MinGrassBladeWidth", Ctx.Settings.BladeMaxWidth);
+			Ctx.GrassBillboardGeneration.SetVector("GravityVec", Ctx.Settings.Gravity);
+
+			if (Ctx.GrassBlossomBillboardGeneration)
+			{
+				Ctx.GrassBlossomBillboardGeneration.SetVector("CamPos", Ctx.BillboardTextureCamera.transform.position);
+				Ctx.GrassBlossomBillboardGeneration.SetMatrix("ViewProjMatrix",
+					Ctx.Camera.projectionMatrix * Ctx.Camera.worldToCameraMatrix);
+				Ctx.GrassBlossomBillboardGeneration.SetFloat("MinGrassBladeWidth", Ctx.Settings.BladeMaxWidth);
+				Ctx.GrassBillboardGeneration.SetVector("GravityVec", Ctx.Settings.Gravity);
+			}
+			Ctx.GrassSimulationComputeShader.SetBool("BillboardGeneration", true);
+			Ctx.GrassSimulationComputeShader.SetFloat("DeltaTime", 1.0f);
 			Ctx.GrassSimulationComputeShader.SetFloat("Time", Time.time);
 			Ctx.GrassSimulationComputeShader.SetMatrix("ViewProjMatrix",
 				Ctx.BillboardTextureCamera.projectionMatrix * Ctx.BillboardTextureCamera.worldToCameraMatrix);
 			Ctx.GrassSimulationComputeShader.SetFloats("CamPos", Ctx.BillboardTextureCamera.transform.position.x,
 				Ctx.BillboardTextureCamera.transform.position.y, Ctx.BillboardTextureCamera.transform.position.z);
 
-			Ctx.GrassSimulationComputeShader.SetFloat("WindAmplitude", Ctx.Settings.WindAmplitude);
 			Ctx.GrassSimulationComputeShader.SetVector("GravityVec", Ctx.Settings.Gravity);
 		}
 	}
