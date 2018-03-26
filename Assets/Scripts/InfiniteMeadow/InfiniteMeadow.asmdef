@@ -1,0 +1,12 @@
+{
+    "name": "InfiniteMeadow",
+    "references": [],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [
+        "Android",
+        "iOS",
+        "Nintendo3DS"
+    ],
+    "allowUnsafeCode": false
+}

@@ -1,44 +1,61 @@
 ﻿using System.Collections.Generic;
-using InfiniteMeadow.Utils;
 using UnityEngine;
 
-namespace InfiniteMeadow {
-	
-	public partial class InfiniteMeadowManager
+namespace InfiniteMeadow.Core
+{
+	internal sealed class CoreManager : Manager<CoreManager>
 	{
-		private class CoreManager
+		private readonly LodManager _lodManager;
+		private readonly List<InfiniteMeadowInstance> _meadowInstances;
+		private readonly Camera[] _renderCameras;
+		private CollisionManager _collisionManager;
+		private PatchManager _patchManager;
+		private ShaderManager _shaderManager;
+		private TextureManager _textureManager;
+		private WindManager _windManager;
+
+		public CoreManager()
 		{
-			private List<InfiniteMeadowInstance> _meadowInstances;
-			private GlobalShaderLinker _globalShaderTarget;
-			private MaterialLinker _materialLinker;
-			private MaterialPropertyBlockLinker _propertyBlockLinker;
-			private ComputeShaderLinker _computeShaderLinker;
+			Instance = this;
+			_meadowInstances = new List<InfiniteMeadowInstance>();
+			_renderCameras = new Camera[] { };
 
-			public float Test { get { return Random.Range(0f, 1f); } }
-
-			public CoreManager()
-			{
-				_meadowInstances = new List<InfiniteMeadowInstance>();
-				_globalShaderTarget = new GlobalShaderLinker();
-			}
-
-			public void Init()
-			{
-				_globalShaderTarget.LinkFloat(UpdateRate.PerFrame, "globaltest", () => Test);
-				_globalShaderTarget.UpdateLinks(UpdateRate.Once);
-			}
-
-			public void Update()
-			{
-				_globalShaderTarget.UpdateLinks(UpdateRate.PerFrame);
-			} 
-				
-				
-			public void Reset()
-			{
-				_meadowInstances.Clear();
-			}
-
+			_patchManager = new PatchManager();
+			_lodManager = new LodManager();
+			_shaderManager = new ShaderManager();
+			_textureManager = new TextureManager();
+			_windManager = new WindManager();
+			_collisionManager = new CollisionManager();
 		}
+
+		public void Init()
+		{
+			var controller = InfiniteMeadowController.GetInstance();
+			controller.Cameras.CopyTo(_renderCameras);
+		}
+
+		public void Update() { }
+
+		public void Reset()
+		{
+			foreach (var meadowInstance in _meadowInstances) meadowInstance.IsActive = false;
+			_meadowInstances.Clear();
+		}
+
+		public bool ApplyAsInstance(InfiniteMeadowInstance instance)
+		{
+			if (!IsInRange(instance.GetBounds())) return false;
+			_meadowInstances.Add(instance);
+			return true;
+		}
+
+		public bool PersistAsInstance(InfiniteMeadowInstance instance)
+		{
+			if (IsInRange(instance.GetBounds())) return true;
+			_meadowInstances.Remove(instance);
+			return false;
+		}
+
+		private bool IsInRange(Bounds bounds) { return _lodManager.GetBounds().Intersects(bounds); }
 	}
 }
