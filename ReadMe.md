@@ -1,4 +1,7 @@
 # Infos
+## Branch Info
+This branch is non functional.
+## Maintenance
 There is no planned maintenance of this project.
 
 # General
