@@ -1,3 +1,6 @@
+# Infos
+There is no planned maintenance of this project.
+
 # General
 Run with "Custom" Graphics Quality for 8xMSAA.
 
