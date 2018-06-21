@@ -1,22 +1,27 @@
 ﻿using System.Collections.Generic;
 using GrassSimulation.Core.Lod;
 using UnityEngine;
-using UnityEngine.Assertions.Comparers;
+using UnityEngine.Rendering;
 
 namespace GrassSimulation.StandardContainers
 {
 	public class UniformGridHierarchyPatchContainer : PatchContainer
 	{
+		private int _grassPatchCount;
 		private GrassPatch[,] _grassPatches;
 		private Plane[] _planes;
 		private BoundingPatch _rootPatch;
 		private List<GrassPatch> _visiblePatches;
-
+		private RenderTexture _simulationTexture0;
+		private RenderTexture _simulationTexture1;
+	
 		public override void Unload()
 		{
 			if (_grassPatches != null) foreach (var grassPatch in _grassPatches) grassPatch.Unload();
 			if (_visiblePatches != null) _visiblePatches.Clear();
 			_grassPatches = null;
+			Object.DestroyImmediate(_simulationTexture0);
+			Object.DestroyImmediate(_simulationTexture1);
 		}
 
 		public override Bounds GetBounds() { return _rootPatch.Bounds; }
@@ -35,6 +40,92 @@ namespace GrassSimulation.StandardContainers
 			_visiblePatches = new List<GrassPatch>();
 			CreateGrassPatchGrid();
 			CreatePatchHierarchy();
+			
+			CreateGpuTextureAndBuffer();
+			SetupSimulation();
+
+		}
+
+		private ComputeBuffer _patchDataBuffer;
+		private ComputeBuffer _argBuffer;
+		private ComputeBuffer _appendBuffer;
+		private uint[] _argsBuffer = {0, 0, 0, 0, 0};
+		
+		private void CreateGpuTextureAndBuffer()
+		{
+			_simulationTexture0 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
+				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
+				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
+			{
+				filterMode = FilterMode.Bilinear,
+				autoGenerateMips = false,
+				useMipMap = false,
+				enableRandomWrite = true,
+				wrapMode = TextureWrapMode.Clamp,
+				dimension = TextureDimension.Tex2DArray,
+				volumeDepth = _grassPatchCount
+			};
+			_simulationTexture0.Create();
+			
+			_simulationTexture1 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
+				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
+				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
+			{
+				filterMode = FilterMode.Bilinear,
+				autoGenerateMips = false,
+				useMipMap = false,
+				enableRandomWrite = true,
+				wrapMode = TextureWrapMode.Clamp,
+				dimension = TextureDimension.Tex2DArray,
+				volumeDepth = _grassPatchCount
+			};
+			_simulationTexture1.Create();
+			
+			_patchDataBuffer = new ComputeBuffer(_grassPatchCount, PatchData.GetSize(), ComputeBufferType.Default);
+			var patchDataArray = new PatchData[_grassPatchCount];
+			for (int y = 0; y < _grassPatches.GetLength(0); y++)
+			for (int x = 0; x < _grassPatches.GetLength(1); x++)
+			{
+				int i = y * _grassPatches.GetLength(1) + x;
+				patchDataArray[i] = _grassPatches[x,y].PatchData;	//TODO: possible error source
+			}
+			_patchDataBuffer.SetData(patchDataArray);
+			
+			_appendBuffer = new ComputeBuffer(_grassPatchCount, sizeof(int), ComputeBufferType.Append);
+			_appendBuffer.SetCounterValue(0);
+			
+			_argBuffer = new ComputeBuffer(1, _argsBuffer.Length * sizeof(int), ComputeBufferType.IndirectArguments);
+			
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture0", _simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture1", _simulationTexture1);
+			
+		}
+
+		private void SetupSimulation()
+		{
+			Ctx.GrassSimulationComputeShader.SetInt("StartIndex", _startIndex);
+			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetX", _parameterOffsetX);
+			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetY", _parameterOffsetY);
+			Ctx.GrassSimulationComputeShader.SetVector("PatchTexCoord", _patchTexCoord);
+			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
+
+			//Set buffers for SimulationSetup Kernel
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture0",
+				_simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture1",
+				_simulationTexture1);
+			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
+
+			uint threadGroupX, threadGroupY, threadGroupZ;
+			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelSimulationSetup, out threadGroupX,
+				out threadGroupY, out threadGroupZ);
+			_threadGroupX = (int) (Ctx.Settings.GrassDataResolution / threadGroupX);
+			_threadGroupY = (int) (Ctx.Settings.GrassDataResolution / threadGroupY);
+			_threadGroupZ = 1;
+
+			//Run Physics Simulation
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelSimulationSetup, _threadGroupX, _threadGroupY,
+				_threadGroupZ);
 		}
 
 		private void CreateGrassPatchGrid()
@@ -48,6 +139,7 @@ namespace GrassSimulation.StandardContainers
 			var patchQuantity = new Vector2Int((int) (terrainSize.x / Ctx.Settings.PatchSize),
 				(int) (terrainSize.y / Ctx.Settings.PatchSize));
 			_grassPatches = new GrassPatch[patchQuantity.y, patchQuantity.x];
+			_grassPatchCount = 0;
 
 			//Initiate all Leaf Patches by creating their BoundingBox and textureCoordinates for heightmap Access
 			for (var y = 0; y < patchQuantity.y; y++)
@@ -84,7 +176,8 @@ namespace GrassSimulation.StandardContainers
 
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Ctx, patchTexCoord,
-					new Bounds(patchBoundsCenter, patchBoundsSize));
+					new Bounds(patchBoundsCenter, patchBoundsSize), y * patchQuantity.x + x);
+				_grassPatchCount++;
 			}
 		}
 
