@@ -1,3 +1,9 @@
+# Infos
+**There is no planned maintenance of this project.**
+
+# Screenshot
+![Meadow Collisions](GrassSimulationImage.jpg "Grass Simulation Screenshot")
+
 # General
 Run with "Custom" Graphics Quality for 8xMSAA.
 
