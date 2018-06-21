@@ -64,6 +64,7 @@ namespace GrassSimulation.Core
 		[Header("LOD Settings")]
 		[Tooltip("The width and depth of a patch.")]
 		public uint PatchSize = 8;
+		public uint GrassPerInstancemodifer = 1;
 		[Tooltip("How much more instanced grass data than the max possible amount of blades per patch gets created.")]
 		[Range(1,32)]
 		public uint InstancedGrassFactor = 4;
@@ -120,12 +121,12 @@ namespace GrassSimulation.Core
 
 		public uint GetMinAmountBladesPerPatch()
 		{
-			return PatchSize * PatchSize;
+			return PatchSize * PatchSize * GrassPerInstancemodifer;
 		}
 		
 		public uint GetMinAmountBillboardsPerPatch()
 		{
-			return PatchSize;
+			return PatchSize * GrassPerInstancemodifer;
 		}
 
 		//public uint GetSharedBufferLength() { return GetMaxAmountBladesPerPatch() * InstancedGrassFactor * InstancedGrassFactor; }
