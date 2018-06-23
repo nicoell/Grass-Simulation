@@ -1,5 +1,7 @@
-﻿#pragma kernel PhysicsMain
-#pragma kernel SimulationSetup
+﻿#pragma kernel PhysicsMain ARRAY
+#pragma kernel SimulationSetup ARRAY
+#pragma kernel PhysicsMainBillboardGeneration 
+#pragma kernel SimulationSetupBillboardGeneration
 
 #define physicsNumThreadsX 8
 #define physicsNumThreadsY 8
@@ -7,6 +9,23 @@
 #define physicsThreadCount physicsNumThreadsX * physicsNumThreadsY * physicsNumThreadsZ
 
 #include "GrassFuncs.cginc"
+
+
+struct PatchData {
+    int RandomIndex; //StartIndex
+    float4 PatchTexCoord;
+    float ParameterOffsetX;
+    float ParameterOffsetY;
+    float4x4 PatchModelMatrix;
+};
+
+struct IdDeltaTime {
+    uint Id;
+    float Delta;
+};
+
+StructuredBuffer<PatchData> PatchConstantBuffer;
+StructuredBuffer<IdDeltaTime> InstanceToPatchIdDeltaTimeBuffer;
 
 static const float PI = 3.141592;
 
@@ -45,8 +64,7 @@ Texture2D<float4> CollisionDepthTexture; //up.xyz, pos.y
 SamplerState samplerCollisionDepthTexture;
 Texture2D<float4> NormalHeightTexture; //up.xyz, pos.y
 SamplerState samplerNormalHeightTexture;
-RWTexture2D<float4> SimulationTexture0; //v1.xyz, collisionForce;
-RWTexture2D<float4> SimulationTexture1; //v2.xyz, distance;
+
 
 //Per Frame
 int WindLayerCount;
@@ -58,8 +76,8 @@ float4 GravityVec;
 float4 SunLight; //Direction towards sun and Influence
 float4 WindDataTest;
 
-float4 LocalToWorldPos(float4 pos){ return mul(PatchModelMatrix, pos); }
-float4 LocalToWorldPos(float3 pos){ return mul(PatchModelMatrix, float4(pos, 1.0)); }
+float4 LocalToWorldPos(float4x4 mat, float4 pos){ return mul(mat, pos); } //mat = PatchModelMatrix
+float4 LocalToWorldPos(float4x4 mat, float3 pos){ return mul(mat, float4(pos, 1.0)); } //mat = PatchModelMatrix
 float4 WorldToClipPos(float4 pos){ return mul(ViewProjMatrix, pos); }
 float4 WorldToClipPos(float3 pos){ return WorldToClipPos(float4(pos, 1.0)); }
 float4 GetCollisionVolumePos(float3 worldpos){ return mul(CollisionViewProj, float4(worldpos, 1.0)); }
@@ -118,12 +136,260 @@ bool IsNAN(float n)
     return n != n;
 }
 
+#ifdef ARRAY
+RWTexture2DArray<float4> SimulationTexture0; //v1.xyz, collisionForce;
+RWTexture2DArray<float4> SimulationTexture1; //v2.xyz, distance;
 /*
- * Kernels below.
+ * New Kernels below.
  */ 
 
 [numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
 void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+{
+    IdDeltaTime idDeltaTime = InstanceToPatchIdDeltaTimeBuffer[id.z];
+    //idDeltaTime.Id = id.z;
+    PatchData patchData = PatchConstantBuffer[idDeltaTime.Id];
+    
+    //Create all the needed uv coordinates
+    float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
+    float2 uvGlobal = lerp(patchData.PatchTexCoord.xy, patchData.PatchTexCoord.xy + patchData.PatchTexCoord.zw, uvLocal);
+    float2 uvParameter = float2(patchData.ParameterOffsetX, patchData.ParameterOffsetY) + uvLocal;
+    
+    //Read all the textures -°O°/
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
+    float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
+    
+    //Create and name all needed variables
+    float dirAlpha = parameters.w;
+    float3 bladeDir;
+	float3 bladeFront;
+    float3 terrainNormal = normalize(normalHeight.xyz);
+    float3 bladeUp = normalize(normalHeight.xyz);
+    CalculateBladeDirAndFront(bladeUp, dirAlpha, bladeDir, bladeFront);
+    float height = parameters.z;
+    float3 v2 = bladeUp * height;
+    float3 v1 = GetV1(v2, bladeUp, height, 1.0 / height);
+    
+    AdjustBezierArcLength(v1, v2, height);
+
+    float collisionForce = 0;
+    float distance = 1.0;
+    
+    SimulationTexture0[uint3(id.xy, idDeltaTime.Id)] = float4(v1, collisionForce);
+    SimulationTexture1[uint3(id.xy, idDeltaTime.Id)] = float4(v2, distance);
+}
+
+[numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
+void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+{
+    IdDeltaTime idDeltaTime = InstanceToPatchIdDeltaTimeBuffer[id.z];
+    //idDeltaTime.Id = id.z;
+    PatchData patchData = PatchConstantBuffer[idDeltaTime.Id];
+    
+    //Create all the needed uv coordinates
+    float2 uvLocal = float2(id.x/GrassDataResolution + 0.5 / GrassDataResolution, id.y/GrassDataResolution + 0.5 / GrassDataResolution);
+    float2 uvGlobal = lerp(patchData.PatchTexCoord.xy, patchData.PatchTexCoord.xy + patchData.PatchTexCoord.zw, uvLocal);
+    float2 uvParameter = float2(patchData.ParameterOffsetX, patchData.ParameterOffsetY) + uvLocal;
+    
+    //Read all the textures -°O°/
+    float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
+    float4 grassMapData = GrassMapTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
+    float4 parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
+    //Don't use grassmaps density if we are generating our billboard data
+    if (BillboardGeneration) grassMapData.z = 1;
+    float4 simulationData0 = SimulationTexture0.Load(uint3(id.xy, idDeltaTime.Id));
+    float4 simulationData1 = SimulationTexture1.Load(uint3(id.xy, idDeltaTime.Id));
+    
+    //Check for the case, that no grass grows at this place (or too small one)
+    if (grassMapData.z < BladeHeightCullingThreshold)
+    {
+        SimulationTexture0[uint3(id.xy, idDeltaTime.Id)] = float4(0, 0, 0, 0);
+        SimulationTexture1[uint3(id.xy, idDeltaTime.Id)] = float4(0, 0, 0, 1);
+        return;
+    }
+    
+    //Create and name all needed variables
+	float width = parameters.x;
+	float bendingFactor = parameters.y;
+	float height = parameters.z * grassMapData.z;
+	float invHeight = 1.0 / height;
+	float dirAlpha = parameters.w;
+	float3 localV0 = float3(uvLocal.x, normalHeight.w, uvLocal.y);
+	float3 v0 = LocalToWorldPos(patchData.PatchModelMatrix, localV0).xyz;
+	float3 terrainNormal = normalize(normalHeight.xyz);
+	float3 bladeUp = normalize(normalHeight.xyz); //Normal gets altered by negative gravity, so that it grows away
+	float3 bladeDir;
+	float3 bladeFront;
+	CalculateBladeDirAndFront(bladeUp, dirAlpha, bladeDir, bladeFront);
+	float mdt = min(idDeltaTime.Delta, 1.0);
+	if (BillboardGeneration) mdt = DeltaTime;
+	float3 idleV2 = bladeUp * height;
+	float3 v2 = simulationData1.xyz;
+	float collisionForce = max(simulationData0.w - (1.0 - bendingFactor) * RecoveryFactor * mdt, 0.0);
+
+	//Gravity
+	//float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
+	//float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
+	//gravity += sign * bladeFront * height * GravityVec.w * 0.25;
+	//gravity = gravity * height * bendingFactor;
+	
+	float3 gravity = normalize(GravityVec.xyz) * GravityVec.w;
+	//float sign = step(-0.01, dot(normalize(gravity), bladeFront)) * 2.0 - 1.0;
+	float3 gravFront = bladeFront * GravityVec.w * 0.25;
+	gravity = (gravity + gravFront) * height * bendingFactor;
+    
+    float4 WindData = float4(0,0,0,0);
+    
+    for(int i = 0; i < WindLayerCount; i++)
+    {
+        WindLayer layer = WindLayerBuffer[i];
+        if (layer.WindType < 0) break;
+        if (layer.WindType == 0)
+        {
+            float windInfluence = 1.0f - max((cos((v0.x + v0.z) * layer.WindData2.x + layer.WindData.w) + sin((v0.x + v0.y) * layer.WindData2.y + layer.WindData.w) + sin((v0.y + v0.z) * layer.WindData2.z + layer.WindData.w)) / 3.0f, 0.0f);
+            WindData += layer.WindData * windInfluence;
+        } else if (layer.WindType == 1)
+        {
+            float3 vecToWind = layer.WindData.xyz - v0;
+            if (length(vecToWind) == 0) continue;
+            
+            float windInfluence = lerp(1, 0, saturate(length(vecToWind) / layer.WindData.w));
+            if (length(vecToWind) < layer.WindData.w)
+            { 
+                vecToWind = normalize(-vecToWind);
+                //WindData.xyz += float3(-sin(vecToWind.x * PI), -sin(vecToWind.y * PI), cos(vecToWind.z * PI));
+                //WindData.xz += float2(-sin(vecToWind.x * PI), cos(vecToWind.z * PI));
+                WindData.xz += (0.75 * float2(vecToWind.z, -vecToWind.x) + 0.25 * vecToWind.xz) * windInfluence * layer.WindData2.x;
+                //WindData.xyz += vecToWind;
+            }
+        }
+    }
+        
+	//Wind
+	float3 wind;
+	if (length(WindData.xyz) > 0)
+	{
+        float windageHeight = abs(dot(normalize(v2), terrainNormal));
+        //float windageDir = 1.0 - abs(dot(normalize(WindData.xyz), normalize(v2))); //one possible source for v2 being NaN normalize
+        float3 projWind = WindData.xyz - dot(WindData.xyz, bladeUp) * bladeUp;
+        float windageDir = abs(dot(normalize(projWind.xyz), normalize(bladeFront))); //one possible source for v2 being NaN normalize
+        //float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + WindData.w) + sin((v0.x + v0.y) * 0.5f + WindData.w) + sin((v0.y + v0.z) * 0.25f + WindData.w)) / 3.0f, 0.0f);
+        wind = WindData.xyz * windageDir * windageHeight * bendingFactor;
+	} else
+	{
+	    wind = float3(0, 0, 0);
+	}
+	//Stiffness 
+	float3 stiffness = (idleV2 - v2) * (1.0 - bendingFactor * 0.5) * max(1.0 - collisionForce, 0.0);
+
+	//apply new forces
+    //v2 += wind + stiffness;
+	//v2 += gravity + stiffness;
+	//v2 += gravity + wind;
+	v2 += (gravity + wind + stiffness) * mdt;
+
+	//ValidateV2Tex(v2, v0);
+	ValidateV2(v2, terrainNormal);
+    float3 v1 = GetV1(v2, bladeUp, height, invHeight);
+    AdjustBezierArcLength(v1, v2, height);
+    
+    // Collisions
+    bool dataDirty = false;
+    //float3 cV0 = (GetCollisionVolumePos(v0).xyz);
+    //cV0.xy = (cV0.xy + 1) / 2;
+    float3 v2Before = v2;
+    //Test collision with v2
+    /* 
+     * Get v2 position in collider Volume
+     * x,y are brought in range 0..1 so they can be used as texture coordinates 
+     * z is depth, with 1 at near plane (ground level) and 0 at far plane
+     */
+
+    float3 cV2 = (GetCollisionVolumePos(v0 + v2).xyz);
+    cV2.xy = (cV2.xy + 1) / 2;
+    // Get collider data at v2
+    float4 colliderDataAtV2 = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cV2.xy, 0);
+    // At first test if there is a collision
+    float collisionDepthAtV2 = colliderDataAtV2.a - cV2.z;
+    if (collisionDepthAtV2 > 0)
+    {
+        dataDirty = true;
+        // Determine the exact pressure the gets applied on midPoint (the downward delta) in relative space
+        float pressureAtV2 = collisionDepthAtV2;
+        // and in worldSpace
+        float worldSpacePressureAtV2 = min(pressureAtV2 * CollisionVolumeSize.y, height) / height;
+        
+        // Apply a collision to v2 control point
+        // First apply colliders velocity to grass
+        v2 += colliderDataAtV2.xyz * worldSpacePressureAtV2;
+        // Second apply a force along the gravity vector
+        v2 += normalize(GravityVec.xyz) * GravityVec.w * worldSpacePressureAtV2;
+
+        // Determine the force of the collision. Depends on pressure and colliders velocity;
+        //collisionForce += bendingFactor * colliderDataAtV2.xyz * worldSpacePressureAtV2;
+    } else 
+    {
+        //Test collision with beziers midPoint
+        float3 midPoint = 0.5f * v1 + 0.25f * v2;
+        float3 cMidPoint = (GetCollisionVolumePos(v0 + midPoint).xyz);
+        cMidPoint.xy = (cMidPoint.xy + 1) / 2;
+        // Get collider data at v2
+        float4 colliderDataAtMidPoint = CollisionDepthTexture.SampleLevel(samplerCollisionDepthTexture, cMidPoint.xy, 0);
+        // At first test if there is a collision
+        float collisionDepthAtMidPoint = colliderDataAtMidPoint.a - cMidPoint.z;
+        if (collisionDepthAtMidPoint > 0)
+        {
+            dataDirty = true;
+            // Determine the exact pressure the gets applied on v2 (the downward delta) in relative space
+            float pressureAtMidPoint = collisionDepthAtMidPoint;
+            // and in worldSpace, multiply with 4, because only v2 gets altered
+            float worldSpacePressureAtMidPoint = 4 * (min(pressureAtMidPoint * CollisionVolumeSize.y, height * 0.5) / height * 0.5);
+            
+            // Apply a collision to v2 control point
+            // First apply colliders velocity to grass
+            v2 += colliderDataAtMidPoint.xyz * worldSpacePressureAtMidPoint;
+            // Second apply a force along the gravity vector
+            v2 += normalize(GravityVec.xyz) * GravityVec.w * worldSpacePressureAtMidPoint;
+    
+            // Determine the force of the collision. Depends on pressure and colliders velocity;
+            //collisionForce += bendingFactor * colliderDataAtMidPoint.xyz * worldSpacePressureAtMidPoint;
+        }
+    }
+    
+
+    if (dataDirty)
+    {
+        //ValidateV2Tex(v2, v0);
+        ValidateV2(v2, terrainNormal);
+        v1 = GetV1(v2, bladeUp, height, invHeight);
+        AdjustBezierArcLength(v1, v2, height);
+        collisionForce += length(v2 - v2Before);
+    }
+    
+    float3 camDir = v0 - CamPos;
+	float distance = length(camDir);
+    
+    SimulationTexture0[uint3(id.xy, idDeltaTime.Id)] = float4(v1, collisionForce);
+    SimulationTexture1[uint3(id.xy, idDeltaTime.Id)] = float4(v2, distance);
+}
+
+
+
+
+
+
+
+#else
+
+RWTexture2D<float4> SimulationTexture0; //v1.xyz, collisionForce;
+RWTexture2D<float4> SimulationTexture1; //v2.xyz, distance;
+
+/*
+ * BillboardGeneration Kernels below.
+ */ 
+
+[numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
+void SimulationSetupBillboardGeneration(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
 {
     //Create all the needed uv coordinates
     float2 uvLocal = float2(id.x/GrassDataResolution, id.y/GrassDataResolution);
@@ -155,7 +421,7 @@ void SimulationSetup(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uin
 }
 
 [numthreads(physicsNumThreadsX,physicsNumThreadsY,physicsNumThreadsZ)]
-void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
+void PhysicsMainBillboardGeneration(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gindex : SV_GroupIndex)
 {
     //Create all the needed uv coordinates
     float2 uvLocal = float2(id.x/GrassDataResolution + 0.5 / GrassDataResolution, id.y/GrassDataResolution + 0.5 / GrassDataResolution);
@@ -186,7 +452,7 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
 	float invHeight = 1.0 / height;
 	float dirAlpha = parameters.w;
 	float3 localV0 = float3(uvLocal.x, normalHeight.w, uvLocal.y);
-	float3 v0 = LocalToWorldPos(localV0).xyz;
+	float3 v0 = LocalToWorldPos(PatchModelMatrix, localV0).xyz;
 	float3 terrainNormal = normalize(normalHeight.xyz);
 	float3 bladeUp = normalize(normalHeight.xyz); //Normal gets altered by negative gravity, so that it grows away
 	float3 bladeDir;
@@ -343,3 +609,4 @@ void PhysicsMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint g
     SimulationTexture0[id.xy] = float4(v1, collisionForce);
     SimulationTexture1[id.xy] = float4(v2, distance);
 }
+#endif

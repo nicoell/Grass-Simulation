@@ -7,6 +7,9 @@ struct VSOut
     uint instanceID : InstanceID;
     int type : TEXCOORD0;
     float2 uvLocal : TEXCOORD1;
+    #ifndef BILLBOARD_GENERATION
+        uint patchID : TEXCOORD2;
+    #endif
 };
 
 struct HSConstOut

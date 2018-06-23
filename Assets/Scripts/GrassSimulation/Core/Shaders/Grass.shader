@@ -43,6 +43,22 @@ Shader "GrassSimulation/Grass"
                 float2 Position;
                 int type;
             };
+	
+	        struct PatchData {
+	            int RandomIndex; //StartIndex
+	            float4 PatchTexCoord;
+	            float ParameterOffsetX;
+	            float ParameterOffsetY;
+	            float4x4 PatchModelMatrix;
+	        };
+            
+            
+            StructuredBuffer<PatchData> PatchConstantBuffer;
+            
+            //DrawGroup Stuff
+            uniform int StaticInstanceCount;
+            uniform int DrawGroupElements;
+            StructuredBuffer<uint> InstanceToPatchIdBuffer;
             
             //Billboard Generation
             uniform int GrassType;
@@ -119,9 +135,16 @@ Shader "GrassSimulation/Grass"
 			
 			Texture2D NormalHeightTexture; //up.xyz, pos.y
 			SamplerState samplerNormalHeightTexture;
-			Texture2D<float4> SimulationTexture0; //v1.xyz, collisionForce;
-			SamplerState samplerSimulationTexture0;
-			Texture2D<float4> SimulationTexture1; //v2.xyz, distance;
+			
+			#ifdef BILLBOARD_GENERATION
+                Texture2D<float4> SimulationTexture0; //v1.xyz, collisionForce;
+                SamplerState samplerSimulationTexture0;
+                Texture2D<float4> SimulationTexture1; //v2.xyz, distance;
+			#else
+			    Texture2DArray<float4> SimulationTexture0; //v1.xyz, collisionForce;
+                SamplerState samplerSimulationTexture0;
+                Texture2DArray<float4> SimulationTexture1; //v2.xyz, distance;
+			#endif
             
             //PerFrame
             uniform float4 CamPos;
@@ -136,11 +159,13 @@ Shader "GrassSimulation/Grass"
 
             uniform float4 GravityVec;
 			
-			float GetTessellationLevel(float distance, uint instanceID, float2 uv, int type)
+			float GetTessellationLevel(float4 patchTexCoord, float distance, uint instanceID, float2 uv, int type)
 			{
+			    
                 float transition = 0;
-                float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, uv);
+                float2 uvGlobal = lerp(patchTexCoord.xy, patchTexCoord.xy + patchTexCoord.zw, uv);
                 float4 grassMapData = GrassMapTexture.SampleLevel(samplerParameterTexture, uvGlobal, 0);
+                //grassMapData.y = 0.05;
                 
                 #ifdef GRASS_BILLBOARD_CROSSED
                     transition = DoubleLerp(LodInstancesBillboardCrossed * grassMapData.y, distance,
@@ -154,7 +179,7 @@ Shader "GrassSimulation/Grass"
                 #endif
                 
                 //instanceID *= 0.5;
-                uint transitionInstanceID = (transition);
+                uint transitionInstanceID = (uint) transition;
                 
                 //Cull if instance should not be visible
                 if (transition < instanceID) return 0;
@@ -184,18 +209,34 @@ Shader "GrassSimulation/Grass"
 			
 			VSOut vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 			{
+			    
 				VSOut OUT;
 				
+				#ifdef BILLBOARD_GENERATION
+				    int newInstanceID = instanceID;
+				    int _startIndex = StartIndex;
+				#else
+				    /*
+                        StructuredBuffer<PatchData> PatchConstantBuffer;
+                        uniform int StaticInstanceCount;
+                        StructuredBuffer<int> InstanceToPatchIdBuffer;
+                    */
+				    uint instanceToPatchId = instanceID % ((uint)DrawGroupElements);
+                    OUT.patchID = InstanceToPatchIdBuffer[instanceToPatchId];
+				    int _startIndex = PatchConstantBuffer[OUT.patchID].RandomIndex;
+				    int newInstanceID =  floor(instanceID / DrawGroupElements); //TODO: possible rounding error
+				#endif
+
 				OUT.vertexID = vertexID;
 				#ifdef GRASS_BILLBOARD_CROSSED
-				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID % VertexCount) * RepetitionCount;
-				    OUT.instanceID = instanceID / LodBillboardCrossedTransitionSegments;
+				    int i = _startIndex + (VertexCount * RepetitionCount) * newInstanceID + (vertexID % VertexCount) * RepetitionCount;
+				    OUT.instanceID = newInstanceID / LodBillboardCrossedTransitionSegments;
 				#elif GRASS_BILLBOARD_SCREEN
-				    int i = StartIndex + (VertexCount * RepetitionCount) * instanceID + (vertexID * RepetitionCount);
-				    OUT.instanceID = instanceID / LodBillboardScreenTransitionSegments;
+				    int i = _startIndex + (VertexCount * RepetitionCount) * newInstanceID + (vertexID * RepetitionCount);
+				    OUT.instanceID = newInstanceID / LodBillboardScreenTransitionSegments;
 				#else
-				    int i = StartIndex + VertexCount * instanceID + vertexID;
-				    OUT.instanceID = instanceID / LodGeometryTransitionSegments;
+				    int i = _startIndex + VertexCount * newInstanceID + vertexID;
+				    OUT.instanceID = newInstanceID / LodGeometryTransitionSegments;
                 #endif
 				#ifdef BILLBOARD_GENERATION
 				    OUT.type = GrassType;
@@ -209,9 +250,16 @@ Shader "GrassSimulation/Grass"
 			HSConstOut hullPatchConstant( InputPatch<VSOut, 1> IN)
     		{
         		HSConstOut OUT = (HSConstOut)0;
-        		float distance = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0).w;
         		
-        		float level = GetTessellationLevel(distance, IN[0].instanceID, IN[0].uvLocal, IN[0].type);
+        		#ifdef BILLBOARD_GENERATION
+        		    float distance = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0).w;
+				    float4 _patchTexCoord = PatchTexCoord;
+				#else
+        		    float distance = SimulationTexture1.SampleLevel(samplerSimulationTexture0, float3(IN[0].uvLocal, IN[0].patchID), 0).w;
+				    float4 _patchTexCoord = PatchConstantBuffer[IN[0].patchID].PatchTexCoord;
+				#endif
+        		
+        		float level = GetTessellationLevel(_patchTexCoord, distance, IN[0].instanceID, IN[0].uvLocal, IN[0].type);
         		
         		#if GRASS_GEOMETRY
                     OUT.TessFactor[0] = level;	//left
@@ -247,15 +295,33 @@ Shader "GrassSimulation/Grass"
     		HSOut hull( InputPatch<VSOut, 1> IN, uint i : SV_OutputControlPointID )
     		{
         		HSOut OUT = (HSOut)0;
+        		#ifdef BILLBOARD_GENERATION
+				    float4 _patchTexCoord = PatchTexCoord;
+				    float _parameterOffsetX = ParameterOffsetX;
+				    float _parameterOffsetY = ParameterOffsetY;
+				    float4x4 _patchModelMatrix = PatchModelMatrix;
+				#else
+				    float4 _patchTexCoord = PatchConstantBuffer[IN[0].patchID].PatchTexCoord;
+				    float _parameterOffsetX = PatchConstantBuffer[IN[0].patchID].ParameterOffsetX;
+				    float _parameterOffsetY = PatchConstantBuffer[IN[0].patchID].ParameterOffsetY;
+				    float4x4 _patchModelMatrix = PatchConstantBuffer[IN[0].patchID].PatchModelMatrix;
+				#endif
                 
-        	    float2 uvGlobal = lerp(PatchTexCoord.xy, PatchTexCoord.xy + PatchTexCoord.zw, IN[0].uvLocal);
-        		float2 uvParameter = float2(ParameterOffsetX, ParameterOffsetY) + IN[0].uvLocal;
+        	    float2 uvGlobal = lerp(_patchTexCoord.xy, _patchTexCoord.xy + _patchTexCoord.zw, IN[0].uvLocal);
+        		float2 uvParameter = float2(_parameterOffsetX, _parameterOffsetY) + IN[0].uvLocal;
         		float4 normalHeight = NormalHeightTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
-        		float4 SimulationData0 = SimulationTexture0.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
-				float4 SimulationData1 = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
+        		#ifdef BILLBOARD_GENERATION
+                    float4 SimulationData0 = SimulationTexture0.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
+                    float4 SimulationData1 = SimulationTexture1.SampleLevel(samplerSimulationTexture0, IN[0].uvLocal, 0);
+				#else
+				    float4 SimulationData0 = SimulationTexture0.SampleLevel(samplerSimulationTexture0, float3(IN[0].uvLocal, IN[0].patchID), 0);
+                    float4 SimulationData1 = SimulationTexture1.SampleLevel(samplerSimulationTexture0, float3(IN[0].uvLocal, IN[0].patchID), 0);
+				#endif
         		float4 grassMapData = GrassMapTexture.SampleLevel(samplerNormalHeightTexture, uvGlobal, 0);
         		
-        		OUT.pos = mul(PatchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
+        		OUT.pos = mul(_patchModelMatrix, float4(IN[0].uvLocal.x, normalHeight.w, IN[0].uvLocal.y, 1.0)).xyz;
+        		//if (_patchModelMatrix[1][1] > 0.0)
+        		//OUT.pos = float3(_patchModelMatrix._m03, 10, _patchModelMatrix._m23);
 
         		float distance = SimulationData1.w;
         		
@@ -271,6 +337,7 @@ Shader "GrassSimulation/Grass"
                         LodDistanceGeometryStart, LodDistanceGeometryEnd);
                 #endif
                 
+                //OUT.transitionFactor = 1;
         		//TODO: Compare performance of condition
         		//TODO: Check if height transition is disabled
         		#ifdef BILLBOARD_GENERATION
@@ -284,6 +351,7 @@ Shader "GrassSimulation/Grass"
                         OUT.transitionFactor = 1;
                     }
         		#endif
+        		
 
         		OUT.parameters = ParameterTexture.SampleLevel(samplerParameterTexture, uvParameter, 0);
         		#ifdef BILLBOARD_GENERATION

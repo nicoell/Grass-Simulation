@@ -5,23 +5,55 @@ using UnityEngine.Rendering;
 
 namespace GrassSimulation.StandardContainers
 {
+	public struct IdDeltaTime
+	{
+		public uint Id;
+		public float DeltaTime;
+	}
+
 	public class UniformGridHierarchyPatchContainer : PatchContainer
 	{
+		private GrassDrawGroup[] _billboardCrossedDrawGroups;
+		private GrassDrawGroup[] _billboardScreenDrawGroups;
+
+		private GrassDrawGroup[] _geometryDrawGroups;
 		private int _grassPatchCount;
 		private GrassPatch[,] _grassPatches;
+		private ComputeBuffer _instanceToPatchIdDeltaTimeBuffer;
+		private IdDeltaTime[] _instanceToPatchIdDeltaTimeData;
+
+		private ComputeBuffer _patchDataBuffer;
 		private Plane[] _planes;
 		private BoundingPatch _rootPatch;
-		private List<GrassPatch> _visiblePatches;
 		private RenderTexture _simulationTexture0;
 		private RenderTexture _simulationTexture1;
-	
+
+		private int _threadGroupX, _threadGroupY, _threadGroupZ;
+		private List<GrassPatch> _visiblePatches;
+		public Mesh BillboardCrossedDummyMesh;
+		public Mesh BillboardScreenDummyMesh;
+		public Mesh GeometryDummyMesh;
+
 		public override void Unload()
 		{
-			if (_grassPatches != null) foreach (var grassPatch in _grassPatches) grassPatch.Unload();
+			if (_grassPatches != null)
+				foreach (var grassPatch in _grassPatches)
+					grassPatch.Unload();
 			if (_visiblePatches != null) _visiblePatches.Clear();
 			_grassPatches = null;
-			Object.DestroyImmediate(_simulationTexture0);
-			Object.DestroyImmediate(_simulationTexture1);
+			DestroyImmediate(_simulationTexture0);
+			DestroyImmediate(_simulationTexture1);
+			if (_geometryDrawGroups != null)
+				foreach (var geometryDrawGroup in _geometryDrawGroups)
+					geometryDrawGroup.Unload();
+			if (_billboardCrossedDrawGroups != null)
+				foreach (var billboardCrossedDrawGroup in _billboardCrossedDrawGroups)
+					billboardCrossedDrawGroup.Unload();
+			if (_billboardScreenDrawGroups != null)
+				foreach (var billboardScreenDrawGroup in _billboardScreenDrawGroups)
+					billboardScreenDrawGroup.Unload();
+			if (_patchDataBuffer != null) _patchDataBuffer.Release();
+			if (_instanceToPatchIdDeltaTimeBuffer != null) _instanceToPatchIdDeltaTimeBuffer.Release();
 		}
 
 		public override Bounds GetBounds() { return _rootPatch.Bounds; }
@@ -30,7 +62,65 @@ namespace GrassSimulation.StandardContainers
 		{
 			CullViewFrustum();
 			foreach (var grassPatch in _grassPatches) grassPatch.DeltaTime += Time.deltaTime;
-			foreach (var visiblePatch in _visiblePatches) visiblePatch.Draw();
+			foreach (var visiblePatch in _visiblePatches)
+			{
+				//Compute instanceCounts to determine LOD and register patch in appropriate drawgroup
+				uint geometryInstanceCount, billboardCrossedInstanceCount, billboardScreenInstanceCount;
+				visiblePatch.ComputeLod(out geometryInstanceCount, out billboardCrossedInstanceCount,
+					out billboardScreenInstanceCount);
+
+				if (geometryInstanceCount > 0)
+					_geometryDrawGroups[geometryInstanceCount - 1].RegisterPatch(visiblePatch);
+				if (billboardCrossedInstanceCount > 0)
+					_billboardCrossedDrawGroups[billboardCrossedInstanceCount - 1].RegisterPatch(visiblePatch);
+				if (billboardScreenInstanceCount > 0)
+					_billboardScreenDrawGroups[billboardScreenInstanceCount - 1].RegisterPatch(visiblePatch);
+			}
+
+			//Update instanceToGrassPatchId Buffer
+			
+			//_instanceToPatchIdDeltaTimeData = new IdDeltaTime[/*_visiblePatches.Count*/_grassPatchCount];
+			/*
+			for (var i = 0; i < _instanceToPatchIdDeltaTimeData.Length; i++)
+				_instanceToPatchIdDeltaTimeData[i] = new IdDeltaTime
+				{
+					Id = _visiblePatches[i].TextureIndex,
+					DeltaTime = _visiblePatches[i].DeltaTime
+					
+				};
+			*/
+			int i = 0;
+			foreach (var grassPatch in _visiblePatches)
+			{
+				_instanceToPatchIdDeltaTimeData[i].Id = grassPatch.TextureIndex;
+				_instanceToPatchIdDeltaTimeData[i].DeltaTime = grassPatch.DeltaTime;
+				i++;
+			}
+			//_instanceToPatchIdDeltaTimeBuffer.SetCounterValue((uint) _grassPatchCount/*_visiblePatches.Count*/);
+			_instanceToPatchIdDeltaTimeBuffer.SetData(_instanceToPatchIdDeltaTimeData);
+			/*Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "InstanceToPatchIdDeltaTimeBuffer",
+				_instanceToPatchIdDeltaTimeBuffer); //TODO: temporary test*/
+
+			RunSimulation();
+
+			//Reset visible patches delta Time
+			foreach (var grassPatch in _visiblePatches) grassPatch.DeltaTime = 0;
+
+			//Draw different lod representations in grouped draw call
+			foreach (var geometryDrawGroup in _geometryDrawGroups) geometryDrawGroup.Draw();
+			foreach (var billboardCrossedDrawGroup in _billboardCrossedDrawGroups) billboardCrossedDrawGroup.Draw();
+			foreach (var billboardScreenDrawGroup in _billboardScreenDrawGroups) billboardScreenDrawGroup.Draw();
+		}
+
+		private void RunSimulation()
+		{
+			//uint threadGroupX, threadGroupY, threadGroupZ;
+			//Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelPhysics, out threadGroupX, out threadGroupY, out threadGroupZ);
+
+			_threadGroupZ = _visiblePatches.Count;
+
+			//Run Physics Simulation
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, _threadGroupX, _threadGroupY, _threadGroupZ);
 		}
 
 		public override void SetupContainer()
@@ -40,17 +130,53 @@ namespace GrassSimulation.StandardContainers
 			_visiblePatches = new List<GrassPatch>();
 			CreateGrassPatchGrid();
 			CreatePatchHierarchy();
-			
-			CreateGpuTextureAndBuffer();
-			SetupSimulation();
 
+			GeometryDummyMesh = CreateDummyMesh(Ctx.Settings.GetMinAmountBladesPerPatch());
+			BillboardCrossedDummyMesh = CreateDummyMesh(Ctx.Settings.GetMinAmountBillboardsPerPatch() * 3);
+			BillboardScreenDummyMesh = CreateDummyMesh(Ctx.Settings.GetMinAmountBillboardsPerPatch());
+
+			CreateGpuTextureAndBuffer();
+			CreateDrawGroups();
+			SetupSimulation();
 		}
 
-		private ComputeBuffer _patchDataBuffer;
-		private ComputeBuffer _argBuffer;
-		private ComputeBuffer _appendBuffer;
-		private uint[] _argsBuffer = {0, 0, 0, 0, 0};
-		
+		private static Mesh CreateDummyMesh(uint meshSize)
+		{
+			var dummyVertices = new Vector3[meshSize];
+			var indices = new int[meshSize];
+
+			for (var i = 0; i < meshSize; i++)
+			{
+				dummyVertices[i] = Vector3.zero;
+				indices[i] = i;
+			}
+
+			var dummyMesh = new Mesh {vertices = dummyVertices};
+			dummyMesh.SetIndices(indices, MeshTopology.Points, 0);
+			dummyMesh.RecalculateBounds();
+			return dummyMesh;
+		}
+
+		private void CreateDrawGroups()
+		{
+			_geometryDrawGroups = new GrassDrawGroup[Ctx.Settings.LodInstancesGeometry];
+			_billboardCrossedDrawGroups = new GrassDrawGroup[Ctx.Settings.LodInstancesBillboardCrossed];
+			_billboardScreenDrawGroups = new GrassDrawGroup[Ctx.Settings.LodInstancesBillboardScreen];
+			for (uint i = 0; i < Ctx.Settings.LodInstancesGeometry; i++)
+				_geometryDrawGroups[i] =
+					new GrassDrawGroup(Ctx, Ctx.GrassGeometry, GeometryDummyMesh, _grassPatchCount, i + 1, true);
+
+			for (uint i = 0; i < Ctx.Settings.LodInstancesBillboardCrossed; i++)
+				_billboardCrossedDrawGroups[i] =
+					new GrassDrawGroup(Ctx, Ctx.GrassBillboardCrossed, BillboardCrossedDummyMesh, _grassPatchCount,
+						i + 1);
+
+			for (uint i = 0; i < Ctx.Settings.LodInstancesBillboardScreen; i++)
+				_billboardScreenDrawGroups[i] =
+					new GrassDrawGroup(Ctx, Ctx.GrassBillboardScreen, BillboardScreenDummyMesh, _grassPatchCount,
+						i + 1);
+		}
+
 		private void CreateGpuTextureAndBuffer()
 		{
 			_simulationTexture0 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
@@ -66,7 +192,7 @@ namespace GrassSimulation.StandardContainers
 				volumeDepth = _grassPatchCount
 			};
 			_simulationTexture0.Create();
-			
+
 			_simulationTexture1 = new RenderTexture(Ctx.Settings.GetPerPatchTextureWidthHeight(),
 				Ctx.Settings.GetPerPatchTextureWidthHeight(), 0,
 				RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
@@ -80,48 +206,67 @@ namespace GrassSimulation.StandardContainers
 				volumeDepth = _grassPatchCount
 			};
 			_simulationTexture1.Create();
-			
+
+			_instanceToPatchIdDeltaTimeBuffer =
+				new ComputeBuffer(_grassPatchCount, sizeof(uint) + sizeof(float), ComputeBufferType.Append);
+			_instanceToPatchIdDeltaTimeBuffer.SetCounterValue((uint) _grassPatchCount);
+
+			_instanceToPatchIdDeltaTimeData = new IdDeltaTime[_grassPatchCount];
+			for (uint i = 0; i < _instanceToPatchIdDeltaTimeData.Length; i++)
+				_instanceToPatchIdDeltaTimeData[i] = new IdDeltaTime {Id = i, DeltaTime = 0.1f};
+
+			_instanceToPatchIdDeltaTimeBuffer.SetData(_instanceToPatchIdDeltaTimeData);
+
+			/*
+			 * TODO:
+			 * Bind texture to shader glabally.
+			 * Assing each grassapatch an index
+			 * Create DrawGroups for each possible instanceIdCount of geometry, billboardcrossed and billboardscreen grass.
+			 * Compute Lods of grasspatches and assign patch to matching drawgroup
+			 * Run computeShader
+			 * Update DrawGroups InstanceToPatchID Buffer and perform draw calls.
+			 */
+
+			//Create constant patchData Buffer
 			_patchDataBuffer = new ComputeBuffer(_grassPatchCount, PatchData.GetSize(), ComputeBufferType.Default);
 			var patchDataArray = new PatchData[_grassPatchCount];
-			for (int y = 0; y < _grassPatches.GetLength(0); y++)
-			for (int x = 0; x < _grassPatches.GetLength(1); x++)
-			{
-				int i = y * _grassPatches.GetLength(1) + x;
-				patchDataArray[i] = _grassPatches[x,y].PatchData;	//TODO: possible error source
-			}
+			foreach (var grassPatch in _grassPatches) patchDataArray[grassPatch.TextureIndex] = grassPatch.PatchData;
 			_patchDataBuffer.SetData(patchDataArray);
-			
-			_appendBuffer = new ComputeBuffer(_grassPatchCount, sizeof(int), ComputeBufferType.Append);
-			_appendBuffer.SetCounterValue(0);
-			
-			_argBuffer = new ComputeBuffer(1, _argsBuffer.Length * sizeof(int), ComputeBufferType.IndirectArguments);
-			
+
+			Ctx.GrassGeometry.SetBuffer("PatchConstantBuffer", _patchDataBuffer);
+			Ctx.GrassGeometry.SetTexture("SimulationTexture0", _simulationTexture0);
+			Ctx.GrassGeometry.SetTexture("SimulationTexture1", _simulationTexture1);
+			Shader.SetGlobalBuffer("PatchConstantBuffer", _patchDataBuffer);
+			Shader.SetGlobalTexture("SimulationTexture0", _simulationTexture0);
+			Shader.SetGlobalTexture("SimulationTexture1", _simulationTexture1);
+
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture0", _simulationTexture0);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture1", _simulationTexture1);
-			
+			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "PatchConstantBuffer", _patchDataBuffer);
+			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "InstanceToPatchIdDeltaTimeBuffer",
+				_instanceToPatchIdDeltaTimeBuffer);
+
+			Ctx.GrassSimulationComputeShader.SetFloat("GrassDataResolution", Ctx.Settings.GrassDataResolution);
 		}
 
 		private void SetupSimulation()
 		{
-			Ctx.GrassSimulationComputeShader.SetInt("StartIndex", _startIndex);
-			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetX", _parameterOffsetX);
-			Ctx.GrassSimulationComputeShader.SetFloat("ParameterOffsetY", _parameterOffsetY);
-			Ctx.GrassSimulationComputeShader.SetVector("PatchTexCoord", _patchTexCoord);
-			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
-
 			//Set buffers for SimulationSetup Kernel
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture0",
 				_simulationTexture0);
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture1",
 				_simulationTexture1);
-			//Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
+			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelSimulationSetup, "PatchConstantBuffer",
+				_patchDataBuffer);
+			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelSimulationSetup, "InstanceToPatchIdDeltaTimeBuffer",
+				_instanceToPatchIdDeltaTimeBuffer);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
 			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelSimulationSetup, out threadGroupX,
 				out threadGroupY, out threadGroupZ);
 			_threadGroupX = (int) (Ctx.Settings.GrassDataResolution / threadGroupX);
 			_threadGroupY = (int) (Ctx.Settings.GrassDataResolution / threadGroupY);
-			_threadGroupZ = 1;
+			_threadGroupZ = _grassPatchCount;
 
 			//Run Physics Simulation
 			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelSimulationSetup, _threadGroupX, _threadGroupY,
@@ -176,7 +321,7 @@ namespace GrassSimulation.StandardContainers
 
 				//Create new patch and give it the data we just calculated
 				_grassPatches[y, x] = new GrassPatch(Ctx, patchTexCoord,
-					new Bounds(patchBoundsCenter, patchBoundsSize), y * patchQuantity.x + x);
+					new Bounds(patchBoundsCenter, patchBoundsSize), (uint) _grassPatchCount);
 				_grassPatchCount++;
 			}
 		}
@@ -209,8 +354,10 @@ namespace GrassSimulation.StandardContainers
 						hierarchicalPatch.AddChild(patchesInput[row, col]);
 					else hierarchicalPatch.AddChild(null);
 				}
+
 				patchesOutput[y, x] = hierarchicalPatch;
 			}
+
 			return patchesOutput;
 		}
 
@@ -222,7 +369,7 @@ namespace GrassSimulation.StandardContainers
 			foreach (var visiblePatch in _visiblePatches) visiblePatch.DrawGizmo();
 		}
 
-		public override void OnGUI() {  }
+		public override void OnGUI() { }
 
 		private void CullViewFrustum()
 		{
@@ -243,38 +390,44 @@ namespace GrassSimulation.StandardContainers
 			{
 				var childPatches = ((BoundingPatch) patch).ChildPatches;
 				if (childPatches == null) return;
-				foreach (var childPatch in childPatches) if (childPatch != null) TestViewFrustum(childPatch);
+				foreach (var childPatch in childPatches)
+					if (childPatch != null)
+						TestViewFrustum(childPatch);
 			}
 		}
 
-		public override void GetDebugInfo(ref int visiblePatchCount, ref int simulatedGrassCount, ref int geometryGrassCount, ref int crossedBillboardGrassCount, ref int screenBillboardGrassCount, ref int geometryPatchCount, ref int crossedBillboardPatchCount, ref int screenBillboardPatchCount)		{
+		public override void GetDebugInfo(ref int visiblePatchCount, ref int simulatedGrassCount,
+			ref int geometryGrassCount, ref int crossedBillboardGrassCount, ref int screenBillboardGrassCount,
+			ref int geometryPatchCount, ref int crossedBillboardPatchCount, ref int screenBillboardPatchCount)
+		{
 			foreach (var visiblePatch in _visiblePatches)
 			{
 				visiblePatchCount++;
 				simulatedGrassCount += Ctx.Settings.GrassDataResolution * Ctx.Settings.GrassDataResolution;
-				geometryGrassCount += (int) visiblePatch._argsGeometry[1] * (int) Ctx.Settings.GetMinAmountBladesPerPatch();
-				if (visiblePatch._argsGeometry[1] > 0)
+				geometryGrassCount +=
+					(int) visiblePatch.GeometryInstanceCount * (int) Ctx.Settings.GetMinAmountBladesPerPatch();
+				if (visiblePatch.GeometryInstanceCount > 0)
 				{
 					geometryPatchCount += 1;
-					geometryGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBladesPerPatch() * 0.5f);
+					geometryGrassCount -= (int) ((int) Ctx.Settings.GetMinAmountBladesPerPatch() * 0.5f);
 				}
 
-				crossedBillboardGrassCount += (int) visiblePatch._argsBillboardCrossed[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
-				if (visiblePatch._argsBillboardCrossed[1] > 0)
+				crossedBillboardGrassCount += (int) visiblePatch.BillboardCrossedInstanceCount *
+				                              (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
+				if (visiblePatch.BillboardCrossedInstanceCount > 0)
 				{
 					crossedBillboardPatchCount += 1;
-					crossedBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
+					crossedBillboardGrassCount -= (int) ((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
 				}
 
-				screenBillboardGrassCount += (int) visiblePatch._argsBillboardScreen[1] * (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
-				if (visiblePatch._argsBillboardScreen[1] > 0)
+				screenBillboardGrassCount += (int) visiblePatch.BillboardScreenInstanceCount *
+				                             (int) Ctx.Settings.GetMinAmountBillboardsPerPatch();
+				if (visiblePatch.BillboardScreenInstanceCount > 0)
 				{
 					screenBillboardPatchCount += 1;
-					screenBillboardGrassCount -= (int)((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
+					screenBillboardGrassCount -= (int) ((int) Ctx.Settings.GetMinAmountBillboardsPerPatch() * 0.5f);
 				}
 			}
-			
-			
 		}
 	}
 }

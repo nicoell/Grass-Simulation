@@ -46,6 +46,7 @@ namespace GrassSimulation.Core.Wind {
 			WindLayerBuffer.SetData(_windLayerData);
 			
 			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysics, "WindLayerBuffer", WindLayerBuffer);
+			Ctx.GrassSimulationComputeShader.SetBuffer(Ctx.KernelPhysicsBillboardGeneration, "WindLayerBuffer", WindLayerBuffer);
 			//Ctx.GrassSimulationComputeShader.SetVector("WindDataTest", _windLayerData[0].WindData);
 		}
 

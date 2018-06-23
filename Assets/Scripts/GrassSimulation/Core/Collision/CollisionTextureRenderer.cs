@@ -39,6 +39,7 @@ namespace GrassSimulation.Core.Collision
 			Ctx.CollisionCamera.transform.SetPositionAndRotation(position, rotation);
 			
 			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "CollisionDepthTexture", CollisionDepthTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysicsBillboardGeneration, "CollisionDepthTexture", CollisionDepthTexture);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeSize", bounds.size.x, bounds.size.y, bounds.size.z);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMin", bounds.min.x, bounds.min.y, bounds.min.z);
 			Ctx.GrassSimulationComputeShader.SetFloats("CollisionVolumeMax", bounds.max.x, bounds.max.y, bounds.max.z);

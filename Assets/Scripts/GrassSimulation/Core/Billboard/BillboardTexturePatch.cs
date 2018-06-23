@@ -210,16 +210,16 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for Physics Kernel
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture0", _simulationTexture0);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "SimulationTexture1", _simulationTexture1);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysics, "NormalHeightTexture", _normalHeightTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysicsBillboardGeneration, "SimulationTexture0", _simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysicsBillboardGeneration, "SimulationTexture1", _simulationTexture1);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelPhysicsBillboardGeneration, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
-			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelPhysics, out threadGroupX, out threadGroupY,
+			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelPhysicsBillboardGeneration, out threadGroupX, out threadGroupY,
 				out threadGroupZ);
 
 			//Run Physics Simulation
-			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysics, (int) (Ctx.Settings.GrassDataResolution / threadGroupX),
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelPhysicsBillboardGeneration, (int) (Ctx.Settings.GrassDataResolution / threadGroupX),
 				(int) (Ctx.Settings.GrassDataResolution / threadGroupY), 1);
 
 			_boundsTexture0 = RenderTextureUtils.GetRenderTextureAsTexture2D(
@@ -289,16 +289,16 @@ namespace GrassSimulation.Core.Billboard
 			Ctx.GrassSimulationComputeShader.SetMatrix("PatchModelMatrix", _patchModelMatrix);
 
 			//Set buffers for SimulationSetup Kernel
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture0", _simulationTexture0);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "SimulationTexture1", _simulationTexture1);
-			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetup, "NormalHeightTexture", _normalHeightTexture);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetupBillboardGeneration, "SimulationTexture0", _simulationTexture0);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetupBillboardGeneration, "SimulationTexture1", _simulationTexture1);
+			Ctx.GrassSimulationComputeShader.SetTexture(Ctx.KernelSimulationSetupBillboardGeneration, "NormalHeightTexture", _normalHeightTexture);
 
 			uint threadGroupX, threadGroupY, threadGroupZ;
-			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelSimulationSetup, out threadGroupX,
+			Ctx.GrassSimulationComputeShader.GetKernelThreadGroupSizes(Ctx.KernelSimulationSetupBillboardGeneration, out threadGroupX,
 				out threadGroupY, out threadGroupZ);
 
 			//Run Physics Simulation
-			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelSimulationSetup,
+			Ctx.GrassSimulationComputeShader.Dispatch(Ctx.KernelSimulationSetupBillboardGeneration,
 				(int) (Ctx.Settings.GrassDataResolution / threadGroupX), (int) (Ctx.Settings.GrassDataResolution / threadGroupY),
 				1);
 		}

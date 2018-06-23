@@ -28,7 +28,6 @@ namespace GrassSimulation.Core
 		public WindManager WindManager; 
 
 		public Shader GrassSimulationShader;
-		public Shader IndirectLodComputeShader;
 		[NonSerialized]
 		public Material GrassGeometry;
 		[NonSerialized]
@@ -99,9 +98,11 @@ namespace GrassSimulation.Core
 		[HideInInspector] 
 		public int KernelPhysics;
 		[HideInInspector] 
-		public int KernelIndirectLodCompute;
+		public int KernelPhysicsBillboardGeneration;
 		[HideInInspector] 
 		public int KernelSimulationSetup;
+		[HideInInspector] 
+		public int KernelSimulationSetupBillboardGeneration;
 		[NonSerialized] 
 		public Random Random;
 		public GrassInstance GrassInstance;
@@ -164,7 +165,7 @@ namespace GrassSimulation.Core
 			BlossomTexture2DArray0 = BladeContainer.GetGeoemetryTexture2DArray(1);
 			BlossomTexture2DArray1 = BladeContainer.GetGeoemetryTexture2DArray(3);
 			Debug.Log("\t Created Texture Arrays for LookUp- and Surface-Textures for " +BladeContainer.Blades.Length + " Blades and "+ BlossomCount + " Blossoms in " + (int) (DateTime.Now - timeTextureArrays).TotalMilliseconds + "ms");
-			if (!Transform || !Camera || !CollisionCamera || !BillboardTextureCamera || !GrassSimulationComputeShader || !CollisionDepthShader || !GrassSimulationShader || !IndirectLodComputeShader || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
+			if (!Transform || !Camera || !CollisionCamera || !BillboardTextureCamera || !GrassSimulationComputeShader || !CollisionDepthShader || !GrassSimulationShader || !DimensionsInput || !GrassMapInput || !HeightInput || !NormalInput || !PositionInput || !PatchContainer || BladeTexture2DArray0 == null || BladeTexture2DArray1 == null)
 			{
 				Debug.LogWarning("GrassSimulation: Not all dependencies are set.");
 				if (!Transform) Debug.Log("GrassSimulation: Transform not set.");
@@ -174,7 +175,6 @@ namespace GrassSimulation.Core
 				if (!GrassSimulationComputeShader) Debug.Log("GrassSimulation: GrassSimulationComputeShader not set.");
 				if (!CollisionDepthShader) Debug.Log("GrassSimulation: CollisionDepthShader not set.");
 				if (!GrassSimulationShader) Debug.Log("GrassSimulation: GrassSimulationShader not set.");
-				if (!IndirectLodComputeShader) Debug.Log("GrassSimulation: IndirectLodComputeShader not set.");
 				if (!DimensionsInput) Debug.Log("GrassSimulation: DimensionsInput not set.");
 				if (!GrassMapInput) Debug.Log("GrassSimulation: GrassMapInput not set.");
 				if (!HeightInput) Debug.Log("GrassSimulation: HeightInput not set.");
@@ -190,9 +190,11 @@ namespace GrassSimulation.Core
 			Random = new Random(Settings.RandomSeed);
 
 			//Find kernels for ComputeShaders
-			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
 			KernelSimulationSetup = GrassSimulationComputeShader.FindKernel("SimulationSetup"); 
-			KernelIndirectLodCompute = GrassSimulationComputeShader.FindKernel("KernelIndirectLodCompute"); 
+			KernelPhysics = GrassSimulationComputeShader.FindKernel("PhysicsMain");
+			
+			KernelSimulationSetupBillboardGeneration = GrassSimulationComputeShader.FindKernel("SimulationSetupBillboardGeneration"); 
+			KernelPhysicsBillboardGeneration = GrassSimulationComputeShader.FindKernel("PhysicsMainBillboardGeneration");
 			
 			//Create Material Variants
 			
